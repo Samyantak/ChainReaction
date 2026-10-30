@@ -9,6 +9,7 @@ until the key resolves.
 import json
 import urllib.request
 from dataclasses import asdict, dataclass, field
+from html.parser import HTMLParser
 
 CHANGE_SET_JSON_SCHEMA = {
     "name": "change_set",
@@ -124,15 +125,46 @@ def change_symbols(changeset: ChangeSet, verified_only: bool = True) -> set[str]
     }
 
 
+class _TextExtractor(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.chunks: list[str] = []
+        self.skip = 0
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        if tag in ("script", "style"):
+            self.skip += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("script", "style"):
+            self.skip = max(0, self.skip - 1)
+
+    def handle_data(self, data: str) -> None:
+        if not self.skip:
+            self.chunks.append(data)
+
+
+def html_to_text(page: str) -> str:
+    """Strip tags, unescape entities, collapse whitespace to one line.
+
+    Quotes match against this cleaned text — both the recorded stubs and
+    (later) the LLM's exact-substring quotes.
+    """
+    parser = _TextExtractor()
+    parser.feed(page)
+    return " ".join(" ".join(parser.chunks).split())
+
+
 def fetch_text(url: str, timeout: int = 60) -> str:
-    """Fetch a migration guide / changelog as text (raises on failure)."""
+    """Fetch a migration guide / changelog as clean text (raises on failure)."""
     req = urllib.request.Request(url, headers={"User-Agent": "ChainReaction/0.1"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         raw = resp.read()
     try:
-        return raw.decode("utf-8")
+        page = raw.decode("utf-8")
     except UnicodeDecodeError:
-        return raw.decode("latin-1")
+        page = raw.decode("latin-1")
+    return html_to_text(page)
 
 
 def to_json(changeset: ChangeSet) -> str:

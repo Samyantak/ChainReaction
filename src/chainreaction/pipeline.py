@@ -31,16 +31,17 @@ class PipelineResult:
     symbols: set[str]
 
 
-def run_pipeline(scenario_id: str, fetch_guide: bool = False) -> PipelineResult:
+def run_pipeline(scenario_id: str, fetch_guide: bool = False,
+                 guide_text: str | None = None) -> PipelineResult:
     scen = scenarios.get(scenario_id)
     changeset = ChangeSet(scen.decision, scen.guide_url,
                           [i for i in scen.stub_items])
     if fetch_guide:
-        text = fetch_text(scen.guide_url)
+        text = guide_text if guide_text is not None else fetch_text(scen.guide_url)
         changeset.items, _ = verify_quotes(changeset.items, text)
     else:
         for item in changeset.items:
-            item.verified = True  # stub: quotes recorded by hand
+            item.verified = True  # offline: trust the recorded quotes
     symbols = change_symbols(changeset)
 
     g = build_graph_from_repo(scen.target, scen.package)

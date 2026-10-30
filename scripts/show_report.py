@@ -25,20 +25,22 @@ def main() -> int:
     out = _opt("--out=")
     scen = scenarios.get(scenario_id)
 
+    guide_text = None
     if fetch_guide:
         try:
-            text = fetch_text(scen.guide_url)
+            guide_text = fetch_text(scen.guide_url)
         except Exception as e:  # noqa: BLE001 - report honestly, keep stub
             print(f"guide fetch failed ({e}); using unverified stub")
         else:
-            verified, dropped = verify_quotes(list(scen.stub_items), text)
-            print(f"guide fetched ({len(text)} chars): {len(verified)} "
+            verified, dropped = verify_quotes(list(scen.stub_items), guide_text)
+            print(f"guide fetched ({len(guide_text)} chars): {len(verified)} "
                   f"verified, {len(dropped)} dropped — "
                   f"dropped={[i.symbol for i in dropped]}")
     else:
         print("change set source: stub (use --fetch-guide for live verify)")
 
-    res = run_pipeline(scenario_id)
+    res = run_pipeline(scenario_id, fetch_guide=guide_text is not None,
+                       guide_text=guide_text)
     g, report = res.graph, res.report
     print(f"change symbols: {report.change_symbols}")
     print(f"layer1 modules={len(report.layers[0].actual)} "

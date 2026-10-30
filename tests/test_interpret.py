@@ -10,32 +10,37 @@ from chainreaction.interpret import (
     ChangeItem,
     ChangeSet,
     change_symbols,
+    html_to_text,
     interpret,
     to_json,
     verify_quotes,
 )
 
-GUIDE = """\
-NumPy 2.0 migration guide (excerpt).
-
-`np.sctypes` was removed in the NumPy 2.0 release. Access dtypes explicitly
-instead.
-
-`np.maximum_sctype` was removed in the NumPy 2.0 release. Use a specific
-dtype instead.
-"""
+# Already-cleaned guide text, as fetch_text returns it (tags stripped,
+# whitespace collapsed to one line).
+GUIDE = ("NumPy 2.0 migration guide (excerpt). Removed members: "
+         "sctypes Access dtypes explicitly instead. "
+         "maximum_sctype Use a specific dtype instead.")
 
 
 def _items():
     return [
         ChangeItem("numpy.sctypes", "removed",
-                   "`np.sctypes` was removed in the NumPy 2.0 release."),
+                   "sctypes Access dtypes explicitly instead."),
         ChangeItem("numpy.maximum_sctype", "removed",
-                   "`np.maximum_sctype` was removed in the NumPy 2.0 release."),
+                   "maximum_sctype Use a specific dtype instead."),
         ChangeItem("numpy.something", "removed",
                    "sctypes is gone, roughly speaking"),  # paraphrase: dropped
         ChangeItem("numpy.empty", "removed", ""),  # empty quote: dropped
     ]
+
+
+def test_html_to_text_strips_tags_and_skips_scripts():
+    page = ("<html><head><script>var sctypes = 1;</script></head>"
+            "<body><table><tr><td><p>sctypes</p></td>\n"
+            "<td><p>Access dtypes &amp; stuff instead.</p></td></tr></table>"
+            "</body></html>")
+    assert html_to_text(page) == "sctypes Access dtypes & stuff instead."
 
 
 def test_verify_quotes_keeps_exact_matches_only():

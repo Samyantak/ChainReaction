@@ -58,9 +58,11 @@ NIBABEL_NUMPY2 = Scenario(
     pr_files=list(PR_1250_FILES),
     stub_items=[
         ChangeItem("numpy.sctypes", "removed",
-                   "`np.sctypes` was removed in the NumPy 2.0 release."),
+                   "sctypes Access dtypes explicitly instead.",
+                   replacement="Access dtypes explicitly instead."),
         ChangeItem("numpy.maximum_sctype", "removed",
-                   "`np.maximum_sctype` was removed in the NumPy 2.0 release."),
+                   "maximum_sctype Use a specific dtype instead.",
+                   replacement="Use a specific dtype instead."),
     ],
     peel_preamble=PEEL_SCTYPES,
 )
