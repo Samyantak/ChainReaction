@@ -68,6 +68,8 @@ def main() -> int:
     ok = spine_ok and peel_recall == 1.0 and before_ok and not violations
     print(f"spine_match={spine_ok} peel_recall={peel_recall:.2f} "
           f"before_ok={before_ok}")
+    print(f"file P/R vs PR: {report.file_precision:.2f}/"
+          f"{report.file_recall:.2f} missed={report.file_missing}")
     print("REPORT_MATCH" if ok else "REPORT_DIFFERS (see above)")
     return 0 if ok else 1
 

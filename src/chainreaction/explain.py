@@ -34,6 +34,11 @@ class Report:
     spine_evidence: list[tuple[str, str, str, int]] = field(default_factory=list)
     spine_match: bool = False  # chain_match(spine, layers[0].actual)
     before_numpy: str | None = None
+    pr_url: str = ""
+    pr_files: list[str] = field(default_factory=list)
+    file_precision: float | None = None
+    file_recall: float | None = None
+    file_missing: list[str] = field(default_factory=list)
     layers: list[LayerResult] = field(default_factory=list)
     grep_hits: int = 0
     ruff_hits: int | None = None
@@ -96,9 +101,21 @@ def render_markdown(report: Report) -> str:
         f"Chain vs layer-1 actual: "
         f"{'MATCH' if report.spine_match else 'DIFFERS'}",
         "",
-        "## Verification",
-        "",
     ]
+    if report.pr_url:
+        flagged = len(report.pr_files) - len(report.file_missing)
+        lines += [
+            "## Ground truth (PR)",
+            "",
+            f"URL: {report.pr_url}",
+            f"Files needing edits: precision {report.file_precision:.2f}, "
+            f"recall {report.file_recall:.2f} "
+            f"({flagged}/{len(report.pr_files)} PR files flagged)",
+            "Missed: "
+            + (", ".join(f"`{m}`" for m in report.file_missing) or "none"),
+            "",
+        ]
+    lines += ["## Verification", ""]
     for layer in report.layers:
         lines += [
             f"### {layer.name} (recall {layer.recall:.2f})",

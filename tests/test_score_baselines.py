@@ -1,9 +1,10 @@
 """Scorer and baseline tests (pure + synthetic files)."""
 
+import networkx as nx
 import pytest
 
 from chainreaction.baselines import _ruff_exe, grep_hits
-from chainreaction.scorer import chain_match, precision_recall
+from chainreaction.scorer import chain_match, precision_recall, predicted_files
 
 
 def test_chain_match_exact_and_details():
@@ -17,6 +18,17 @@ def test_precision_recall():
     s = precision_recall({"a", "b", "c"}, {"b", "c", "d"})
     assert s.precision == pytest.approx(2 / 3)
     assert s.recall == pytest.approx(2 / 3)
+
+
+def test_predicted_files_maps_hard_modules_to_repo_paths():
+    g = nx.DiGraph()
+    g.add_node("pkg.a", kind="module", file="targets/nibabel/nibabel/a.py")
+    g.add_node("pkg.tests.test_a", kind="module",
+               file="targets/nibabel/nibabel/tests/test_a.py")
+    g.add_node("pkg.a.f", kind="function",
+               file="targets/nibabel/nibabel/a.py")
+    assert predicted_files(g, {"pkg.a", "pkg.tests.test_a", "pkg.a.f"},
+                           "targets/nibabel") == {"nibabel/a.py"}
 
 
 def test_grep_hits_finds_numpy2_patterns(tmp_path):

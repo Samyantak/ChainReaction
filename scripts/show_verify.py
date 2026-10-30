@@ -8,9 +8,14 @@ the next failure layer.
 import sys
 
 from chainreaction.baselines import grep_hits, ruff_npy201
+from chainreaction import scenarios
 from chainreaction.graph.repo import build_graph_from_repo
 from chainreaction.propagate import failure_path, predicted_chain, propagate
-from chainreaction.scorer import chain_match, precision_recall
+from chainreaction.scorer import (
+    chain_match,
+    precision_recall,
+    predicted_files,
+)
 from chainreaction.verifier import run_import_probe, target_python
 
 TARGET = "targets/nibabel"
@@ -36,7 +41,8 @@ def main() -> int:
     print(f"target={TARGET} package={PACKAGE} peel={peel}")
 
     g = build_graph_from_repo(TARGET, PACKAGE)
-    impacts = propagate(g, {"numpy.sctypes"})
+    symbols = {"numpy.sctypes", "numpy.maximum_sctype"}
+    impacts = propagate(g, symbols)
     hard = {n for n, i in impacts.items() if i.status == "HARD"}
 
     before = run_import_probe(target_python("numpy1"), TARGET, PACKAGE)
@@ -62,7 +68,7 @@ def main() -> int:
         print(f"  {m}  {'HARD (predicted)' if m in hard else 'NOT PREDICTED'}")
 
     predicted = predicted_chain(
-        g, failure_path(g, impacts, {"numpy.sctypes"}, PACKAGE))
+        g, failure_path(g, impacts, symbols, PACKAGE))
     print("predicted chain:")
     for m in predicted:
         print(f"  {m}")
@@ -74,6 +80,11 @@ def main() -> int:
     )
     print(f"module-level precision={pr.precision:.2f} recall={pr.recall:.2f} "
           f"(predicted {len(pr.predicted)}, actual {len(pr.actual)})")
+    file_score = precision_recall(predicted_files(g, hard, TARGET),
+                                  set(scenarios.PR_1250_FILES))
+    print(f"file P/R vs PR #1250: {file_score.precision:.2f}/"
+          f"{file_score.recall:.2f} "
+          f"missed={sorted(file_score.actual - file_score.predicted)}")
 
     if not res.ok:
         print("--- error tail ---")

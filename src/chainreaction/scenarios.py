@@ -21,6 +21,20 @@ if not hasattr(np, "sctypes"):
 """
 
 
+PR_1250_URL = "https://github.com/nipy/nibabel/pull/1250"
+# Source (.py, non-test) files touched by the ground-truth PR.
+PR_1250_FILES = [
+    "nibabel/casting.py",
+    "nibabel/conftest.py",
+    "nibabel/ecat.py",
+    "nibabel/freesurfer/io.py",
+    "nibabel/nifti1.py",
+    "nibabel/quaternions.py",
+    "nibabel/spatialimages.py",
+    "nibabel/streamlines/trk.py",
+]
+
+
 @dataclass
 class Scenario:
     id: str
@@ -30,6 +44,8 @@ class Scenario:
     guide_url: str
     stub_items: list[ChangeItem] = field(default_factory=list)
     peel_preamble: str = ""
+    pr_url: str = ""
+    pr_files: list[str] = field(default_factory=list)
 
 
 NIBABEL_NUMPY2 = Scenario(
@@ -38,6 +54,8 @@ NIBABEL_NUMPY2 = Scenario(
     target="targets/nibabel",
     package="nibabel",
     guide_url="https://numpy.org/doc/stable/numpy_2_0_migration_guide.html",
+    pr_url=PR_1250_URL,
+    pr_files=list(PR_1250_FILES),
     stub_items=[
         ChangeItem("numpy.sctypes", "removed",
                    "`np.sctypes` was removed in the NumPy 2.0 release."),
