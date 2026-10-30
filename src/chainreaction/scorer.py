@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 
 import networkx as nx
 
+from chainreaction.propagate import matches_symbol
+
 
 @dataclass
 class ChainScore:
@@ -42,14 +44,21 @@ def precision_recall(predicted: set[str], actual: set[str]) -> SetScore:
                     predicted=predicted, actual=actual)
 
 
-def predicted_files(g: nx.DiGraph, hard: set[str], target: str) -> set[str]:
-    """Repo-relative source files of HARD modules (test files excluded)."""
+def direct_use_files(g: nx.DiGraph, broken: set[str], target: str
+                   ) -> set[str]:
+    """Repo-relative source files that use a broken symbol directly.
+
+    Scores the files that need editing (the PR's answer), not every
+    module the break propagates to — "everything breaks" trivially wins
+    recall but predicts no edit set.
+    """
     files = set()
-    for node in hard:
-        data = g.nodes[node]
-        if data.get("kind") != "module":
+    for _u, v, d in g.edges(data=True):
+        if d.get("kind") != "USES_EXTERNAL":
             continue
-        rel = os.path.relpath(data["file"], target).replace(os.sep, "/")
+        if matches_symbol(v, broken) is None:
+            continue
+        rel = os.path.relpath(d["file"], target).replace(os.sep, "/")
         if "/tests/" not in f"/{rel}" and not rel.startswith("tests/"):
             files.add(rel)
     return files

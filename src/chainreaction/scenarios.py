@@ -33,6 +33,20 @@ PR_1250_FILES = [
     "nibabel/spatialimages.py",
     "nibabel/streamlines/trk.py",
 ]
+# PR files no removed-symbol rule can predict: legacy print options
+# (conftest), NEP-50 promotion overflow fixes (freesurfer/io), a pure
+# refactor (spatialimages). Reported as behavior changes, not misses.
+PR_1250_BEHAVIOR = [
+    "nibabel/conftest.py",
+    "nibabel/freesurfer/io.py",
+    "nibabel/spatialimages.py",
+]
+
+# Vendor ground truth for the Meta switch (raw README, verbatim quotes).
+COOKBOOK_README_URL = (
+    "https://raw.githubusercontent.com/meta-models/"
+    "meta-model-cookbook/main/README.md"
+)
 
 
 @dataclass
@@ -49,6 +63,7 @@ class Scenario:
     # Decision probes replace the import probe for non-version decisions;
     # "" keeps the classic import/peeled/before layers.
     probe_code: str = ""
+    pr_behavior: list[str] = field(default_factory=list)
     verify_env: str = "numpy2"
     before_env: str = "numpy1"  # "" = no before layer
     grep_patterns: list[str] | None = None  # None = numpy defaults
@@ -63,6 +78,7 @@ NIBABEL_NUMPY2 = Scenario(
     guide_url="https://numpy.org/doc/stable/numpy_2_0_migration_guide.html",
     pr_url=PR_1250_URL,
     pr_files=list(PR_1250_FILES),
+    pr_behavior=list(PR_1250_BEHAVIOR),
     stub_items=[
         ChangeItem("numpy.sctypes", "removed",
                    "sctypes Access dtypes explicitly instead.",
@@ -70,6 +86,13 @@ NIBABEL_NUMPY2 = Scenario(
         ChangeItem("numpy.maximum_sctype", "removed",
                    "maximum_sctype Use a specific dtype instead.",
                    replacement="Use a specific dtype instead."),
+        ChangeItem("numpy.longcomplex", "removed",
+                   "longcomplex Use np.clongdouble instead.",
+                   replacement="np.clongdouble"),
+        ChangeItem("numpy.ndarray.newbyteorder", "removed",
+                   "newbyteorder Use "
+                   "arr.view(arr.dtype.newbyteorder(order)) instead.",
+                   replacement="arr.view(arr.dtype.newbyteorder(order))"),
     ],
     peel_preamble=PEEL_SCTYPES,
 )
@@ -93,22 +116,21 @@ SPONSORFIT_META = Scenario(
     decision="switch to Meta Model API",
     target="targets/sponsorfit",
     package="sponsorfit",
-    # Vendor guide URL pending — stub quotes recorded by hand.
-    guide_url="",
+    guide_url=COOKBOOK_README_URL,
     stub_items=[
         ChangeItem("sponsorfit.llm.Provider", "rejected_value",
-                   "call the muse-spark-1.3 model by name",
+                   "The default model is **Muse Spark** (`muse-spark-1.3`)",
                    detail=BreakDetail('"meta" in Provider',
                                       'Literal["anthropic","openai","ollama"]')),
         ChangeItem("sponsorfit.llm.MeteredLLMClient._call_openai",
                    "missing_param",
-                   "Set the base URL to https://api.meta.ai/v1",
+                   'base_url="https://api.meta.ai/v1",',
                    detail=BreakDetail("base_url=https://api.meta.ai/v1",
                                       "openai.OpenAI() with no base_url")),
-        ChangeItem("sponsorfit.pricing.PRICING", "missing_key",
-                   "bill meta/muse-spark-1.3 usage against the meta table",
+        ChangeItem("sponsorfit.pricing.PRICING", "missing_key", "",
                    detail=BreakDetail('PRICING["meta"]["muse-spark-1.3"]',
-                                      "KeyError: no meta provider table")),
+                                      "KeyError: no meta provider table"),
+                   source="probe"),
     ],
     probe_code=META_PROBE,
     verify_env="sponsorfit",

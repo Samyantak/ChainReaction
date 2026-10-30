@@ -41,6 +41,9 @@ class Report:
     file_precision: float | None = None
     file_recall: float | None = None
     file_missing: list[str] = field(default_factory=list)
+    # Missed PR files that are behavior changes, not removed-symbol uses
+    # (flagged for honesty, not predicted).
+    file_behavior: list[str] = field(default_factory=list)
     probe_kind: str = "import"  # "import" or "decision"
     change_items: list = field(default_factory=list)  # config ChangeItems
     layers: list[LayerResult] = field(default_factory=list)
@@ -96,8 +99,11 @@ def render_markdown(report: Report) -> str:
         *[f"- `{i.symbol}` ({i.kind}: "
            f"{i.detail.expected} -> {i.detail.actual}"
            + (f"; {i.detail.note}" if i.detail.note else "")
+           + ("; derived from probe" if i.source != "guide" else "")
            + ")"
-           if i.detail is not None else f"- `{i.symbol}` ({i.kind})"
+           if i.detail is not None else f"- `{i.symbol}` ({i.kind}"
+           + ("; derived from probe" if i.source != "guide" else "")
+           + ")"
            for i in report.change_items],
         "",
         "## Prediction",
@@ -116,6 +122,8 @@ def render_markdown(report: Report) -> str:
     ]
     if report.pr_url:
         flagged = len(report.pr_files) - len(report.file_missing)
+        behavior = set(report.file_behavior)
+        missed = [m for m in report.file_missing if m not in behavior]
         lines += [
             "## Ground truth (PR)",
             "",
@@ -124,7 +132,10 @@ def render_markdown(report: Report) -> str:
             f"recall {report.file_recall:.2f} "
             f"({flagged}/{len(report.pr_files)} PR files flagged)",
             "Missed: "
-            + (", ".join(f"`{m}`" for m in report.file_missing) or "none"),
+            + (", ".join(f"`{m}`" for m in missed) or "none"),
+            "Behavior changes (flagged, not predicted): "
+            + (", ".join(f"`{m}`" for m in report.file_behavior)
+               or "none"),
             "",
         ]
     lines += ["## Verification", ""]

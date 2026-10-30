@@ -10,6 +10,9 @@ build/
 pytest-of-*/
 cr-debug-*/
 cr-fix-*/
+pip-build-*/
+pip-install-*/
+pip-ephem-*/
 
 # Target repos (pre-existing inputs, NOT part of this build)
 targets/

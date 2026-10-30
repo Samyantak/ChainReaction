@@ -138,3 +138,44 @@ def test_external_use_with_line_evidence(tmp_path):
     assert u == "demo.leaf.ok"
     assert d["line"] == 4
     assert d["file"].endswith("leaf.py")
+
+
+def _endian_pkg(tmp_path):
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "endian.py").write_text(
+        "import numpy as np\n"
+        "from numpy import dtype\n"
+        "def on_dtype(dt):\n"
+        "    dt = np.dtype('i4')\n"
+        "    return dt.newbyteorder('<')\n"
+        "def on_param(data):\n"
+        "    return data.newbyteorder('<')\n"
+        "def on_bare_dtype(t):\n"
+        "    t = dtype(t)\n"
+        "    return t.newbyteorder('B')\n"
+        "def on_attr(obj):\n"
+        "    return obj.dtype.newbyteorder('<')\n"
+        "def on_reassigned(dt):\n"
+        "    dt = np.dtype('i4')\n"
+        "    dt = make_array()\n"
+        "    return dt.newbyteorder('<')\n",
+        encoding="utf-8",
+    )
+    return tmp_path
+
+
+def test_newbyteorder_classifies_dtype_vs_ndarray(tmp_path):
+    g = build_graph_from_repo(_endian_pkg(tmp_path), "demo")
+    targets = {}
+    for u, v, d in g.edges(data=True):
+        if d["kind"] == "USES_EXTERNAL" and "newbyteorder" in v:
+            targets[u] = v
+    assert targets["demo.endian.on_dtype"] == "numpy.dtype.newbyteorder"
+    assert targets["demo.endian.on_param"] == "numpy.ndarray.newbyteorder"
+    assert targets["demo.endian.on_bare_dtype"] == "numpy.dtype.newbyteorder"
+    assert targets["demo.endian.on_attr"] == "numpy.dtype.newbyteorder"
+    # reassignment kills dtype-ness: the surviving use is an array call
+    assert targets["demo.endian.on_reassigned"] == \
+        "numpy.ndarray.newbyteorder"

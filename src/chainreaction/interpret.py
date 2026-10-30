@@ -98,6 +98,9 @@ class ChangeItem:
     replacement: str | None = None
     detail: BreakDetail | None = None
     verified: bool = False
+    # Grounding: "guide" (quote must string-match) or "probe" (a break
+    # the verifier discovered, e.g. a KeyError — quoted by no document).
+    source: str = "guide"
 
 
 @dataclass
@@ -110,10 +113,18 @@ class ChangeSet:
 def verify_quotes(
     items: list[ChangeItem], source_text: str
 ) -> tuple[list[ChangeItem], list[ChangeItem]]:
-    """Keep items whose quote string-matches the source; return (verified, dropped)."""
+    """Keep grounded items; return (verified, dropped).
+
+    Guide items survive only when the quote string-matches. Probe items
+    carry no quote (no document states them) and survive as verified —
+    their grounding is the probe run, labeled at render time.
+    """
     verified, dropped = [], []
     for item in items:
-        item.verified = bool(item.quote) and item.quote in source_text
+        if item.source != "guide":
+            item.verified = True
+        else:
+            item.verified = bool(item.quote) and item.quote in source_text
         (verified if item.verified else dropped).append(item)
     return verified, dropped
 

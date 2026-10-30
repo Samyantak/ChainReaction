@@ -11,10 +11,11 @@ from chainreaction.baselines import grep_hits, ruff_npy201
 from chainreaction import scenarios
 from chainreaction.graph.repo import build_graph_from_repo
 from chainreaction.propagate import failure_path, predicted_chain, propagate
+from chainreaction.interpret import CONFIG_KINDS
 from chainreaction.scorer import (
     chain_match,
+    direct_use_files,
     precision_recall,
-    predicted_files,
 )
 from chainreaction.verifier import run_import_probe, target_python
 
@@ -41,7 +42,9 @@ def main() -> int:
     print(f"target={TARGET} package={PACKAGE} peel={peel}")
 
     g = build_graph_from_repo(TARGET, PACKAGE)
-    symbols = {"numpy.sctypes", "numpy.maximum_sctype"}
+    scen = scenarios.get("nibabel-numpy2")
+    symbols = {i.symbol for i in scen.stub_items
+               if i.kind not in CONFIG_KINDS}
     impacts = propagate(g, symbols)
     hard = {n for n, i in impacts.items() if i.status == "HARD"}
 
@@ -80,7 +83,7 @@ def main() -> int:
     )
     print(f"module-level precision={pr.precision:.2f} recall={pr.recall:.2f} "
           f"(predicted {len(pr.predicted)}, actual {len(pr.actual)})")
-    file_score = precision_recall(predicted_files(g, hard, TARGET),
+    file_score = precision_recall(direct_use_files(g, symbols, TARGET),
                                   set(scenarios.PR_1250_FILES))
     print(f"file P/R vs PR #1250: {file_score.precision:.2f}/"
           f"{file_score.recall:.2f} "

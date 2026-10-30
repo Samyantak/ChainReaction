@@ -1,4 +1,4 @@
-"""Deterministic propagation engine (no LLM).
+﻿"""Deterministic propagation engine (no LLM).
 
 Rules (architecture doc):
 - A use of a broken symbol at module level, or in a def executed at import,
@@ -32,7 +32,7 @@ def resolve_symbol(g: nx.DiGraph, package: str, symbol: str) -> str:
     """Resolve a change symbol to a graph node (exact or nearest enclosing).
 
     Intra-package symbols name definitions (closed world), so an
-    unresolvable one is a typo — fail fast instead of silently matching
+    unresolvable one is a typo â€” fail fast instead of silently matching
     nothing. External symbols never reach this function.
     """
     if symbol != package and not symbol.startswith(package + "."):
@@ -66,7 +66,7 @@ def propagate(g: nx.DiGraph, broken: set[str],
 
     # 0. Config seeds: definitions that cannot serve the decision.
     # Decision-time breaks (never import-time), so AT_RISK; no graph
-    # edge to cite — the ChangeItem detail is the evidence.
+    # edge to cite â€” the ChangeItem detail is the evidence.
     if config and not package:
         raise ValueError("config items need the package name to resolve")
     for item in config:
@@ -77,7 +77,7 @@ def propagate(g: nx.DiGraph, broken: set[str],
     for u, v, d in g.edges(data=True):
         if d.get("kind") != "USES_EXTERNAL":
             continue
-        sym = _matches(v, broken)
+        sym = matches_symbol(v, broken)
         if sym is None:
             continue
         seed_hop = [(u, v, d["file"], d["line"])]
@@ -155,23 +155,39 @@ def predicted_chain(g: nx.DiGraph, hops: list[tuple[str, str, str, int]]
     return chain
 
 
-def _blocked_by_executing(g: nx.DiGraph, impacts: dict[str, Impact],
-                          node: str, path: set[str]) -> bool:
-    """True when node's HARD marking needs an already-executing ancestor.
+def _genuinely_fails(g: nx.DiGraph, impacts: dict[str, Impact],
+                     broken: set[str], node: str, executing: set[str],
+                     _seen: frozenset = frozenset()) -> bool:
+    """True when importing node fails given `executing` are in sys.modules.
 
-    A module that fails (directly or transitively) only because an
-    ancestor __init__ fails will import fine on the walk path: that
-    ancestor is already executing (partially initialized, in
-    sys.modules), so Python does not run it again.
+    Structural, race-free: a HARD marking keeps one recorded via, which
+    may show only the ancestor-init cause even when a genuine import
+    cause exists (closure-order artifact). Re-evaluate live causes
+    instead — a module-level broken use, an executed impacted def, a
+    genuinely-failing import, or a genuinely-failing ancestor init —
+    with already-executing modules contributing nothing.
     """
     imp = impacts.get(node)
     if imp is None or imp.status != "HARD":
         return False
-    for u, v, _file, _line in imp.via:
-        edge = g.edges.get((u, v))
-        if (edge is not None and edge.get("kind") == "PARENT_INIT"
-                and v in path):
+    if node in _seen:
+        return False  # import cycle: this cause alone proves nothing
+    seen = _seen | {node}
+    for _, w, d in g.out_edges(node, data=True):
+        kind = d.get("kind")
+        if kind == "USES_EXTERNAL" and matches_symbol(w, broken):
             return True
+        if kind == "EXECUTES_AT_IMPORT" and w in impacts:
+            return True
+        if kind in ("IMPORTS", "PARENT_INIT"):
+            if kind == "IMPORTS" and not d.get("import_time"):
+                continue
+            wimp = impacts.get(w)
+            if (wimp is not None and wimp.status == "HARD"
+                    and w not in executing
+                    and _genuinely_fails(g, impacts, broken, w,
+                                         executing, seen)):
+                return True
     return False
 
 
@@ -181,7 +197,7 @@ def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
     """First-failure path from the package root, in execution order.
 
     Statuses from propagate() say WHAT breaks (order-independent), but a
-    node's via records whichever cause won the closure race — usually the
+    node's via records whichever cause won the closure race â€” usually the
     shortest path, not the one Python executes first. This reconstructs
     the runtime path: at each module it follows the earliest-line failing
     cause (failing import, module-level broken use, or call into an
@@ -204,14 +220,14 @@ def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
                 if edge_kind == "IMPORTS" and d.get("import_time"):
                     imp = impacts.get(v)
                     if (imp is not None and imp.status == "HARD"
-                            and not _blocked_by_executing(g, impacts, v,
-                                                          visited)):
+                            and _genuinely_fails(g, impacts, broken, v,
+                                                 visited)):
                         cands.append((d["line"], (node, v, d["file"], d["line"]), v))
-                elif edge_kind == "USES_EXTERNAL" and _matches(v, broken):
+                elif edge_kind == "USES_EXTERNAL" and matches_symbol(v, broken):
                     cands.append((d["line"], (node, v, d["file"], d["line"]), None))
                 elif edge_kind == "EXECUTES_AT_IMPORT" and v in impacts:
                     cands.append((d["line"], (node, v, d["file"], d["line"]), v))
-            elif edge_kind == "USES_EXTERNAL" and _matches(v, broken):
+            elif edge_kind == "USES_EXTERNAL" and matches_symbol(v, broken):
                 cands.append((d["line"], (node, v, d["file"], d["line"]), None))
             elif edge_kind == "CALLS":
                 target = _resolve_call(g, node, v, defs) if "." not in v else v
@@ -221,7 +237,8 @@ def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
                 imp = impacts.get(v)
                 # in-function import of a HARD module: descend into it
                 if (imp is not None and imp.status == "HARD"
-                        and not _blocked_by_executing(g, impacts, v, visited)):
+                        and _genuinely_fails(g, impacts, broken, v,
+                                             visited)):
                     cands.append((d["line"], (node, v, d["file"], d["line"]), v))
             elif edge_kind == "EXECUTES_AT_IMPORT" and v in impacts:
                 cands.append((d["line"], (node, v, d["file"], d["line"]), v))
@@ -235,7 +252,8 @@ def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
     return hops
 
 
-def _matches(target: str, broken: set[str]) -> str | None:
+def matches_symbol(target: str, broken: set[str]) -> str | None:
+    """Broken symbol matched by an edge target (exact or parent prefix)."""
     for sym in broken:
         if target == sym or target.startswith(sym + "."):
             return sym
@@ -254,7 +272,7 @@ def _owner_module(g: nx.DiGraph, node: str) -> str:
 
 def _is_def(g: nx.DiGraph, node: str) -> bool:
     # NB: add_edge implicitly creates a node for the raw call name, so
-    # `in g.nodes` is always true — only nodes with a recorded kind count.
+    # `in g.nodes` is always true â€” only nodes with a recorded kind count.
     return g.nodes[node].get("kind") in ("function", "class") if node in g.nodes else False
 
 
@@ -280,7 +298,7 @@ def _resolve_call(
         return name if _is_def(g, name) else None
     module = _owner_module(g, caller)
     cands = defs.get(module, {}).get(name, [])
-    # Bare calls see module globals, never methods — prefer the
+    # Bare calls see module globals, never methods â€” prefer the
     # module-level def; a lone same-named method still resolves (lenient).
     if f"{module}.{name}" in cands:
         return f"{module}.{name}"

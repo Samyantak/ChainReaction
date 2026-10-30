@@ -12,10 +12,11 @@ dependencies = [
     "openai",
     "fastapi",
     "uvicorn",
+    "coverage>=7",  # imported at top level by chainreaction.testmap
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "coverage>=7", "pytest-cov"]
+dev = ["pytest", "pytest-cov"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -113,7 +113,8 @@ def main() -> int:
     print(summary)
     if report.file_precision is not None:
         print(f"file P/R vs PR: {report.file_precision:.2f}/"
-              f"{report.file_recall:.2f} missed={report.file_missing}")
+              f"{report.file_recall:.2f} missed={report.file_missing} "
+              f"behavior={report.file_behavior}")
     print("REPORT_MATCH" if ok else "REPORT_DIFFERS (see above)")
     return 0 if ok else 1
 

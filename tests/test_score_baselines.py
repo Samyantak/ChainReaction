@@ -4,7 +4,7 @@ import networkx as nx
 import pytest
 
 from chainreaction.baselines import _ruff_exe, grep_hits
-from chainreaction.scorer import chain_match, precision_recall, predicted_files
+from chainreaction.scorer import chain_match, direct_use_files, precision_recall
 
 
 def test_chain_match_exact_and_details():
@@ -20,15 +20,17 @@ def test_precision_recall():
     assert s.recall == pytest.approx(2 / 3)
 
 
-def test_predicted_files_maps_hard_modules_to_repo_paths():
+def test_direct_use_files_scores_symbol_uses_not_cascade():
     g = nx.DiGraph()
-    g.add_node("pkg.a", kind="module", file="targets/nibabel/nibabel/a.py")
-    g.add_node("pkg.tests.test_a", kind="module",
-               file="targets/nibabel/nibabel/tests/test_a.py")
-    g.add_node("pkg.a.f", kind="function",
-               file="targets/nibabel/nibabel/a.py")
-    assert predicted_files(g, {"pkg.a", "pkg.tests.test_a", "pkg.a.f"},
-                           "targets/nibabel") == {"nibabel/a.py"}
+    g.add_node("pkg.a", kind="module", file="t/pkg/a.py")
+    g.add_node("pkg.b", kind="module", file="t/pkg/b.py")
+    g.add_edge("pkg.a", "numpy.sctypes", kind="USES_EXTERNAL",
+               file="t/pkg/a.py", line=3)
+    g.add_edge("pkg.b", "numpy.sctypes", kind="USES_EXTERNAL",
+               file="t/pkg/tests/test_b.py", line=3)  # tests excluded
+    g.add_edge("pkg.a", "numpy.other", kind="USES_EXTERNAL",
+               file="t/pkg/a.py", line=9)  # unmatched symbol
+    assert direct_use_files(g, {"numpy.sctypes"}, "t") == {"pkg/a.py"}
 
 
 def test_grep_hits_finds_numpy2_patterns(tmp_path):

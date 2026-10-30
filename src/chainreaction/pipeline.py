@@ -22,7 +22,7 @@ from chainreaction.interpret import (
     verify_quotes,
 )
 from chainreaction.propagate import Impact, failure_path, predicted_chain, propagate
-from chainreaction.scorer import chain_match, precision_recall, predicted_files
+from chainreaction.scorer import chain_match, direct_use_files, precision_recall
 from chainreaction.verifier import (
     run_import_probe,
     run_snippet_probe,
@@ -110,9 +110,11 @@ def run_pipeline(scenario_id: str, fetch_guide: bool = False,
     hits = grep_hits(pkgdir, scen.grep_patterns)
     ruff = ruff_npy201(pkgdir) if scen.run_ruff else None
     score = chain_match(predicted, layers[0].actual)
-    file_score = (precision_recall(predicted_files(g, hard, scen.target),
+    file_score = (precision_recall(direct_use_files(g, symbols, scen.target),
                                    set(scen.pr_files))
                   if scen.pr_files else None)
+    file_missing = (sorted(file_score.actual - file_score.predicted)
+                    if file_score else [])
     report = Report(
         decision=changeset.decision, target=scen.target, package=scen.package,
         probe_kind="decision" if scen.probe_code else "import",
@@ -127,8 +129,8 @@ def run_pipeline(scenario_id: str, fetch_guide: bool = False,
         pr_url=scen.pr_url, pr_files=list(scen.pr_files),
         file_precision=file_score.precision if file_score else None,
         file_recall=file_score.recall if file_score else None,
-        file_missing=(sorted(file_score.actual - file_score.predicted)
-                      if file_score else []),
+        file_missing=file_missing,
+        file_behavior=sorted(set(scen.pr_behavior) & set(file_missing)),
         layers=layers, grep_hits=len(hits),
         ruff_hits=len(ruff) if ruff is not None else None,
     )

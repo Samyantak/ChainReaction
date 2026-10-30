@@ -43,8 +43,8 @@ def _link_parent_inits(g: nx.DiGraph, package: str) -> None:
 
     Importing a submodule executes every ancestor __init__ first, so a
     module under a HARD package fails at import even when its own code
-    is clean. failure_path ignores these edges (it walks the import
-    chain, not the package tree); the HARD closure follows them.
+    is clean. The HARD closure follows these edges; failure_path weighs
+    one only when its ancestor genuinely fails fresh (not executing).
     """
     for node, data in list(g.nodes(data=True)):
         if data.get("kind") != "module":
@@ -84,6 +84,9 @@ class _FileVisitor(ast.NodeVisitor):
         self.aliases: dict[str, str] = {}  # local name -> dotted target
         self.local_defs: set[str] = set()
         self.annotations: dict[str, dict[str, str]] = {}
+        # Per-scope names bound to numpy dtypes (for ndarray/dtype
+        # newbyteorder disambiguation); index 0 is module level.
+        self._dtype_stack: list[set[str]] = [set()]
 
     def _current(self) -> str:
         return self.scope[-1]
@@ -213,10 +216,12 @@ class _FileVisitor(ast.NodeVisitor):
                 self.annotations[qual] = annots
         self.g.add_node(qual, kind=kind, file=self.filename, line=node.lineno)
         self.scope.append(qual)
+        self._dtype_stack.append(set())
         prev, self.in_function = self.in_function, True
         self.generic_visit(node)
         self.in_function = prev
         self.scope.pop()
+        self._dtype_stack.pop()
 
     # -- calls and external uses --
 
@@ -274,15 +279,67 @@ class _FileVisitor(ast.NodeVisitor):
     def visit_Attribute(self, node: ast.Attribute) -> None:
         # attribute *reads* like np.sctypes outside a Call (e.g. subscript value)
         dotted = self._dotted(node)
-        if dotted:
-            root, _, rest = dotted.partition(".")
+        root = dotted.split(".")[0] if dotted else None
+        if node.attr == "newbyteorder" and (
+                root is None or root not in self.aliases):
+            # ndarray.newbyteorder was removed but dtype.newbyteorder
+            # survives: classify the receiver so only array calls match
+            # the numpy.ndarray.newbyteorder change symbol.
+            target = ("numpy.dtype.newbyteorder"
+                      if self._is_dtype_expr(node.value)
+                      else "numpy.ndarray.newbyteorder")
+            self._edge(target, "USES_EXTERNAL", node.lineno)
+        elif dotted:
+            rest_root, _, rest = dotted.partition(".")
             resolved = self._resolved(dotted) if rest else None
             # External reads are symbol uses; internal reads need no edge
             # (module failure already travels over IMPORTS).
-            if (resolved is not None and root in self.aliases
+            if (resolved is not None and rest_root in self.aliases
                     and not self._is_internal(resolved)):
                 self._edge(resolved, "USES_EXTERNAL", node.lineno)
         self.generic_visit(node)
+
+    def _is_dtype_expr(self, expr: ast.AST) -> bool:
+        """Heuristic: does this expression evaluate to a numpy dtype?"""
+        if isinstance(expr, ast.Name):
+            return ("dtype" in expr.id
+                    or expr.id in self._dtype_stack[-1])
+        if isinstance(expr, ast.Attribute):
+            return ("dtype" in expr.attr
+                    or self._is_dtype_expr(expr.value))
+        if isinstance(expr, ast.Subscript):
+            return self._is_dtype_expr(expr.value)
+        if isinstance(expr, ast.Call):
+            func = expr.func
+            if (isinstance(func, ast.Attribute)
+                    and func.attr == "newbyteorder"):
+                return self._is_dtype_expr(func.value)  # dtype stays dtype
+            dotted = self._dotted(func)
+            if dotted is None:
+                return False
+            resolved = self._resolved(dotted)
+            return resolved == "numpy.dtype" or (
+                resolved is None and dotted == "dtype"
+                and "dtype" not in self.local_defs)
+        return False
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        self.generic_visit(node)  # record uses in the value first
+        self._track_dtype_assign(node.targets, node.value)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        self.generic_visit(node)
+        if node.value is not None:
+            self._track_dtype_assign([node.target], node.value)
+
+    def _track_dtype_assign(self, targets: list, value: ast.AST) -> None:
+        is_dtype = self._is_dtype_expr(value)
+        for target in targets:
+            if isinstance(target, ast.Name):
+                if is_dtype:
+                    self._dtype_stack[-1].add(target.id)
+                else:
+                    self._dtype_stack[-1].discard(target.id)
 
     @staticmethod
     def _dotted(func: ast.AST) -> str | None:

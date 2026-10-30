@@ -52,6 +52,13 @@ def test_verify_quotes_keeps_exact_matches_only():
     assert all(i.verified for i in verified)
 
 
+def test_verify_quotes_keeps_probe_items_quoteless():
+    items = [ChangeItem("pkg.PRICING", "missing_key", "", source="probe")]
+    verified, dropped = verify_quotes(items, GUIDE)
+    assert verified == items and dropped == []
+    assert items[0].verified is True
+
+
 def test_change_symbols_respects_verified_flag():
     verified, _ = verify_quotes(_items(), GUIDE)
     cs = ChangeSet("upgrade numpy to 2.0", "https://example.invalid/guide",

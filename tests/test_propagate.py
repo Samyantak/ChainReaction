@@ -7,6 +7,7 @@ import pytest
 from chainreaction.graph.repo import build_graph_from_repo
 from chainreaction.interpret import ChangeItem
 from chainreaction.propagate import (
+    Impact,
     failure_path,
     predicted_chain,
     propagate,
@@ -157,6 +158,30 @@ def test_failure_path_skips_transitive_cascade_block(tmp_path):
     assert impacts["demo.mid"].status == "HARD"
     hops = failure_path(g, impacts, {"numpy.sctypes"}, "demo")
     assert predicted_chain(g, hops) == ["demo", "demo.leaf"]
+
+
+def test_failure_path_ignores_parent_init_race_in_via(tmp_path):
+    # mid's recorded via may show only the ancestor-init cause (closure
+    # order artifact) even though mid genuinely fails via leaf: the walk
+    # must re-evaluate structurally and still route through mid, not boom.
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text(
+        "from . import mid\nfrom . import boom\n", encoding="utf-8")
+    (pkg / "mid.py").write_text("from . import leaf\n", encoding="utf-8")
+    (pkg / "leaf.py").write_text(
+        "import numpy as np\nOK = np.sctypes['float']\n", encoding="utf-8")
+    (pkg / "boom.py").write_text(
+        "import numpy as np\nOK = np.sctypes['float']\n", encoding="utf-8")
+    g = build_graph_from_repo(tmp_path, "demo")
+    impacts = propagate(g, {"numpy.sctypes"})
+    assert g.edges["demo.mid", "demo"]["kind"] == "PARENT_INIT"
+    mid = impacts["demo.mid"]
+    impacts["demo.mid"] = Impact(
+        "HARD", mid.symbol,
+        [("demo.mid", "demo", str(pkg / "mid.py"), 1)] + impacts["demo"].via)
+    hops = failure_path(g, impacts, {"numpy.sctypes"}, "demo")
+    assert predicted_chain(g, hops) == ["demo", "demo.mid", "demo.leaf"]
 
 
 def test_unknown_symbol_marks_nothing(tmp_path):

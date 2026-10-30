@@ -38,8 +38,14 @@ def test_report_matches_pipeline():
     before = body["layers"][2]
     assert before["ok"] is True and before["actual"] == []
     assert body["pr_url"].endswith("/pull/1250")
-    assert body["file_recall"] == pytest.approx(1.00)
-    assert body["file_missing"] == []
+    assert body["file_precision"] == pytest.approx(1.00)
+    assert body["file_recall"] == pytest.approx(5 / 8)
+    assert body["file_missing"] == [
+        "nibabel/conftest.py",
+        "nibabel/freesurfer/io.py",
+        "nibabel/spatialimages.py",
+    ]
+    assert body["file_behavior"] == body["file_missing"]
 
 
 def test_unknown_scenario_404s():
