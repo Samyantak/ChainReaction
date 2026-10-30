@@ -110,6 +110,77 @@ def propagate(g: nx.DiGraph, broken: set[str]) -> dict[str, Impact]:
     return impacts
 
 
+def predicted_chain(g: nx.DiGraph, hops: list[tuple[str, str, str, int]]
+                    ) -> list[str]:
+    """Project via-style hops onto module nodes, order kept, deduped."""
+    chain: list[str] = []
+    seen: set[str] = set()
+    for u, v, _file, _line in hops:
+        for node in (u, v):
+            if (node not in seen and node in g.nodes
+                    and g.nodes[node].get("kind") == "module"):
+                seen.add(node)
+                chain.append(node)
+    return chain
+
+
+def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
+                 broken: set[str], package: str
+                 ) -> list[tuple[str, str, str, int]]:
+    """First-failure path from the package root, in execution order.
+
+    Statuses from propagate() say WHAT breaks (order-independent), but a
+    node's via records whichever cause won the closure race — usually the
+    shortest path, not the one Python executes first. This reconstructs
+    the runtime path: at each module it follows the earliest-line failing
+    cause (failing import, module-level broken use, or call into an
+    impacted def), mirroring top-down module execution. Returns via hops
+    (from, to, file, line); [] when the package import is predicted clean.
+    """
+    if package not in impacts:
+        return []
+    defs = _def_index(g)
+    hops: list[tuple[str, str, str, int]] = []
+    visited: set[str] = set()
+    node = package
+    while node not in visited:
+        visited.add(node)
+        kind = g.nodes[node].get("kind") if node in g.nodes else None
+        cands: list[tuple[int, tuple[str, str, str, int], str | None]] = []
+        for _, v, d in g.out_edges(node, data=True):
+            edge_kind = d.get("kind")
+            if kind == "module":
+                if edge_kind == "IMPORTS" and d.get("import_time"):
+                    imp = impacts.get(v)
+                    if imp is not None and imp.status == "HARD":
+                        cands.append((d["line"], (node, v, d["file"], d["line"]), v))
+                elif edge_kind == "USES_EXTERNAL" and _matches(v, broken):
+                    cands.append((d["line"], (node, v, d["file"], d["line"]), None))
+                elif edge_kind == "EXECUTES_AT_IMPORT" and v in impacts:
+                    cands.append((d["line"], (node, v, d["file"], d["line"]), v))
+            elif edge_kind == "USES_EXTERNAL" and _matches(v, broken):
+                cands.append((d["line"], (node, v, d["file"], d["line"]), None))
+            elif edge_kind == "CALLS":
+                target = _resolve_call(g, node, v, defs) if "." not in v else v
+                if target in impacts:
+                    cands.append((d["line"], (node, v, d["file"], d["line"]), target))
+            elif edge_kind == "IMPORTS":
+                imp = impacts.get(v)
+                # in-function import of a HARD module: descend into it
+                if imp is not None and imp.status == "HARD":
+                    cands.append((d["line"], (node, v, d["file"], d["line"]), v))
+            elif edge_kind == "EXECUTES_AT_IMPORT" and v in impacts:
+                cands.append((d["line"], (node, v, d["file"], d["line"]), v))
+        if not cands:
+            break
+        _, hop, nxt = min(cands, key=lambda c: c[0])
+        hops.append(hop)
+        if nxt is None:
+            break
+        node = nxt
+    return hops
+
+
 def _matches(target: str, broken: set[str]) -> str | None:
     for sym in broken:
         if target == sym or target.startswith(sym + "."):

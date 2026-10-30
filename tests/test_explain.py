@@ -33,7 +33,7 @@ def _setup(tmp_path):
         decision="upgrade numpy to 2.0", target="demo", package="demo",
         numpy_version="2.5.4", change_symbols=["numpy.sctypes"],
         hard=hard, at_risk=[], spine=["demo", "demo.leaf"],
-        spine_evidence=evidence,
+        spine_evidence=evidence, spine_match=True,
         layers=[LayerResult("layer1", ["demo", "demo.leaf"], [], 1.0, "")],
         grep_hits=1, ruff_hits=1,
     )
@@ -46,6 +46,7 @@ def test_clean_report_passes_and_renders(tmp_path):
     md = render_markdown(report)
     assert "upgrade numpy to 2.0" in md
     assert "MODEL_API_KEY not configured" in md
+    assert "Chain vs layer-1 actual: MATCH" in md
     assert json.loads(render_json(report))["decision"] == report.decision
 
 

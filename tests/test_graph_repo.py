@@ -48,6 +48,21 @@ def test_subpackage_init_relative_import(tmp_path):
     assert ("demo.sub", "demo.sub.mod") in g.edges
 
 
+def test_repeated_import_keeps_first_line_and_import_time(tmp_path):
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text(
+        "from . import leaf\n"
+        "from .leaf import thing\n",
+        encoding="utf-8",
+    )
+    (pkg / "leaf.py").write_text("thing = 1\n", encoding="utf-8")
+    g = build_graph_from_repo(tmp_path, "demo")
+    d = g.edges["demo", "demo.leaf"]
+    assert d["line"] == 1  # first occurrence, not the line-2 repeat
+    assert d["import_time"] is True
+
+
 def test_external_use_with_line_evidence(tmp_path):
     root = _pkg(tmp_path)
     g = build_graph_from_repo(root, "demo")

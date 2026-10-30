@@ -53,8 +53,24 @@ class _FileVisitor(ast.NodeVisitor):
         return self.scope[-1]
 
     def _edge(self, target: str, kind: str, lineno: int, **attrs) -> None:
+        u = self._current()
+        if self.g.has_edge(u, target):
+            data = self.g[u][target]
+            if data.get("kind") == kind:
+                # Repeat occurrence: keep the FIRST (earliest-executed)
+                # evidence, but OR the import_time flag — one module-level
+                # occurrence means importing u executes this edge.
+                if lineno < data["line"]:
+                    data["line"] = lineno
+                    data["file"] = self.filename
+                    if "names" in attrs:
+                        data["names"] = attrs["names"]
+                if "import_time" in attrs:
+                    data["import_time"] = (bool(data.get("import_time"))
+                                           or bool(attrs["import_time"]))
+                return
         self.g.add_edge(
-            self._current(), target, kind=kind,
+            u, target, kind=kind,
             file=self.filename, line=lineno, **attrs,
         )
 

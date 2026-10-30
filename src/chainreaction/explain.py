@@ -31,6 +31,7 @@ class Report:
     at_risk: list[str]
     spine: list[str]  # predicted layer-1 chain, outermost first
     spine_evidence: list[tuple[str, str, str, int]] = field(default_factory=list)
+    spine_match: bool = False  # chain_match(spine, layers[0].actual)
     layers: list[LayerResult] = field(default_factory=list)
     grep_hits: int = 0
     ruff_hits: int | None = None
@@ -89,6 +90,8 @@ def render_markdown(report: Report) -> str:
             f"- `{u}` -> `{v}` ({path}:{line})"
             for u, v, path, line in report.spine_evidence
         ],
+        f"Chain vs layer-1 actual: "
+        f"{'MATCH' if report.spine_match else 'DIFFERS'}",
         "",
         "## Verification",
         "",

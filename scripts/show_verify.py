@@ -9,19 +9,12 @@ import sys
 
 from chainreaction.baselines import grep_hits, ruff_npy201
 from chainreaction.graph.repo import build_graph_from_repo
-from chainreaction.propagate import propagate
+from chainreaction.propagate import failure_path, predicted_chain, propagate
 from chainreaction.scorer import chain_match, precision_recall
 from chainreaction.verifier import run_import_probe
 
 TARGET = "targets/nibabel"
 PACKAGE = "nibabel"
-EXPECTED_SPINE = [
-    "nibabel",
-    "nibabel.analyze",
-    "nibabel.arrayproxy",
-    "nibabel.volumeutils",
-    "nibabel.casting",
-]
 
 # Layer peeling: restore the np.sctypes table NumPy 2.0 removed.
 PEEL_PREAMBLE = """\
@@ -62,7 +55,12 @@ def main() -> int:
     for m in res.modules:
         print(f"  {m}  {'HARD (predicted)' if m in hard else 'NOT PREDICTED'}")
 
-    score = chain_match(EXPECTED_SPINE, res.modules)
+    predicted = predicted_chain(
+        g, failure_path(g, impacts, {"numpy.sctypes"}, PACKAGE))
+    print("predicted chain:")
+    for m in predicted:
+        print(f"  {m}")
+    score = chain_match(predicted, res.modules)
     print(f"spine match={score.match} missing={score.missing} extra={score.extra}")
     pr = precision_recall(
         {n for n in hard if g.nodes[n].get("kind") == "module"},

@@ -12,7 +12,6 @@ from chainreaction import scenarios
 from chainreaction.explain import check_report, render_json, render_markdown
 from chainreaction.interpret import fetch_text, verify_quotes
 from chainreaction.pipeline import run_pipeline
-from chainreaction.scorer import chain_match
 
 
 def _opt(prefix: str, default: str | None = None) -> str | None:
@@ -62,7 +61,7 @@ def main() -> int:
         print("--- report ---")
         print(md)
 
-    spine_ok = chain_match(scen.spine, report.layers[0].actual).match
+    spine_ok = report.spine_match
     peel_recall = report.layers[1].recall
     ok = spine_ok and peel_recall == 1.0 and not violations
     print(f"spine_match={spine_ok} peel_recall={peel_recall:.2f}")

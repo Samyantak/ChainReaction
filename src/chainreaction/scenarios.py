@@ -28,7 +28,6 @@ class Scenario:
     target: str
     package: str
     guide_url: str
-    spine: list[str] = field(default_factory=list)
     stub_items: list[ChangeItem] = field(default_factory=list)
     peel_preamble: str = ""
 
@@ -39,13 +38,6 @@ NIBABEL_NUMPY2 = Scenario(
     target="targets/nibabel",
     package="nibabel",
     guide_url="https://numpy.org/doc/stable/numpy_2_0_migration_guide.html",
-    spine=[
-        "nibabel",
-        "nibabel.analyze",
-        "nibabel.arrayproxy",
-        "nibabel.volumeutils",
-        "nibabel.casting",
-    ],
     stub_items=[
         ChangeItem("numpy.sctypes", "removed",
                    "`np.sctypes` was removed in the NumPy 2.0 release."),

@@ -19,7 +19,8 @@ from chainreaction.interpret import (
     fetch_text,
     verify_quotes,
 )
-from chainreaction.propagate import Impact, propagate
+from chainreaction.propagate import Impact, failure_path, predicted_chain, propagate
+from chainreaction.scorer import chain_match
 from chainreaction.verifier import run_import_probe
 
 
@@ -48,11 +49,8 @@ def run_pipeline(scenario_id: str, fetch_guide: bool = False) -> PipelineResult:
     hard = {n for n, i in impacts.items() if i.status == "HARD"}
     risky = {n for n, i in impacts.items() if i.status == "AT_RISK"}
 
-    spine_evidence = []
-    for u, v in zip(scen.spine, scen.spine[1:]):
-        d = g.edges.get((u, v))
-        if d is not None:
-            spine_evidence.append((u, v, d["file"], d["line"]))
+    spine_evidence = failure_path(g, impacts, symbols, scen.package)
+    predicted = predicted_chain(g, spine_evidence)
 
     probes = [
         ("layer1", run_import_probe(sys.executable, scen.target, scen.package)),
@@ -71,12 +69,14 @@ def run_pipeline(scenario_id: str, fetch_guide: bool = False) -> PipelineResult:
 
     hits = grep_hits(f"{scen.target}/{scen.package}")
     ruff = ruff_npy201(f"{scen.target}/{scen.package}")
+    score = chain_match(predicted, layers[0].actual)
     report = Report(
         decision=changeset.decision, target=scen.target, package=scen.package,
         numpy_version=probes[0][1].numpy_version,
         change_symbols=sorted(symbols),
         hard=sorted(hard), at_risk=sorted(risky),
-        spine=list(scen.spine), spine_evidence=spine_evidence,
+        spine=predicted, spine_evidence=spine_evidence,
+        spine_match=score.match,
         layers=layers, grep_hits=len(hits),
         ruff_hits=len(ruff) if ruff is not None else None,
     )
