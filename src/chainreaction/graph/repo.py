@@ -11,9 +11,18 @@ from pathlib import Path
 import networkx as nx
 
 
+def package_dir(root: str | Path, package: str) -> Path:
+    """Source dir of the package (supports flat and src/ layouts)."""
+    direct = Path(root) / package
+    if direct.is_dir():
+        return direct
+    src = Path(root) / "src" / package
+    return src if src.is_dir() else direct
+
+
 def build_graph_from_repo(root: str | Path, package: str) -> nx.DiGraph:
     root = Path(root)
-    pkg_dir = root / package
+    pkg_dir = package_dir(root, package)
     g = nx.DiGraph()
     files = sorted(pkg_dir.rglob("*.py"))
     for path in files:
@@ -72,8 +81,9 @@ class _FileVisitor(ast.NodeVisitor):
         self.is_package = is_package
         self.scope: list[str] = [module]
         self.in_function = False
-        self.aliases: dict[str, str] = {}  # local name -> dotted external root
+        self.aliases: dict[str, str] = {}  # local name -> dotted target
         self.local_defs: set[str] = set()
+        self.annotations: dict[str, dict[str, str]] = {}
 
     def _current(self) -> str:
         return self.scope[-1]
@@ -191,6 +201,16 @@ class _FileVisitor(ast.NodeVisitor):
         qual = f"{self.scope[-1]}.{node.name}"
         if len(self.scope) == 1:
             self.local_defs.add(node.name)
+        if kind == "function":
+            annots = {}
+            args = node.args
+            for a in list(args.posonlyargs) + list(args.args) + list(args.kwonlyargs):
+                if a.annotation is not None:
+                    dotted = self._dotted(a.annotation)
+                    if dotted:
+                        annots[a.arg] = dotted
+            if annots:
+                self.annotations[qual] = annots
         self.g.add_node(qual, kind=kind, file=self.filename, line=node.lineno)
         self.scope.append(qual)
         prev, self.in_function = self.in_function, True
@@ -211,6 +231,24 @@ class _FileVisitor(ast.NodeVisitor):
     def _is_internal(self, dotted: str) -> bool:
         return dotted == self.package or dotted.startswith(self.package + ".")
 
+    def _method_target(self, name: str) -> str | None:
+        """Resolve `obj.method` via obj's parameter annotation, if any."""
+        obj, _, meth = name.partition(".")
+        if not meth or "." in meth:
+            return None
+        table = self.annotations.get(self.scope[-1])
+        if not table or obj not in table:
+            return None
+        raw = table[obj]
+        rroot, _, rrest = raw.partition(".")
+        if rroot in self.aliases:
+            base = self.aliases[rroot] + (f".{rrest}" if rrest else "")
+        elif "." in raw:
+            base = raw
+        else:
+            base = f"{self.module}.{raw}"
+        return f"{base}.{meth}"
+
     def visit_Call(self, node: ast.Call) -> None:
         name = self._dotted(node.func)
         if name:
@@ -220,13 +258,17 @@ class _FileVisitor(ast.NodeVisitor):
                            node.lineno)
                 self.generic_visit(node)
                 return
-            resolved = self._resolved(name)
-            if resolved is None:
-                self._edge(name, "CALLS", node.lineno)
-            elif self._is_internal(resolved):
-                self._edge(resolved, "CALLS", node.lineno)
+            method = self._method_target(name)
+            if method is not None:
+                self._edge(method, "CALLS", node.lineno)
             else:
-                self._edge(resolved, "USES_EXTERNAL", node.lineno)
+                resolved = self._resolved(name)
+                if resolved is None:
+                    self._edge(name, "CALLS", node.lineno)
+                elif self._is_internal(resolved):
+                    self._edge(resolved, "CALLS", node.lineno)
+                else:
+                    self._edge(resolved, "USES_EXTERNAL", node.lineno)
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:

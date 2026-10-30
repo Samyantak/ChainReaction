@@ -11,16 +11,22 @@ import networkx as nx
 from chainreaction import scenarios
 from chainreaction.baselines import grep_hits, ruff_npy201
 from chainreaction.explain import LayerResult, Report
-from chainreaction.graph.repo import build_graph_from_repo
+from chainreaction.graph.repo import build_graph_from_repo, package_dir
 from chainreaction.interpret import (
+    CONFIG_KINDS,
     ChangeSet,
     change_symbols,
+    config_items,
     fetch_text,
     verify_quotes,
 )
 from chainreaction.propagate import Impact, failure_path, predicted_chain, propagate
 from chainreaction.scorer import chain_match, precision_recall, predicted_files
-from chainreaction.verifier import run_import_probe, target_python
+from chainreaction.verifier import (
+    run_import_probe,
+    run_snippet_probe,
+    target_python,
+)
 
 
 @dataclass
@@ -46,7 +52,7 @@ def predict(scenario_id: str, fetch_guide: bool = False,
     symbols = change_symbols(changeset)
 
     g = build_graph_from_repo(scen.target, scen.package)
-    impacts = propagate(g, symbols)
+    impacts = propagate(g, symbols, config_items(changeset), scen.package)
     return scen, changeset, symbols, g, impacts
 
 
@@ -60,18 +66,29 @@ def run_pipeline(scenario_id: str, fetch_guide: bool = False,
     spine_evidence = failure_path(g, impacts, symbols, scen.package)
     predicted = predicted_chain(g, spine_evidence)
 
-    after = target_python("numpy2")
-    probes = [
-        ("layer1", run_import_probe(after, scen.target, scen.package)),
-        ("layer2 (peeled)", run_import_probe(after, scen.target,
-                                             scen.package,
-                                             preamble=scen.peel_preamble)),
-        ("before (numpy 1.26)", run_import_probe(target_python("numpy1"),
-                                                 scen.target, scen.package)),
-    ]
+    flagged = hard | risky
+    verify_py = target_python(scen.verify_env)
+    if scen.probe_code:
+        probes = [("decision",
+                   run_snippet_probe(verify_py, scen.target, scen.probe_code,
+                                     scen.package))]
+    else:
+        probes = [("layer1",
+                   run_import_probe(verify_py, scen.target, scen.package))]
+        if scen.peel_preamble:
+            probes.append(("layer2 (peeled)",
+                           run_import_probe(verify_py, scen.target,
+                                            scen.package,
+                                            preamble=scen.peel_preamble)))
+    before_numpy = None
+    if scen.before_env:
+        before = run_import_probe(target_python(scen.before_env),
+                                  scen.target, scen.package)
+        probes.append((f"before ({scen.before_env})", before))
+        before_numpy = before.numpy_version
     layers = []
     for name, probe in probes:
-        missing = [m for m in probe.modules if m not in hard]
+        missing = [m for m in probe.modules if m not in flagged]
         recall = 1.0 - len(missing) / len(probe.modules) if probe.modules else 1.0
         layers.append(LayerResult(
             name, probe.modules, missing, recall,
@@ -79,17 +96,21 @@ def run_pipeline(scenario_id: str, fetch_guide: bool = False,
             probe.ok,
         ))
 
-    hits = grep_hits(f"{scen.target}/{scen.package}")
-    ruff = ruff_npy201(f"{scen.target}/{scen.package}")
+    pkgdir = package_dir(scen.target, scen.package)
+    hits = grep_hits(pkgdir, scen.grep_patterns)
+    ruff = ruff_npy201(pkgdir) if scen.run_ruff else None
     score = chain_match(predicted, layers[0].actual)
     file_score = (precision_recall(predicted_files(g, hard, scen.target),
                                    set(scen.pr_files))
                   if scen.pr_files else None)
     report = Report(
         decision=changeset.decision, target=scen.target, package=scen.package,
+        probe_kind="decision" if scen.probe_code else "import",
         numpy_version=probes[0][1].numpy_version,
-        before_numpy=probes[2][1].numpy_version,
+        before_numpy=before_numpy,
         change_symbols=sorted(symbols),
+        change_items=[i for i in changeset.items
+                      if i.kind in CONFIG_KINDS],
         hard=sorted(hard), at_risk=sorted(risky),
         spine=predicted, spine_evidence=spine_evidence,
         spine_match=score.match,

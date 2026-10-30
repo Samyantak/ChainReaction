@@ -39,6 +39,8 @@ class Report:
     file_precision: float | None = None
     file_recall: float | None = None
     file_missing: list[str] = field(default_factory=list)
+    probe_kind: str = "import"  # "import" or "decision"
+    change_items: list = field(default_factory=list)  # config ChangeItems
     layers: list[LayerResult] = field(default_factory=list)
     grep_hits: int = 0
     ruff_hits: int | None = None
@@ -51,17 +53,17 @@ def check_report(g: nx.DiGraph, report: Report) -> list[str]:
     for node in report.hard + report.at_risk:
         if node not in g.nodes:
             violations.append(f"predicted node not in graph: {node}")
-    hard_set = set(report.hard)
+    flagged_set = set(report.hard) | set(report.at_risk)
     for layer in report.layers:
         for module in layer.actual:
-            if module not in hard_set and module not in layer.missing:
+            if module not in flagged_set and module not in layer.missing:
                 violations.append(
                     f"{layer.name}: actual {module} neither predicted nor missing"
                 )
         for module in layer.missing:
-            if module in hard_set:
+            if module in flagged_set:
                 violations.append(
-                    f"{layer.name}: {module} listed missing but predicted HARD"
+                    f"{layer.name}: {module} listed missing but predicted"
                 )
     for hop in report.spine_evidence:
         u, v, path, line = hop
@@ -77,16 +79,24 @@ def check_report(g: nx.DiGraph, report: Report) -> list[str]:
 
 
 def render_markdown(report: Report) -> str:
+    numpy_label = report.numpy_version or (
+        "n/a (decision probe)" if report.probe_kind == "decision" else "unknown")
     lines = [
         f"# ChainReaction report: {report.decision}",
         "",
         f"Target: `{report.target}` (pre-existing, analyzed by ChainReaction) | "
-        f"numpy: {report.numpy_version or 'unknown'}"
+        f"numpy: {numpy_label}"
         + (f" (before: {report.before_numpy})" if report.before_numpy else ""),
         "",
         "## Change set",
         "",
         *[f"- `{s}`" for s in report.change_symbols],
+        *[f"- `{i.symbol}` ({i.kind}: "
+           f"{i.detail.expected} -> {i.detail.actual}"
+           + (f"; {i.detail.note}" if i.detail.note else "")
+           + ")"
+           if i.detail is not None else f"- `{i.symbol}` ({i.kind})"
+           for i in report.change_items],
         "",
         "## Prediction",
         "",
@@ -132,7 +142,7 @@ def render_markdown(report: Report) -> str:
         "",
         f"- grep: {report.grep_hits} hits",
         f"- ruff NPY201: "
-        f"{report.ruff_hits if report.ruff_hits is not None else 'not installed'} hits",
+        f"{report.ruff_hits if report.ruff_hits is not None else 'n/a'} hits",
         "",
         "## Narrative",
         "",

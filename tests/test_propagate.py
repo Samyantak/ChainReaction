@@ -2,8 +2,16 @@
 
 from pathlib import Path
 
+import pytest
+
 from chainreaction.graph.repo import build_graph_from_repo
-from chainreaction.propagate import failure_path, predicted_chain, propagate
+from chainreaction.interpret import ChangeItem
+from chainreaction.propagate import (
+    failure_path,
+    predicted_chain,
+    propagate,
+    resolve_symbol,
+)
 
 
 def _pkg(tmp_path: Path) -> Path:
@@ -99,6 +107,38 @@ def test_failure_path_skips_cascade_blocked_modules(tmp_path):
     assert impacts["demo.clean"].status == "HARD"
     hops = failure_path(g, impacts, {"numpy.sctypes"}, "demo")
     assert predicted_chain(g, hops) == ["demo", "demo.leaf"]
+
+
+def test_config_items_seed_and_resolve(tmp_path):
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "svc.py").write_text(
+        "TABLE = {}\n"
+        "class Client:\n"
+        "    def run(self):\n"
+        "        return 1\n",
+        encoding="utf-8",
+    )
+    (pkg / "agent.py").write_text(
+        "from .svc import Client\n"
+        "def act(client: Client):\n"
+        "    return client.run()\n",
+        encoding="utf-8",
+    )
+    g = build_graph_from_repo(tmp_path, "demo")
+    assert resolve_symbol(g, "demo", "demo.svc.TABLE") == "demo.svc"
+    assert resolve_symbol(g, "demo", "demo.svc.Client.run") == \
+        "demo.svc.Client.run"
+    with pytest.raises(ValueError, match="unresolvable"):
+        resolve_symbol(g, "demo", "demo.nope.deeper")
+    items = [ChangeItem("demo.svc.TABLE", "missing_key", "q"),
+             ChangeItem("demo.svc.Client.run", "rejected_value", "q")]
+    impacts = propagate(g, set(), items, "demo")
+    assert impacts["demo.svc"].status == "AT_RISK"
+    assert impacts["demo.svc.Client.run"].status == "AT_RISK"
+    assert impacts["demo.agent.act"].status == "AT_RISK"
+    assert "demo" not in impacts  # config breaks are never import breaks
 
 
 def test_failure_path_skips_transitive_cascade_block(tmp_path):

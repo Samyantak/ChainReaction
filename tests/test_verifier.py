@@ -9,6 +9,7 @@ from chainreaction.verifier import (
     frames_to_modules,
     parse_traceback,
     run_import_probe,
+    run_snippet_probe,
     target_python,
 )
 
@@ -67,6 +68,19 @@ def test_live_probe_failure_captured(tmp_path):
     res = run_import_probe(sys.executable, tmp_path, "definitely_missing_xyz")
     assert res.ok is False
     assert "ModuleNotFoundError" in res.stderr
+
+
+def test_snippet_probe_maps_traceback_to_modules(tmp_path):
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "svc.py").write_text(
+        "def boom():\n    raise ValueError('nope')\n", encoding="utf-8")
+    res = run_snippet_probe(sys.executable, tmp_path,
+                            "from pkg.svc import boom\nboom()\n")
+    assert res.ok is False
+    assert res.modules == ["pkg.svc"]
+    assert "ValueError" in res.stderr
 
 
 def test_target_python_missing_env_errors():

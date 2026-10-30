@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 
 import networkx as nx
 
+from chainreaction.interpret import ChangeItem
+
 
 @dataclass
 class Impact:
@@ -26,7 +28,29 @@ class Impact:
     # via hops: (from_node, to_node, file, line)
 
 
-def propagate(g: nx.DiGraph, broken: set[str]) -> dict[str, Impact]:
+def resolve_symbol(g: nx.DiGraph, package: str, symbol: str) -> str:
+    """Resolve a change symbol to a graph node (exact or nearest enclosing).
+
+    Intra-package symbols name definitions (closed world), so an
+    unresolvable one is a typo — fail fast instead of silently matching
+    nothing. External symbols never reach this function.
+    """
+    if symbol != package and not symbol.startswith(package + "."):
+        raise ValueError(f"change symbol outside package {package}: {symbol!r}")
+    kinds = ("module", "function", "class")
+    if symbol in g.nodes and g.nodes[symbol].get("kind") in kinds:
+        return symbol
+    # One strip only: module.NAME and module.Class.NAME are legitimate
+    # non-def names (Provider, PRICING); deeper misses are typos.
+    parent = symbol.rpartition(".")[0] if "." in symbol else ""
+    if parent and parent in g.nodes and g.nodes[parent].get("kind") in kinds:
+        return parent
+    raise ValueError(f"unresolvable change symbol: {symbol!r}")
+
+
+def propagate(g: nx.DiGraph, broken: set[str],
+              config: list[ChangeItem] | tuple = (),
+              package: str = "") -> dict[str, Impact]:
     impacts: dict[str, Impact] = {}
     defs = _def_index(g)
 
@@ -39,6 +63,15 @@ def propagate(g: nx.DiGraph, broken: set[str]) -> dict[str, Impact]:
             impacts[node] = Impact(status=status, symbol=symbol, via=list(via))
             return True
         return False
+
+    # 0. Config seeds: definitions that cannot serve the decision.
+    # Decision-time breaks (never import-time), so AT_RISK; no graph
+    # edge to cite — the ChangeItem detail is the evidence.
+    if config and not package:
+        raise ValueError("config items need the package name to resolve")
+    for item in config:
+        mark(resolve_symbol(g, package, item.symbol), "AT_RISK",
+             item.symbol, [])
 
     # 1. Seeds: direct uses of broken symbols.
     for u, v, d in g.edges(data=True):

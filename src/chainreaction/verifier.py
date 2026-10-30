@@ -49,6 +49,16 @@ def target_python(env: str) -> str:
     return str(exe)
 
 
+def _run(python: str, cwd: str | Path, code: str, timeout: int = 300):
+    return subprocess.run(
+        [python, "-c", code],
+        cwd=str(cwd),
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+
+
 def run_import_probe(
     python: str, cwd: str | Path, package: str, preamble: str = ""
 ) -> ProbeResult:
@@ -62,24 +72,32 @@ def run_import_probe(
         f"{preamble}\n"
         f"import {package}\n"
     )
-    proc = subprocess.run(
-        [python, "-c", code],
-        cwd=str(cwd),
-        capture_output=True,
-        text=True,
-        timeout=300,
-    )
+    proc = _run(python, cwd, code)
     numpy_version = None
     for line in proc.stdout.splitlines():
         if line.startswith("NUMPY="):
             numpy_version = line.removeprefix("NUMPY=")
     frames = parse_traceback(proc.stderr)
-    modules = frames_to_modules(frames, Path(cwd))
+    modules = frames_to_modules(frames, Path(cwd), package)
     return ProbeResult(
         ok=proc.returncode == 0,
         numpy_version=numpy_version,
         frames=frames,
         modules=modules,
+        stderr=proc.stderr,
+    )
+
+
+def run_snippet_probe(python: str, cwd: str | Path, code: str,
+                      package: str = "") -> ProbeResult:
+    """Run an arbitrary decision snippet; map its traceback to modules."""
+    proc = _run(python, cwd, code)
+    frames = parse_traceback(proc.stderr)
+    return ProbeResult(
+        ok=proc.returncode == 0,
+        numpy_version=None,
+        frames=frames,
+        modules=frames_to_modules(frames, Path(cwd), package),
         stderr=proc.stderr,
     )
 
@@ -93,7 +111,8 @@ def parse_traceback(stderr: str) -> list[Frame]:
     return frames
 
 
-def frames_to_modules(frames: list[Frame], root: str | Path) -> list[str]:
+def frames_to_modules(frames: list[Frame], root: str | Path,
+                      package: str = "") -> list[str]:
     """Map frames under root to dotted modules, deduped (call order kept)."""
     root = Path(root).resolve()
     modules: list[str] = []
@@ -105,6 +124,8 @@ def frames_to_modules(frames: list[Frame], root: str | Path) -> list[str]:
         if rel.suffix != ".py":
             continue
         parts = list(rel.with_suffix("").parts)
+        if package and package in parts:
+            parts = parts[parts.index(package):]  # src/ layout: start at package
         if parts[-1] == "__init__":
             parts = parts[:-1]
         mod = ".".join(parts)

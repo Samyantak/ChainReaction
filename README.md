@@ -48,6 +48,7 @@ python scripts/make_target_envs.py
 
 - `envs/numpy1` — numpy 1.26.4: the "before" run, `import nibabel` passes.
 - `envs/numpy2` — numpy 2.0.2: the "after" run, the sctypes break reproduces.
+- `envs/sponsorfit` — sponsorfit's deps: the Meta-switch decision probe.
 
 Probes, the pipeline, and the fix-loop demo all resolve these via
 `chainreaction.verifier.target_python()`.

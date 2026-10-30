@@ -44,3 +44,12 @@ def test_report_matches_pipeline():
 
 def test_unknown_scenario_404s():
     assert client.get("/api/report?scenario=nope").status_code == 404
+
+
+def test_sponsorfit_decision_report():
+    body = client.get("/api/report?scenario=sponsorfit-meta").json()
+    assert body["decision"] == "switch to Meta Model API"
+    assert body["probe_kind"] == "decision"
+    assert len(body["layers"]) == 1
+    assert body["layers"][0]["recall"] == 1.0
+    assert "sponsorfit.corpus.extract.extract_sponsors" in body["at_risk"]

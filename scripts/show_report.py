@@ -42,11 +42,18 @@ def main() -> int:
     res = run_pipeline(scenario_id, fetch_guide=guide_text is not None,
                        guide_text=guide_text)
     g, report = res.graph, res.report
+    primary = report.layers[0]
+    peeled = next((l for l in report.layers if l.name.startswith("layer2")),
+                  None)
+    before = next((l for l in report.layers if l.name.startswith("before")),
+                  None)
     print(f"change symbols: {report.change_symbols}")
-    print(f"layer1 modules={len(report.layers[0].actual)} "
+    print(f"{primary.name} modules={len(primary.actual)} "
           f"numpy={report.numpy_version}")
-    print(f"layer2 (peeled) modules={len(report.layers[1].actual)}")
-    print(f"before ok={report.layers[2].ok} numpy={report.before_numpy}")
+    if peeled is not None:
+        print(f"layer2 (peeled) modules={len(peeled.actual)}")
+    if before is not None:
+        print(f"before ok={before.ok} numpy={report.before_numpy}")
 
     violations = check_report(g, report)
     print("CLAIM VIOLATIONS:" if violations else "CLAIMS_CLEAN")
@@ -65,13 +72,20 @@ def main() -> int:
         print(md)
 
     spine_ok = report.spine_match
-    peel_recall = report.layers[1].recall
-    before_ok = report.layers[2].ok
-    ok = spine_ok and peel_recall == 1.0 and before_ok and not violations
-    print(f"spine_match={spine_ok} peel_recall={peel_recall:.2f} "
-          f"before_ok={before_ok}")
-    print(f"file P/R vs PR: {report.file_precision:.2f}/"
-          f"{report.file_recall:.2f} missed={report.file_missing}")
+    ok = primary.recall == 1.0 and not violations
+    if report.probe_kind == "import":
+        ok = ok and spine_ok
+    summary = f"spine_match={spine_ok} primary_recall={primary.recall:.2f}"
+    if peeled is not None:
+        ok = ok and peeled.recall == 1.0
+        summary += f" peel_recall={peeled.recall:.2f}"
+    if before is not None:
+        ok = ok and before.ok
+        summary += f" before_ok={before.ok}"
+    print(summary)
+    if report.file_precision is not None:
+        print(f"file P/R vs PR: {report.file_precision:.2f}/"
+              f"{report.file_recall:.2f} missed={report.file_missing}")
     print("REPORT_MATCH" if ok else "REPORT_DIFFERS (see above)")
     return 0 if ok else 1
 

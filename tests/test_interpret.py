@@ -10,6 +10,7 @@ from chainreaction.interpret import (
     ChangeItem,
     ChangeSet,
     change_symbols,
+    config_items,
     html_to_text,
     interpret,
     to_json,
@@ -102,13 +103,14 @@ def test_config_and_schema_break_kinds():
     ]
     verified, dropped = verify_quotes(items, META_GUIDE)
     assert len(verified) == 3 and dropped == []
-    assert change_symbols(
-        ChangeSet("switch to Meta Model API", "https://example.invalid/meta",
-                  verified)) == {
+    cs = ChangeSet("switch to Meta Model API", "https://example.invalid/meta",
+                   verified)
+    assert change_symbols(cs) == set()  # config kinds aren't external symbols
+    assert [i.symbol for i in config_items(cs)] == [
         "sponsorfit.llm.Provider",
         "sponsorfit.llm.MeteredLLMClient._call_openai",
         "sponsorfit.pricing.PRICING",
-    }
+    ]
 
 
 def test_interpret_stub_names_the_blocker():

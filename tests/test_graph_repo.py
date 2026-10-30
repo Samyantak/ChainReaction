@@ -95,6 +95,27 @@ def test_plain_from_import_links_call_to_qualified_def(tmp_path):
     assert d["kind"] == "CALLS"
 
 
+def test_typed_param_method_call_resolves(tmp_path):
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "svc.py").write_text(
+        "class Client:\n"
+        "    def run(self):\n"
+        "        return 1\n",
+        encoding="utf-8",
+    )
+    (pkg / "agent.py").write_text(
+        "from .svc import Client\n"
+        "def act(client: Client):\n"
+        "    return client.run()\n",
+        encoding="utf-8",
+    )
+    g = build_graph_from_repo(tmp_path, "demo")
+    d = g.edges["demo.agent.act", "demo.svc.Client.run"]
+    assert d["kind"] == "CALLS"
+
+
 def test_methods_qualified_with_class_no_collision(tmp_path):
     g = build_graph_from_repo(_crossmod(tmp_path), "demo")
     assert g.nodes["demo.b.C.chelp"]["kind"] == "function"

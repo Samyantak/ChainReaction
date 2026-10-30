@@ -117,12 +117,25 @@ def verify_quotes(
     return verified, dropped
 
 
+# Config/schema kinds name OUR definitions (closed world, resolved to
+# graph nodes); every other kind names an external symbol to match uses.
+CONFIG_KINDS = ("missing_param", "missing_key", "rejected_value")
+
+
 def change_symbols(changeset: ChangeSet, verified_only: bool = True) -> set[str]:
     return {
         i.symbol
         for i in changeset.items
-        if not verified_only or i.verified
+        if (not verified_only or i.verified) and i.kind not in CONFIG_KINDS
     }
+
+
+def config_items(changeset: ChangeSet, verified_only: bool = True
+                 ) -> list[ChangeItem]:
+    return [
+        i for i in changeset.items
+        if (not verified_only or i.verified) and i.kind in CONFIG_KINDS
+    ]
 
 
 class _TextExtractor(HTMLParser):

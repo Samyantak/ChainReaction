@@ -5,7 +5,7 @@ backend, demo scripts, and (later) the UI scenario picker.
 
 from dataclasses import dataclass, field
 
-from chainreaction.interpret import ChangeItem
+from chainreaction.interpret import BreakDetail, ChangeItem
 
 PEEL_SCTYPES = """\
 import numpy as np
@@ -46,6 +46,13 @@ class Scenario:
     peel_preamble: str = ""
     pr_url: str = ""
     pr_files: list[str] = field(default_factory=list)
+    # Decision probes replace the import probe for non-version decisions;
+    # "" keeps the classic import/peeled/before layers.
+    probe_code: str = ""
+    verify_env: str = "numpy2"
+    before_env: str = "numpy1"  # "" = no before layer
+    grep_patterns: list[str] | None = None  # None = numpy defaults
+    run_ruff: bool = True
 
 
 NIBABEL_NUMPY2 = Scenario(
@@ -67,7 +74,50 @@ NIBABEL_NUMPY2 = Scenario(
     peel_preamble=PEEL_SCTYPES,
 )
 
-SCENARIOS = {s.id: s for s in [NIBABEL_NUMPY2]}
+# Exercises the Meta switch without network or cost: tmp dirs, :memory: db.
+# Fails at the first blocker (provider dispatch rejects "meta").
+META_PROBE = """\
+import sys
+import tempfile
+sys.path.insert(0, "src")
+tmp = tempfile.mkdtemp()
+from sponsorfit.llm import MeteredLLMClient
+client = MeteredLLMClient(run_id="probe", db_path=":memory:",
+                          traces_dir=tmp)
+client.call(provider="meta", model="muse-spark-1.3",
+            messages=[{"role": "user", "content": "ping"}])
+"""
+
+SPONSORFIT_META = Scenario(
+    id="sponsorfit-meta",
+    decision="switch to Meta Model API",
+    target="targets/sponsorfit",
+    package="sponsorfit",
+    # Vendor guide URL pending — stub quotes recorded by hand.
+    guide_url="",
+    stub_items=[
+        ChangeItem("sponsorfit.llm.Provider", "rejected_value",
+                   "call the muse-spark-1.3 model by name",
+                   detail=BreakDetail('"meta" in Provider',
+                                      'Literal["anthropic","openai","ollama"]')),
+        ChangeItem("sponsorfit.llm.MeteredLLMClient._call_openai",
+                   "missing_param",
+                   "Set the base URL to https://api.meta.ai/v1",
+                   detail=BreakDetail("base_url=https://api.meta.ai/v1",
+                                      "openai.OpenAI() with no base_url")),
+        ChangeItem("sponsorfit.pricing.PRICING", "missing_key",
+                   "bill meta/muse-spark-1.3 usage against the meta table",
+                   detail=BreakDetail('PRICING["meta"]["muse-spark-1.3"]',
+                                      "KeyError: no meta provider table")),
+    ],
+    probe_code=META_PROBE,
+    verify_env="sponsorfit",
+    before_env="",
+    grep_patterns=[r"Provider", r"PRICING", r"_call_openai"],
+    run_ruff=False,
+)
+
+SCENARIOS = {s.id: s for s in [NIBABEL_NUMPY2, SPONSORFIT_META]}
 
 
 def get(scenario_id: str) -> Scenario:
