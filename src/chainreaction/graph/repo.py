@@ -102,6 +102,7 @@ class _FileVisitor(ast.NodeVisitor):
             for a in node.names:
                 if a.name == "*":
                     continue
+                self.aliases[a.asname or a.name] = f"{pkg}.{a.name}"
                 self._edge(f"{pkg}.{a.name}", "IMPORTS", node.lineno,
                            import_time=not self.in_function, names=[a.name])
             self.generic_visit(node)
@@ -113,8 +114,9 @@ class _FileVisitor(ast.NodeVisitor):
         if base.startswith(self.package):
             target = base
             for a in node.names:
-                if a.asname:
-                    self.aliases[a.asname] = f"{base}.{a.name}"
+                # every binding, not just `as`: `from .b import f` must
+                # connect later `f()` calls to base.f
+                self.aliases[a.asname or a.name] = f"{base}.{a.name}"
         elif base:
             top = base.split(".")[0]
             if not self.g.has_node(top):
@@ -160,8 +162,9 @@ class _FileVisitor(ast.NodeVisitor):
         self._enter_def(node, "class")
 
     def _enter_def(self, node, kind: str) -> None:
-        qual = f"{self.module}.{node.name}"
-        self.local_defs.add(node.name)
+        qual = f"{self.scope[-1]}.{node.name}"
+        if len(self.scope) == 1:
+            self.local_defs.add(node.name)
         self.g.add_node(qual, kind=kind, file=self.filename, line=node.lineno)
         self.scope.append(qual)
         prev, self.in_function = self.in_function, True
@@ -171,6 +174,17 @@ class _FileVisitor(ast.NodeVisitor):
 
     # -- calls and external uses --
 
+    def _resolved(self, name: str) -> str | None:
+        """Expand the root through import aliases; None when unbound."""
+        root, _, rest = name.partition(".")
+        if root not in self.aliases:
+            return None
+        base = self.aliases[root]
+        return f"{base}.{rest}" if rest else base
+
+    def _is_internal(self, dotted: str) -> bool:
+        return dotted == self.package or dotted.startswith(self.package + ".")
+
     def visit_Call(self, node: ast.Call) -> None:
         name = self._dotted(node.func)
         if name:
@@ -178,12 +192,15 @@ class _FileVisitor(ast.NodeVisitor):
             if not self.in_function and root in self.local_defs:
                 self._edge(f"{self.module}.{root}", "EXECUTES_AT_IMPORT",
                            node.lineno)
-            elif root in self.aliases:
-                self._edge(f"{self.aliases[root]}.{'.'.join(name.split('.')[1:])}"
-                           if "." in name else self.aliases[root],
-                           "USES_EXTERNAL", node.lineno)
-            else:
+                self.generic_visit(node)
+                return
+            resolved = self._resolved(name)
+            if resolved is None:
                 self._edge(name, "CALLS", node.lineno)
+            elif self._is_internal(resolved):
+                self._edge(resolved, "CALLS", node.lineno)
+            else:
+                self._edge(resolved, "USES_EXTERNAL", node.lineno)
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:
@@ -191,9 +208,12 @@ class _FileVisitor(ast.NodeVisitor):
         dotted = self._dotted(node)
         if dotted:
             root, _, rest = dotted.partition(".")
-            if rest and root in self.aliases:
-                self._edge(f"{self.aliases[root]}.{rest}", "USES_EXTERNAL",
-                           node.lineno)
+            resolved = self._resolved(dotted) if rest else None
+            # External reads are symbol uses; internal reads need no edge
+            # (module failure already travels over IMPORTS).
+            if (resolved is not None and root in self.aliases
+                    and not self._is_internal(resolved)):
+                self._edge(resolved, "USES_EXTERNAL", node.lineno)
         self.generic_visit(node)
 
     @staticmethod

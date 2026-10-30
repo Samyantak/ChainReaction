@@ -69,6 +69,41 @@ def test_unknown_symbol_marks_nothing(tmp_path):
     assert propagate(g, {"numpy.nope"}) == {}
 
 
+def _methods(tmp_path):
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "a.py").write_text(
+        "from .b import helper\n"
+        "def caller():\n"
+        "    return helper()\n",
+        encoding="utf-8",
+    )
+    (pkg / "b.py").write_text(
+        "import numpy as np\n"
+        "def helper():\n"
+        "    return np.sctypes['int']\n"
+        "class C:\n"
+        "    def chelp(self):\n"
+        "        return np.sctypes['uint']\n"
+        "    def method(self):\n"
+        "        return self.chelp()\n"
+        "class D:\n"
+        "    def chelp(self):\n"
+        "        return 0\n",
+        encoding="utf-8",
+    )
+    return tmp_path
+
+
+def test_cross_module_and_self_calls_propagate(tmp_path):
+    g = build_graph_from_repo(_methods(tmp_path), "demo")
+    impacts = propagate(g, {"numpy.sctypes"})
+    assert impacts["demo.a.caller"].status == "AT_RISK"
+    assert impacts["demo.b.C.method"].status == "AT_RISK"
+    assert "demo.b.D.chelp" not in impacts  # same name, other class: clean
+
+
 def test_failure_path_follows_execution_order(tmp_path):
     g = build_graph_from_repo(_pkg(tmp_path), "demo")
     impacts = propagate(g, {"numpy.sctypes"})

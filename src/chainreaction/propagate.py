@@ -84,9 +84,7 @@ def propagate(g: nx.DiGraph, broken: set[str]) -> dict[str, Impact]:
         if d.get("kind") == "EXECUTES_AT_IMPORT":
             target: str | None = v  # always a qualified def node
         elif d.get("kind") == "CALLS":
-            # NB: add_edge implicitly creates a node for the raw name, so
-            # `v in g.nodes` is always true — resolve bare names explicitly.
-            target = _resolve_call(g, u, v, defs) if "." not in v else None
+            target = _resolve_call(g, u, v, defs)
         else:
             continue
         if target is None:
@@ -188,22 +186,46 @@ def _matches(target: str, broken: set[str]) -> str | None:
     return None
 
 
-def _def_index(g: nx.DiGraph) -> dict[str, set[str]]:
-    index: dict[str, set[str]] = {}
+def _owner_module(g: nx.DiGraph, node: str) -> str:
+    """Nearest enclosing module of a node (walks dotted prefixes)."""
+    parts = node.split(".")
+    for i in range(len(parts), 0, -1):
+        cand = ".".join(parts[:i])
+        if cand in g.nodes and g.nodes[cand].get("kind") == "module":
+            return cand
+    return parts[0]
+
+
+def _is_def(g: nx.DiGraph, node: str) -> bool:
+    # NB: add_edge implicitly creates a node for the raw call name, so
+    # `in g.nodes` is always true — only nodes with a recorded kind count.
+    return g.nodes[node].get("kind") in ("function", "class") if node in g.nodes else False
+
+
+def _def_index(g: nx.DiGraph) -> dict[str, dict[str, list[str]]]:
+    index: dict[str, dict[str, list[str]]] = {}
     for node, data in g.nodes(data=True):
         if data.get("kind") in ("function", "class"):
-            module, _, name = node.rpartition(".")
-            index.setdefault(module, set()).add(name)
+            short = node.rpartition(".")[2]
+            module = _owner_module(g, node)
+            index.setdefault(module, {}).setdefault(short, []).append(node)
     return index
 
 
 def _resolve_call(
-    g: nx.DiGraph, caller: str, name: str, defs: dict[str, set[str]]
+    g: nx.DiGraph, caller: str, name: str, defs: dict[str, dict[str, list[str]]]
 ) -> str | None:
     if "." in name:
-        return name if name in g.nodes else None
-    kind = g.nodes[caller].get("kind") if caller in g.nodes else None
-    module = caller if kind == "module" else caller.rpartition(".")[0]
-    if name in defs.get(module, ()):
+        head, _, short = name.partition(".")
+        if head in ("self", "cls"):
+            scope = caller.rpartition(".")[0]  # enclosing class, if any
+            cand = f"{scope}.{short}" if scope else short
+            return cand if _is_def(g, cand) else None
+        return name if _is_def(g, name) else None
+    module = _owner_module(g, caller)
+    cands = defs.get(module, {}).get(name, [])
+    # Bare calls see module globals, never methods — prefer the
+    # module-level def; a lone same-named method still resolves (lenient).
+    if f"{module}.{name}" in cands:
         return f"{module}.{name}"
-    return None
+    return cands[0] if len(cands) == 1 else None

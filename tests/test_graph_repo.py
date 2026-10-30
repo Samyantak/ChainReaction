@@ -63,6 +63,47 @@ def test_repeated_import_keeps_first_line_and_import_time(tmp_path):
     assert d["import_time"] is True
 
 
+def _crossmod(tmp_path):
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "a.py").write_text(
+        "from .b import helper\n"
+        "def caller():\n"
+        "    return helper()\n",
+        encoding="utf-8",
+    )
+    (pkg / "b.py").write_text(
+        "class C:\n"
+        "    def chelp(self):\n"
+        "        return 1\n"
+        "    def method(self):\n"
+        "        return self.chelp()\n"
+        "class D:\n"
+        "    def chelp(self):\n"
+        "        return 2\n"
+        "def helper():\n"
+        "    return 3\n",
+        encoding="utf-8",
+    )
+    return tmp_path
+
+
+def test_plain_from_import_links_call_to_qualified_def(tmp_path):
+    g = build_graph_from_repo(_crossmod(tmp_path), "demo")
+    d = g.edges["demo.a.caller", "demo.b.helper"]
+    assert d["kind"] == "CALLS"
+
+
+def test_methods_qualified_with_class_no_collision(tmp_path):
+    g = build_graph_from_repo(_crossmod(tmp_path), "demo")
+    assert g.nodes["demo.b.C.chelp"]["kind"] == "function"
+    assert g.nodes["demo.b.D.chelp"]["kind"] == "function"
+    assert "demo.b.chelp" not in g.nodes
+    d = g.edges["demo.b.C.method", "self.chelp"]
+    assert d["kind"] == "CALLS"
+
+
 def test_external_use_with_line_evidence(tmp_path):
     root = _pkg(tmp_path)
     g = build_graph_from_repo(root, "demo")
