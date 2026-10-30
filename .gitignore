@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+pytest-of-*/
+cr-debug-*/
+cr-fix-*/
+
+# Target repos (pre-existing inputs, NOT part of this build)
+targets/
+
+# Generated reports
+reports/
+
+# Frontend
+ui/node_modules/
+ui/dist/
+ui/.npm-cache/
+
+# Secrets
+.env
+
+# Editors
+.vscode/
+.idea/
