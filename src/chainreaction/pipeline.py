@@ -4,7 +4,6 @@ Shared by the demo scripts and the web backend so both serve identical
 results. Live guide fetching is opt-in (needs network).
 """
 
-import sys
 from dataclasses import dataclass
 
 import networkx as nx
@@ -21,7 +20,7 @@ from chainreaction.interpret import (
 )
 from chainreaction.propagate import Impact, failure_path, predicted_chain, propagate
 from chainreaction.scorer import chain_match
-from chainreaction.verifier import run_import_probe
+from chainreaction.verifier import run_import_probe, target_python
 
 
 @dataclass
@@ -52,11 +51,14 @@ def run_pipeline(scenario_id: str, fetch_guide: bool = False) -> PipelineResult:
     spine_evidence = failure_path(g, impacts, symbols, scen.package)
     predicted = predicted_chain(g, spine_evidence)
 
+    after = target_python("numpy2")
     probes = [
-        ("layer1", run_import_probe(sys.executable, scen.target, scen.package)),
-        ("layer2 (peeled)", run_import_probe(sys.executable, scen.target,
+        ("layer1", run_import_probe(after, scen.target, scen.package)),
+        ("layer2 (peeled)", run_import_probe(after, scen.target,
                                              scen.package,
                                              preamble=scen.peel_preamble)),
+        ("before (numpy 1.26)", run_import_probe(target_python("numpy1"),
+                                                 scen.target, scen.package)),
     ]
     layers = []
     for name, probe in probes:
@@ -65,6 +67,7 @@ def run_pipeline(scenario_id: str, fetch_guide: bool = False) -> PipelineResult:
         layers.append(LayerResult(
             name, probe.modules, missing, recall,
             "\n".join(probe.stderr.splitlines()[-4:]) if probe.stderr else "",
+            probe.ok,
         ))
 
     hits = grep_hits(f"{scen.target}/{scen.package}")
@@ -73,6 +76,7 @@ def run_pipeline(scenario_id: str, fetch_guide: bool = False) -> PipelineResult:
     report = Report(
         decision=changeset.decision, target=scen.target, package=scen.package,
         numpy_version=probes[0][1].numpy_version,
+        before_numpy=probes[2][1].numpy_version,
         change_symbols=sorted(symbols),
         hard=sorted(hard), at_risk=sorted(risky),
         spine=predicted, spine_evidence=spine_evidence,

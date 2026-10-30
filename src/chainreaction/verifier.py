@@ -30,6 +30,25 @@ class ProbeResult:
     stderr: str = ""
 
 
+ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def target_python(env: str) -> str:
+    """Interpreter for a version-pinned target env (numpy1/numpy2).
+
+    The target must never run under ChainReaction's own interpreter:
+    what numpy it sees IS the decision under test.
+    """
+    exe = ROOT / "envs" / env / ("Scripts/python.exe"
+                                 if sys.platform == "win32"
+                                 else "bin/python")
+    if not exe.exists():
+        raise FileNotFoundError(
+            f"target env {env!r} missing ({exe}); "
+            "run: python scripts/make_target_envs.py")
+    return str(exe)
+
+
 def run_import_probe(
     python: str, cwd: str | Path, package: str, preamble: str = ""
 ) -> ProbeResult:

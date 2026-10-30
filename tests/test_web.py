@@ -31,8 +31,12 @@ def test_graph_marks_spine_hard():
 def test_report_matches_pipeline():
     body = client.get("/api/report?scenario=nibabel-numpy2").json()
     assert body["decision"] == "upgrade numpy to 2.0"
+    assert body["numpy_version"] == "2.0.2"
+    assert body["before_numpy"] == "1.26.4"
     assert body["layers"][0]["recall"] == 1.0
     assert body["layers"][1]["recall"] == 1.0
+    before = body["layers"][2]
+    assert before["ok"] is True and before["actual"] == []
 
 
 def test_unknown_scenario_404s():

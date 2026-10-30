@@ -3,10 +3,13 @@
 import sys
 from pathlib import Path
 
+import pytest
+
 from chainreaction.verifier import (
     frames_to_modules,
     parse_traceback,
     run_import_probe,
+    target_python,
 )
 
 CANNED = """\
@@ -64,3 +67,27 @@ def test_live_probe_failure_captured(tmp_path):
     res = run_import_probe(sys.executable, tmp_path, "definitely_missing_xyz")
     assert res.ok is False
     assert "ModuleNotFoundError" in res.stderr
+
+
+def test_target_python_missing_env_errors():
+    with pytest.raises(FileNotFoundError, match="make_target_envs"):
+        target_python("nope")
+
+
+def test_before_after_contrast_on_nibabel():
+    before = run_import_probe(target_python("numpy1"), "targets/nibabel",
+                              "nibabel")
+    assert before.ok is True
+    assert before.numpy_version == "1.26.4"
+    assert before.modules == []
+    after = run_import_probe(target_python("numpy2"), "targets/nibabel",
+                             "nibabel")
+    assert after.ok is False
+    assert after.numpy_version == "2.0.2"
+    assert after.modules == [
+        "nibabel",
+        "nibabel.analyze",
+        "nibabel.arrayproxy",
+        "nibabel.volumeutils",
+        "nibabel.casting",
+    ]

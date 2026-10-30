@@ -18,6 +18,7 @@ class LayerResult:
     missing: list[str] = field(default_factory=list)  # actual but not predicted
     recall: float = 1.0
     error_tail: str = ""
+    ok: bool = True  # the probe process exited 0 (import passed)
 
 
 @dataclass
@@ -32,6 +33,7 @@ class Report:
     spine: list[str]  # predicted layer-1 chain, outermost first
     spine_evidence: list[tuple[str, str, str, int]] = field(default_factory=list)
     spine_match: bool = False  # chain_match(spine, layers[0].actual)
+    before_numpy: str | None = None
     layers: list[LayerResult] = field(default_factory=list)
     grep_hits: int = 0
     ruff_hits: int | None = None
@@ -74,7 +76,8 @@ def render_markdown(report: Report) -> str:
         f"# ChainReaction report: {report.decision}",
         "",
         f"Target: `{report.target}` (pre-existing, analyzed by ChainReaction) | "
-        f"numpy: {report.numpy_version or 'unknown'}",
+        f"numpy: {report.numpy_version or 'unknown'}"
+        + (f" (before: {report.before_numpy})" if report.before_numpy else ""),
         "",
         "## Change set",
         "",

@@ -11,7 +11,7 @@ from chainreaction.baselines import grep_hits, ruff_npy201
 from chainreaction.graph.repo import build_graph_from_repo
 from chainreaction.propagate import failure_path, predicted_chain, propagate
 from chainreaction.scorer import chain_match, precision_recall
-from chainreaction.verifier import run_import_probe
+from chainreaction.verifier import run_import_probe, target_python
 
 TARGET = "targets/nibabel"
 PACKAGE = "nibabel"
@@ -39,9 +39,15 @@ def main() -> int:
     impacts = propagate(g, {"numpy.sctypes"})
     hard = {n for n, i in impacts.items() if i.status == "HARD"}
 
-    res = run_import_probe(sys.executable, TARGET, PACKAGE,
+    before = run_import_probe(target_python("numpy1"), TARGET, PACKAGE)
+    print(f"before: ok={before.ok} numpy={before.numpy_version}")
+    if not before.ok:
+        print("--- before stderr tail ---")
+        print("\n".join(before.stderr.splitlines()[-4:]))
+
+    res = run_import_probe(target_python("numpy2"), TARGET, PACKAGE,
                            preamble=PEEL_PREAMBLE if peel else "")
-    print(f"probe ok={res.ok} numpy={res.numpy_version}")
+    print(f"after: ok={res.ok} numpy={res.numpy_version}")
     if res.numpy_version is None or res.numpy_version == "MISSING":
         print("numpy is not installed for this interpreter; "
               "run: pip install \"numpy>=2\"")
@@ -86,7 +92,7 @@ def main() -> int:
     if peel:
         print("PEEL DONE: ok=" + str(res.ok))
         return 0
-    ok = score.match and pr.recall == 1.0
+    ok = before.ok and score.match and pr.recall == 1.0
     print("VERIFY_MATCH" if ok else "VERIFY_DIFFERS (see above)")
     return 0 if ok else 1
 

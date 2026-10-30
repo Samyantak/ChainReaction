@@ -8,6 +8,7 @@ Default verifies against the FULL suite (--tests selects a subset).
 import sys
 
 from chainreaction.fixloop import Patch, run_fix_loop
+from chainreaction.verifier import target_python
 
 P1_CASTING_IMPORT = """\
 --- a/nibabel/casting.py
@@ -137,8 +138,11 @@ def main() -> int:
                   if a.startswith("--tests=")), "nibabel/tests")
     timeout = int(next((a.split("=", 1)[1] for a in sys.argv
                         if a.startswith("--timeout=")), "900"))
+    python = next((a.split("=", 1)[1] for a in sys.argv
+                   if a.startswith("--python=")), target_python("numpy2"))
     print(f"target=targets/nibabel tests={tests} timeout={timeout}s")
-    res = run_fix_loop(sys.executable, "targets/nibabel", PATCHES, tests,
+    print(f"python={python}")
+    res = run_fix_loop(python, "targets/nibabel", PATCHES, tests,
                        timeout_per_run=timeout)
     for it in res.iterations:
         print(f"iter{it.index} applied={it.applied} green={it.green}")
