@@ -71,3 +71,17 @@ def test_empty_patch_list_stays_red(tmp_path):
 def test_propose_fix_stub_names_the_blocker():
     with pytest.raises(NotImplementedError, match="MODEL_API_KEY"):
         propose_fix("numpy.sctypes", "casting.py:717")
+
+
+def test_old_workdirs_pruned_keeping_latest(tmp_path):
+    from pathlib import Path
+
+    target = _proj(tmp_path)
+    first = run_fix_loop(sys.executable, target,
+                         [Patch("p1", "fix division", DIFF)], ".",
+                         timeout_per_run=120)
+    second = run_fix_loop(sys.executable, target,
+                          [Patch("p1", "fix division", DIFF)], ".",
+                          timeout_per_run=120)
+    assert Path(first.workdir).exists() is False
+    assert Path(second.workdir).exists() is True

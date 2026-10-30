@@ -61,6 +61,13 @@ def copy_target(target: str | Path) -> Path:
     return workdir
 
 
+def _prune_old_workdirs(keep: Path) -> None:
+    """Delete stale cr-fix-* work copies; keep the latest for inspection."""
+    for entry in keep.parent.glob("cr-fix-*"):
+        if entry != keep and entry.is_dir() and not entry.is_symlink():
+            shutil.rmtree(entry, ignore_errors=True)
+
+
 def _normalize_diff(diff: str) -> str:
     """Give bare blank context lines their required single space.
 
@@ -149,6 +156,7 @@ def run_fix_loop(python: str, target: str | Path, patches: list[Patch],
         if green:
             result.green = True
             break
+    _prune_old_workdirs(workdir)
     return result
 
 
