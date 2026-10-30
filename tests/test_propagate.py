@@ -54,14 +54,69 @@ def test_hard_cascade_through_importers(tmp_path):
     assert all(hop[2].endswith("leaf.py") for hop in via)
 
 
-def test_lazy_importer_and_untriggered_use_stay_at_risk(tmp_path):
+def test_lazy_module_hard_via_parent_uses_stay_at_risk(tmp_path):
     g = build_graph_from_repo(_pkg(tmp_path), "demo")
     impacts = propagate(g, {"numpy.sctypes"})
 
     assert impacts["demo.lazy.load"].status == "AT_RISK"
     assert impacts["demo.lazy.risky"].status == "AT_RISK"
     assert impacts["demo.lazy.wrapper"].status == "AT_RISK"
-    assert "demo.lazy" not in impacts  # importing lazy triggers nothing
+    # lazy's own code is clean, but importing it executes the broken
+    # demo/__init__ first, so the module itself is HARD.
+    assert impacts["demo.lazy"].status == "HARD"
+    assert impacts["demo.lazy"].via[0][:2] == ("demo.lazy", "demo")
+
+
+def test_submodule_under_hard_package_is_hard(tmp_path):
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("from . import leaf\n", encoding="utf-8")
+    (pkg / "leaf.py").write_text(
+        "import numpy as np\nOK = np.sctypes['float']\n", encoding="utf-8")
+    sub = pkg / "sub"
+    sub.mkdir()
+    (sub / "__init__.py").write_text("", encoding="utf-8")
+    (sub / "mod.py").write_text("VALUE = 1\n", encoding="utf-8")
+    g = build_graph_from_repo(tmp_path, "demo")
+    assert g.edges["demo.sub.mod", "demo"]["kind"] == "PARENT_INIT"
+    impacts = propagate(g, {"numpy.sctypes"})
+    assert impacts["demo.sub.mod"].status == "HARD"
+    assert impacts["demo.sub.mod"].via[0][:2] == ("demo.sub.mod", "demo")
+
+
+def test_failure_path_skips_cascade_blocked_modules(tmp_path):
+    # clean is imported FIRST but only cascade-HARD (its own code is
+    # fine); the walk must skip it — the executing root won't re-fail.
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text(
+        "from . import clean\nfrom . import leaf\n", encoding="utf-8")
+    (pkg / "clean.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (pkg / "leaf.py").write_text(
+        "import numpy as np\nOK = np.sctypes['float']\n", encoding="utf-8")
+    g = build_graph_from_repo(tmp_path, "demo")
+    impacts = propagate(g, {"numpy.sctypes"})
+    assert impacts["demo.clean"].status == "HARD"
+    hops = failure_path(g, impacts, {"numpy.sctypes"}, "demo")
+    assert predicted_chain(g, hops) == ["demo", "demo.leaf"]
+
+
+def test_failure_path_skips_transitive_cascade_block(tmp_path):
+    # mid is DIRECTLY hard (imports inner) but inner only fails via the
+    # executing root — mid must be skipped like clean was.
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text(
+        "from . import mid\nfrom . import leaf\n", encoding="utf-8")
+    (pkg / "mid.py").write_text("from . import inner\n", encoding="utf-8")
+    (pkg / "inner.py").write_text("VALUE = 1\n", encoding="utf-8")
+    (pkg / "leaf.py").write_text(
+        "import numpy as np\nOK = np.sctypes['float']\n", encoding="utf-8")
+    g = build_graph_from_repo(tmp_path, "demo")
+    impacts = propagate(g, {"numpy.sctypes"})
+    assert impacts["demo.mid"].status == "HARD"
+    hops = failure_path(g, impacts, {"numpy.sctypes"}, "demo")
+    assert predicted_chain(g, hops) == ["demo", "demo.leaf"]
 
 
 def test_unknown_symbol_marks_nothing(tmp_path):

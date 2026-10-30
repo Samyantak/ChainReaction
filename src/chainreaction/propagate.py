@@ -67,7 +67,7 @@ def propagate(g: nx.DiGraph, broken: set[str]) -> dict[str, Impact]:
     while changed:
         changed = False
         for u, v, d in g.edges(data=True):
-            if d.get("kind") != "IMPORTS":
+            if d.get("kind") not in ("IMPORTS", "PARENT_INIT"):
                 continue
             imp = impacts.get(v)
             if imp is None or imp.status != "HARD":
@@ -122,6 +122,26 @@ def predicted_chain(g: nx.DiGraph, hops: list[tuple[str, str, str, int]]
     return chain
 
 
+def _blocked_by_executing(g: nx.DiGraph, impacts: dict[str, Impact],
+                          node: str, path: set[str]) -> bool:
+    """True when node's HARD marking needs an already-executing ancestor.
+
+    A module that fails (directly or transitively) only because an
+    ancestor __init__ fails will import fine on the walk path: that
+    ancestor is already executing (partially initialized, in
+    sys.modules), so Python does not run it again.
+    """
+    imp = impacts.get(node)
+    if imp is None or imp.status != "HARD":
+        return False
+    for u, v, _file, _line in imp.via:
+        edge = g.edges.get((u, v))
+        if (edge is not None and edge.get("kind") == "PARENT_INIT"
+                and v in path):
+            return True
+    return False
+
+
 def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
                  broken: set[str], package: str
                  ) -> list[tuple[str, str, str, int]]:
@@ -150,7 +170,9 @@ def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
             if kind == "module":
                 if edge_kind == "IMPORTS" and d.get("import_time"):
                     imp = impacts.get(v)
-                    if imp is not None and imp.status == "HARD":
+                    if (imp is not None and imp.status == "HARD"
+                            and not _blocked_by_executing(g, impacts, v,
+                                                          visited)):
                         cands.append((d["line"], (node, v, d["file"], d["line"]), v))
                 elif edge_kind == "USES_EXTERNAL" and _matches(v, broken):
                     cands.append((d["line"], (node, v, d["file"], d["line"]), None))
@@ -165,7 +187,8 @@ def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
             elif edge_kind == "IMPORTS":
                 imp = impacts.get(v)
                 # in-function import of a HARD module: descend into it
-                if imp is not None and imp.status == "HARD":
+                if (imp is not None and imp.status == "HARD"
+                        and not _blocked_by_executing(g, impacts, v, visited)):
                     cands.append((d["line"], (node, v, d["file"], d["line"]), v))
             elif edge_kind == "EXECUTES_AT_IMPORT" and v in impacts:
                 cands.append((d["line"], (node, v, d["file"], d["line"]), v))

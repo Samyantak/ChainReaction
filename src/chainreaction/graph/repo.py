@@ -25,7 +25,33 @@ def build_graph_from_repo(root: str | Path, package: str) -> nx.DiGraph:
             continue
         is_package = path.name == "__init__.py"
         _FileVisitor(g, module, package, str(path), is_package).visit(tree)
+    _link_parent_inits(g, package)
     return g
+
+
+def _link_parent_inits(g: nx.DiGraph, package: str) -> None:
+    """Link each module to its ancestor packages (outermost first).
+
+    Importing a submodule executes every ancestor __init__ first, so a
+    module under a HARD package fails at import even when its own code
+    is clean. failure_path ignores these edges (it walks the import
+    chain, not the package tree); the HARD closure follows them.
+    """
+    for node, data in list(g.nodes(data=True)):
+        if data.get("kind") != "module":
+            continue
+        if node != package and not node.startswith(package + "."):
+            continue
+        parts = node.split(".")
+        for i in range(1, len(parts)):
+            anc = ".".join(parts[:i])
+            if anc in g.nodes and g.nodes[anc].get("kind") == "module":
+                # A real IMPORTS edge already covers this pair (with a
+                # better line); in-function-only ancestor imports stay a
+                # known gap.
+                if not g.has_edge(node, anc):
+                    g.add_edge(node, anc, kind="PARENT_INIT",
+                               file=data["file"], line=1, import_time=True)
 
 
 def _module_name(pkg_dir: Path, package: str, path: Path) -> str:
