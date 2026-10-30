@@ -82,20 +82,112 @@ def _clear_pycache(workdir: str | Path) -> None:
             shutil.rmtree(cache, ignore_errors=True)
 
 
-def _normalize_diff(diff: str) -> str:
-    """Give bare blank context lines their required single space.
+HUNK_RE = re.compile(r"^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)$")
+FILE_RE = re.compile(r"^--- a/(.+)$")
 
-    Hand-written and model-generated diffs often emit truly empty lines
-    where unified diff requires " " (a space). Added/removed lines always
-    start with +/- so a bare "" line is unambiguously blank context.
-    (To ADD a blank line, write "+" — a bare line always means context.)
+
+def _normalize_diff(diff: str) -> str:
+    """Repair the two systematic diff defects (hand or model written).
+
+    1. Bare blank context lines get their required single space: a truly
+       empty line is unambiguously blank context (added/removed lines
+       always start with +/-; to ADD a blank line, write "+").
+    2. Hunk headers are recounted from the body: the model miscounts
+       old/new lengths (e.g. @@ -711,10 +711,10 @@ over a 9-line body),
+       which git rejects as a corrupt patch. Start lines are kept.
     """
     trailing_nl = diff.endswith("\n")
     lines = diff.split("\n")
     if trailing_nl and lines and lines[-1] == "":
         lines.pop()
-    text = "\n".join(" " if ln == "" else ln for ln in lines)
+    lines = [" " if ln == "" else ln for ln in lines]
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        m = HUNK_RE.match(lines[i])
+        if not m:
+            out.append(lines[i])
+            i += 1
+            continue
+        body: list[str] = []
+        j = i + 1
+        while j < len(lines) and not HUNK_RE.match(lines[j]) \
+                and not lines[j].startswith("diff --git"):
+            body.append(lines[j])
+            j += 1
+        old_n = sum(1 for ln in body if ln[:1] in (" ", "-"))
+        new_n = sum(1 for ln in body if ln[:1] in (" ", "+"))
+        out.append(f"@@ -{m.group(1)},{old_n} +{m.group(2)},{new_n} "
+                   f"@@{m.group(3)}")
+        out.extend(body)
+        i = j
+    text = "\n".join(out)
     return text + "\n" if trailing_nl else text
+
+
+def _locate_hunks(diff: str, workdir: str | Path) -> str:
+    """Rewrite hunk starts to where the old-side block actually sits.
+
+    The model derives starts arithmetically (evidence line minus context)
+    instead of reading the excerpt labels, so starts drift by a line or
+    two. For each hunk, check the claimed position first; if the old-side
+    block (context + removed lines) isn't there, search the file and adopt
+    the match when it is unique. Ambiguous or missing blocks are left
+    untouched so git apply fails loudly instead of patching blind.
+    """
+    workdir = Path(workdir)
+    lines = diff.split("\n")
+    current: Path | None = None
+    cache: dict[Path, list[str]] = {}
+
+    def old_block(start_idx: int) -> tuple[list[str], int]:
+        block: list[str] = []
+        j = start_idx + 1
+        while j < len(lines) and not HUNK_RE.match(lines[j]) \
+                and not lines[j].startswith("diff --git") \
+                and not FILE_RE.match(lines[j]):
+            if lines[j][:1] in (" ", "-"):
+                block.append(lines[j][1:])
+            j += 1
+        return block, j
+
+    def file_lines(path: Path) -> list[str] | None:
+        if path not in cache:
+            if not path.is_file():
+                return None
+            cache[path] = path.read_text(encoding="utf-8").splitlines()
+        return cache[path]
+
+    out = list(lines)
+    i = 0
+    while i < len(lines):
+        f = FILE_RE.match(lines[i])
+        if f:
+            current = workdir / f.group(1)
+            i += 1
+            continue
+        m = HUNK_RE.match(lines[i])
+        if not m or current is None:
+            i += 1
+            continue
+        src = file_lines(current)
+        block, _ = old_block(i)
+        if src is not None and block:
+            want = int(m.group(1)) - 1
+            at_claim = src[want:want + len(block)] == block
+            if not at_claim:
+                hits = [k for k in range(len(src) - len(block) + 1)
+                        if src[k:k + len(block)] == block]
+                if len(hits) == 1:
+                    # Rebuild preserving recounted lengths from the header.
+                    om = re.match(r"^@@ -\d+,(\d+) \+\d+,(\d+) @@(.*)$",
+                                  lines[i])
+                    assert om is not None  # _normalize_diff ran first
+                    new_start = int(m.group(2)) + (hits[0] - want)
+                    out[i] = (f"@@ -{hits[0] + 1},{om.group(1)} "
+                              f"+{new_start},{om.group(2)} @@{om.group(3)}")
+        i += 1
+    return "\n".join(out)
 
 
 def apply_patch(workdir: str | Path, patch: Patch) -> None:
@@ -103,10 +195,13 @@ def apply_patch(workdir: str | Path, patch: Patch) -> None:
 
     The diff goes over the pipe as UTF-8 bytes: text mode would translate
     LF to CRLF on Windows and then never match the target's LF files.
+    Hunk starts are relocated to their unique match when the claimed
+    position drifts (the model's known off-by-one).
     """
+    text = _locate_hunks(_normalize_diff(patch.diff), workdir)
     proc = subprocess.run(
         ["git", "apply", "--whitespace=nowarn", "-"],
-        input=_normalize_diff(patch.diff).encode("utf-8"),
+        input=text.encode("utf-8"),
         cwd=str(workdir),
         capture_output=True,
         timeout=120,
@@ -185,6 +280,9 @@ that fixes exactly that use. Rules:
 - The diff must apply with `git apply -p1`: paths like
   a/nibabel/casting.py and b/nibabel/casting.py, relative to the target
   root, with at least 3 lines of context around every hunk.
+- Each hunk's start line must equal the excerpt's labeled number of the
+  hunk's first line (copy it, don't compute it); count old/new lengths
+  from the body lines exactly.
 - Fix ONLY the reported use; do not refactor, reformat, or touch tests.
 - Blank context lines must contain a single space; added/removed lines
   start with +/-.
@@ -209,7 +307,7 @@ def propose_fix(symbol: str, evidence: str, target: str | Path = ".",
     excerpt = "\n".join(f"{i}: {lines[i - 1]}" for i in range(lo, hi + 1))
     user = (f"Broken symbol: {symbol}\nUse site: {evidence}\n\n"
             f"File excerpt (line-numbered):\n{excerpt}\n")
-    data = extract_json(chat(PROPOSE_SYSTEM_PROMPT, user, max_tokens=2000))
+    data = extract_json(chat(PROPOSE_SYSTEM_PROMPT, user, max_tokens=8000))
     diff = data.get("diff", "")
     if "@@" not in diff:
         raise ValueError("model did not return a unified diff")

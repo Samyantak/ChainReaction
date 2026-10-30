@@ -59,8 +59,12 @@ def extract_json(text: str):
     return json.loads(text[start:end])
 
 
-def chat(system: str, user: str, max_tokens: int = 2000) -> str:
-    """One system+user call; returns the message text (raises on failure)."""
+def chat(system: str, user: str, max_tokens: int = 8000) -> str:
+    """One system+user call; returns the message text (raises on failure).
+
+    Budgets run large because muse-spark reasons first: even a trivial
+    reply burns hundreds of reasoning tokens before any text.
+    """
     resp = client().chat.completions.create(
         model=model_name(),
         messages=[{"role": "system", "content": system},
@@ -69,5 +73,7 @@ def chat(system: str, user: str, max_tokens: int = 2000) -> str:
     )
     content = resp.choices[0].message.content
     if not content:
-        raise RuntimeError("empty response from model")
+        reason = resp.choices[0].finish_reason
+        raise RuntimeError(
+            f"empty response from model (finish_reason={reason})")
     return content

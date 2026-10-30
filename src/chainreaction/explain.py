@@ -189,4 +189,4 @@ def generate_narrative(report: Report) -> str:
                     "missing": l.missing} for l in report.layers],
     }, indent=2)
     return chat(NARRATE_SYSTEM_PROMPT, f"Report JSON:\n{facts}\n",
-                max_tokens=1500)
+                max_tokens=8000)

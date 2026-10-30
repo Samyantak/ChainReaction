@@ -11,7 +11,7 @@ def main() -> int:
               file=sys.stderr)
         return 2
     try:
-        print(chat("", "Reply with exactly: hello", max_tokens=16))
+        print(chat("", "Reply with exactly: hello", max_tokens=4000))
     except RuntimeError as e:
         print(f"{e}", file=sys.stderr)
         return 2

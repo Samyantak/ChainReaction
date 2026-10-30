@@ -182,6 +182,35 @@ def test_clear_pycache_removes_caches(tmp_path):
     assert (tmp_path / "pkg" / "m.py").is_file()
 
 
+def test_normalize_diff_recounts_misnumbered_hunk():
+    diff = ("--- a/mod.py\n+++ b/mod.py\n"
+            "@@ -5,10 +5,10 @@ def f():\n"
+            " ctx1\n- old\n+ new\n ctx2\n")
+    fixed = fixloop._normalize_diff(diff)
+    assert "@@ -5,3 +5,3 @@ def f():" in fixed
+
+
+def test_apply_patch_relocates_drifted_start(tmp_path):
+    (tmp_path / "mod.py").write_text(
+        "l1\nl2\nl3\nl4\nold\nl6\nl7\n", encoding="utf-8")
+    # Real block sits at lines 3-7; header claims 1-5 with wrong counts.
+    diff = ("--- a/mod.py\n+++ b/mod.py\n"
+            "@@ -1,9 +1,9 @@\n"
+            " l3\n l4\n-old\n+new\n l6\n l7\n")
+    fixloop.apply_patch(tmp_path, Patch("P-d", "drifted", diff))
+    assert (tmp_path / "mod.py").read_text(encoding="utf-8") == \
+        "l1\nl2\nl3\nl4\nnew\nl6\nl7\n"
+
+
+def test_locate_hunks_leaves_ambiguous_block(tmp_path):
+    (tmp_path / "mod.py").write_text("same\nsame\n", encoding="utf-8")
+    diff = ("--- a/mod.py\n+++ b/mod.py\n"
+            "@@ -9,1 +9,1 @@\n"
+            "-same\n+new\n")
+    out = fixloop._locate_hunks(fixloop._normalize_diff(diff), tmp_path)
+    assert "@@ -9,1 +9,1 @@" in out
+
+
 def test_change_item_verified_flag_roundtrip():
     item = ChangeItem(symbol="s", kind="k", quote="q")
     assert item.verified is False
