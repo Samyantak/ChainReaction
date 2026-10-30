@@ -103,12 +103,13 @@ def apply_patch(workdir: str | Path, patch: Patch) -> None:
                               f"{stderr.strip()}")
 
 
-def run_suite(python: str, workdir: str | Path, tests_rel: str,
+def run_suite(python: str, workdir: str | Path, tests_rel: str | list[str],
               timeout: int = 600) -> SuiteResult:
     """Run the target pytest suite; parse the one-line summary."""
+    targets = [tests_rel] if isinstance(tests_rel, str) else list(tests_rel)
     try:
         proc = subprocess.run(
-            [python, "-m", "pytest", tests_rel, "-q", "--tb=no", "-rf"],
+            [python, "-m", "pytest", *targets, "-q", "--tb=no", "-rf"],
             cwd=str(workdir),
             capture_output=True,
             text=True,
@@ -141,7 +142,8 @@ def run_suite(python: str, workdir: str | Path, tests_rel: str,
 
 
 def run_fix_loop(python: str, target: str | Path, patches: list[Patch],
-                 tests_rel: str, timeout_per_run: int = 600) -> LoopResult:
+                 tests_rel: str | list[str],
+                 timeout_per_run: int = 600) -> LoopResult:
     """Apply patches cumulatively, running the suite after each, to first green."""
     workdir = copy_target(target)
     result = LoopResult(workdir=str(workdir))

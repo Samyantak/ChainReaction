@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+dev = ["pytest", "coverage>=7", "pytest-cov"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

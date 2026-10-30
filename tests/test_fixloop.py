@@ -55,6 +55,17 @@ def test_suite_result_counts_failures(tmp_path):
     assert "failed" in res.summary
 
 
+def test_suite_accepts_test_list(tmp_path):
+    target = _proj(tmp_path)
+    (target / "test_extra.py").write_text(
+        "def test_extra():\n    assert True\n", encoding="utf-8")
+    res = run_suite(sys.executable, target, ["test_extra.py"], timeout=120)
+    assert (res.passed, res.failed) == (1, 0)
+    res = run_suite(sys.executable, target, ["test_calc.py", "test_extra.py"],
+                    timeout=120)
+    assert (res.passed, res.failed) == (1, 1)
+
+
 def test_bad_patch_raises_with_id(tmp_path):
     target = _proj(tmp_path)
     with pytest.raises(PatchApplyError, match="p-bad"):

@@ -7,7 +7,11 @@ Default verifies against the FULL suite (--tests selects a subset).
 
 import sys
 
+from chainreaction import scenarios
 from chainreaction.fixloop import Patch, run_fix_loop
+from chainreaction.graph.repo import build_graph_from_repo
+from chainreaction.propagate import propagate
+from chainreaction.testmap import TestMap, predicted_failing
 from chainreaction.verifier import target_python
 
 P1_CASTING_IMPORT = """\
@@ -140,9 +144,25 @@ def main() -> int:
                         if a.startswith("--timeout=")), "900"))
     python = next((a.split("=", 1)[1] for a in sys.argv
                    if a.startswith("--python=")), target_python("numpy2"))
+    select = next((a.split("=", 1)[1] for a in sys.argv
+                   if a.startswith("--select=")), None)
+    run_tests: str | list[str] = tests
+    if select:
+        scen = scenarios.get("nibabel-numpy2")
+        symbols = {i.symbol for i in scen.stub_items}
+        g = build_graph_from_repo("targets/nibabel", "nibabel")
+        impacts = propagate(g, symbols)
+        hard = {n for n, i in impacts.items() if i.status == "HARD"}
+        selected = sorted(predicted_failing(
+            TestMap.load(select), g, hard, "targets/nibabel"))
+        if selected:
+            print(f"select: {len(selected)} tests cover HARD modules")
+            run_tests = selected
+        else:
+            print(f"select: empty selection; running {tests}")
     print(f"target=targets/nibabel tests={tests} timeout={timeout}s")
     print(f"python={python}")
-    res = run_fix_loop(python, "targets/nibabel", PATCHES, tests,
+    res = run_fix_loop(python, "targets/nibabel", PATCHES, run_tests,
                        timeout_per_run=timeout)
     for it in res.iterations:
         print(f"iter{it.index} applied={it.applied} green={it.green}")

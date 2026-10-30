@@ -16,7 +16,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BASE_PYTHON = "3.11"
 ENVS = {"numpy1": "numpy==1.26.4", "numpy2": "numpy==2.0.2"}
-EXTRA = ["packaging>=17", "pytest"]
+# packaging+pytest: run the target suite; coverage+pytest-cov: build the
+# test map; scipy/h5py/pydicom: nibabel's optional test deps (harmless
+# for other targets).
+EXTRA = ["packaging>=17", "pytest", "coverage>=7", "pytest-cov",
+         "scipy", "h5py", "pydicom<3"]  # this nibabel predates pydicom 3
 
 
 def env_python(envdir: Path) -> Path:
