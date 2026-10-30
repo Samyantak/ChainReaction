@@ -1,10 +1,10 @@
 """Scorer: predicted (propagation) vs actual (verifier) comparison. No LLM."""
 
-import os
 from dataclasses import dataclass, field
 
 import networkx as nx
 
+from chainreaction.graph.repo import relative_posix
 from chainreaction.propagate import matches_symbol
 
 
@@ -58,7 +58,7 @@ def direct_use_files(g: nx.DiGraph, broken: set[str], target: str
             continue
         if matches_symbol(v, broken) is None:
             continue
-        rel = os.path.relpath(d["file"], target).replace(os.sep, "/")
+        rel = relative_posix(d["file"], target)
         if "/tests/" not in f"/{rel}" and not rel.startswith("tests/"):
             files.add(rel)
     return files

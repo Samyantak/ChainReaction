@@ -80,6 +80,58 @@ def test_interpret_no_key(monkeypatch):
         interpret.interpret("upgrade numpy", GUIDE)
 
 
+def test_interpret_uses_structured_output(monkeypatch):
+    seen = {}
+
+    def fake_chat(system, user, **kw):
+        seen.update(kw)
+        return json.dumps(MODEL_ITEMS)
+
+    monkeypatch.setattr("chainreaction.interpret.chat", fake_chat)
+    interpret.interpret("upgrade numpy", GUIDE)
+    assert seen["response_format"] == {
+        "type": "json_schema",
+        "json_schema": interpret.CHANGE_SET_JSON_SCHEMA,
+    }
+
+
+def test_chat_caches_by_prompt_hash(monkeypatch, tmp_path):
+    from chainreaction import llm
+
+    monkeypatch.setenv("LLM_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("MODEL_API_KEY", "test-key")
+    calls = []
+
+    class _Msg:
+        content = '{"ok": true}'
+
+    class _Choice:
+        message = _Msg()
+        finish_reason = "stop"
+
+    class _Resp:
+        choices = [_Choice()]
+
+    class _Client:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kw):
+                    calls.append(kw)
+                    return _Resp()
+
+    monkeypatch.setattr(llm, "client", lambda: _Client())
+    first = llm.chat("sys", "hello")
+    second = llm.chat("sys", "hello")
+    third = llm.chat("sys", "different")
+    assert first == second == '{"ok": true}'
+    assert third == '{"ok": true}'
+    assert len(calls) == 2  # repeat prompt served from cache
+    assert any("response_format" in c for c in calls) is False
+    cached = list((tmp_path / "cache").glob("*"))
+    assert len(cached) == 2  # one entry per distinct prompt hash
+
+
 def test_propose_fix_builds_patch(monkeypatch, tmp_path):
     (tmp_path / "mod.py").write_text("a = 1\nb = 2\nc = 3\n",
                                      encoding="utf-8")

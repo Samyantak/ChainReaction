@@ -7,6 +7,7 @@
   --muted: #9aa0a8;
   --red: #e5484d;
   --amber: #f5a524;
+  --green: #46a758;
 }
 
 * { box-sizing: border-box; }
@@ -85,3 +86,17 @@ main { display: flex; flex: 1; min-height: 0; }
 }
 
 .missed { color: var(--amber); font-size: 12px; margin-top: 4px; }
+
+.claim { font-size: 12px; margin-top: 4px; }
+
+.claim-icon { display: inline-block; width: 16px; font-weight: 700; }
+
+.claim.pass .claim-icon { color: var(--green); }
+
+.claim.fail .claim-icon { color: var(--red); }
+
+.claim.fail .claim-label { color: #ffb4b8; }
+
+.claim.pending .claim-icon { color: var(--muted); }
+
+.claim-label { font-family: Consolas, monospace; word-break: break-all; }

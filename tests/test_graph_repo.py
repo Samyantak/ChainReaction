@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from chainreaction.graph.repo import build_graph_from_repo
+from chainreaction.graph.repo import build_graph_from_repo, relative_posix
 
 
 def _pkg(tmp_path: Path) -> Path:
@@ -33,6 +33,27 @@ def test_importer_path_and_executes_at_import(tmp_path):
 
     assert ("demo.leaf", "demo.leaf.ok") in g.edges
     assert g.edges["demo.leaf", "demo.leaf.ok"]["kind"] == "EXECUTES_AT_IMPORT"
+
+
+def test_evidence_paths_are_repo_relative_posix(tmp_path):
+    g = build_graph_from_repo(_pkg(tmp_path), "demo")
+    assert g.edges["demo", "demo.mid"]["file"] == "demo/__init__.py"
+    assert g.nodes["demo.leaf"]["file"] == "demo/leaf.py"
+    for _, _, d in g.edges(data=True):
+        assert "\\" not in d["file"], d["file"]
+        assert not d["file"].startswith(str(tmp_path)), d["file"]
+    for _, d in g.nodes(data=True):
+        if "file" in d:
+            assert "\\" not in d["file"], d["file"]
+
+
+def test_relative_posix_strips_target_prefix_idempotently(tmp_path):
+    target = str(tmp_path / "t")
+    assert relative_posix("t/pkg/a.py", "t") == "pkg/a.py"
+    assert relative_posix("pkg/a.py", "t") == "pkg/a.py"
+    assert relative_posix(str(tmp_path / "t" / "pkg" / "a.py"), target) == \
+        "pkg/a.py"
+    assert relative_posix("t\\pkg\\a.py", "t") == "pkg/a.py"
 
 
 def test_subpackage_init_relative_import(tmp_path):

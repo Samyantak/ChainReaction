@@ -10,6 +10,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
 from chainreaction import scenarios
+from chainreaction.explain import claim_checks
+from chainreaction.graph.repo import relative_posix
 from chainreaction.pipeline import PipelineResult, run_pipeline
 
 app = FastAPI(title="ChainReaction")
@@ -40,7 +42,12 @@ def list_scenarios() -> list[dict]:
 
 @app.get("/api/report")
 def get_report(scenario: str = "nibabel-numpy2") -> JSONResponse:
-    return JSONResponse(asdict(_result(scenario).report))
+    res = _result(scenario)
+    return JSONResponse({
+        **asdict(res.report),
+        "claim_checks": [asdict(c) for c in claim_checks(res.graph,
+                                                         res.report)],
+    })
 
 
 @app.get("/api/graph")
@@ -58,7 +65,9 @@ def get_graph(scenario: str = "nibabel-numpy2") -> dict:
     ]
     edges = [
         {"source": u, "target": v, "kind": d.get("kind"),
-         "file": d.get("file"), "line": d.get("line")}
+         "file": relative_posix(d["file"], res.report.target)
+         if d.get("file") else d.get("file"),
+         "line": d.get("line")}
         for u, v, d in g.edges(data=True)
         if u in modules and v in modules
         and d.get("kind") in ("IMPORTS", "EXECUTES_AT_IMPORT")

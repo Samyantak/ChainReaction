@@ -10,6 +10,7 @@ from pathlib import Path
 
 from chainreaction import scenarios
 from chainreaction.explain import (
+    check_narrative,
     check_report,
     generate_narrative,
     render_json,
@@ -25,6 +26,10 @@ def _opt(prefix: str, default: str | None = None) -> str | None:
 
 
 def main() -> int:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):  # redirected / closed stdout
+        pass
     scenario_id = _opt("--scenario=", "nibabel-numpy2")
     fetch_guide = "--fetch-guide" in sys.argv
     live_interpret = "--interpret" in sys.argv
@@ -87,6 +92,8 @@ def main() -> int:
         else:
             print("--- narrative ---")
             print(report.narrative)
+            for v in check_narrative(report):
+                print(f"  NARRATIVE VIOLATION: {v}")
 
     md = render_markdown(report)
     if out:

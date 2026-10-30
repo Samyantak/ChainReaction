@@ -20,6 +20,9 @@ targets/
 # Generated reports
 reports/
 
+# LLM prompt-hash cache (regenerable, machine-local)
+.llm_cache/
+
 # Frontend
 ui/node_modules/
 ui/dist/

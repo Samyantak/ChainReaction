@@ -6,9 +6,24 @@ np.sctypes). All carry file:line evidence. No LLM involved.
 """
 
 import ast
+import os
 from pathlib import Path
 
 import networkx as nx
+
+
+def relative_posix(path: str | Path, root: str | Path) -> str:
+    """Repo-relative forward-slash path (idempotent).
+
+    Strips the target root whether the file is absolute, target-prefixed
+    ("targets/nibabel/nibabel/x.py"), or already repo-relative
+    ("nibabel/x.py" passes through).
+    """
+    text = str(path).replace("\\", "/")
+    base = str(root).replace("\\", "/").rstrip("/")
+    if os.path.isabs(str(path)) or text == base or text.startswith(base + "/"):
+        return os.path.relpath(str(path), str(root)).replace("\\", "/")
+    return text
 
 
 def package_dir(root: str | Path, package: str) -> Path:
@@ -27,13 +42,14 @@ def build_graph_from_repo(root: str | Path, package: str) -> nx.DiGraph:
     files = sorted(pkg_dir.rglob("*.py"))
     for path in files:
         module = _module_name(pkg_dir, package, path)
-        g.add_node(module, kind="module", file=str(path), line=1)
+        filename = relative_posix(path, root)
+        g.add_node(module, kind="module", file=filename, line=1)
         try:
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         except SyntaxError:
             continue
         is_package = path.name == "__init__.py"
-        _FileVisitor(g, module, package, str(path), is_package).visit(tree)
+        _FileVisitor(g, module, package, filename, is_package).visit(tree)
     _link_parent_inits(g, package)
     return g
 

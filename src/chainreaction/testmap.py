@@ -15,6 +15,7 @@ from pathlib import Path
 from coverage import Coverage
 
 from chainreaction.fixloop import COUNT_RE
+from chainreaction.graph.repo import relative_posix
 
 
 @dataclass
@@ -147,7 +148,7 @@ def predicted_failing(testmap: TestMap, g, hard: set[str],
         udata = g.nodes[u]
         if udata.get("kind") != "module":
             continue
-        rel = os.path.relpath(udata["file"], target).replace("\\", "/")
+        rel = relative_posix(udata["file"], target)
         pred |= {t for t in testmap.tests
                  if t.replace("\\", "/").startswith(rel + "::")}
     return pred

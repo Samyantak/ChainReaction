@@ -48,6 +48,14 @@ def test_report_matches_pipeline():
     assert body["file_behavior"] == body["file_missing"]
 
 
+def test_report_includes_per_claim_checks():
+    body = client.get("/api/report?scenario=nibabel-numpy2").json()
+    checks = body["claim_checks"]
+    assert any("nibabel → nibabel.analyze" in c["label"] for c in checks)
+    assert {c["status"] for c in checks} <= {"pass", "pending"}
+    assert any(c["status"] == "pending" for c in checks)  # no narrative yet
+
+
 def test_unknown_scenario_404s():
     assert client.get("/api/report?scenario=nope").status_code == 404
 

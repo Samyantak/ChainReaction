@@ -210,8 +210,10 @@ def interpret(decision: str, guide_text: str, source_url: str = "") -> ChangeSet
         "Emit the change set as a single JSON object matching this schema:\n"
         f"{json.dumps(CHANGE_SET_JSON_SCHEMA['schema'])}"
     )
-    data = extract_json(chat(INTERPRET_SYSTEM_PROMPT, user,
-                            max_tokens=12000))
+    data = extract_json(chat(
+        INTERPRET_SYSTEM_PROMPT, user, max_tokens=12000,
+        response_format={"type": "json_schema",
+                         "json_schema": CHANGE_SET_JSON_SCHEMA}))
     items = []
     for raw in data.get("items", []):
         if not raw.get("symbol") or not raw.get("quote") or not raw.get("kind"):

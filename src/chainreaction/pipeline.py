@@ -11,7 +11,11 @@ import networkx as nx
 from chainreaction import scenarios
 from chainreaction.baselines import grep_hits, ruff_npy201
 from chainreaction.explain import LayerResult, Report
-from chainreaction.graph.repo import build_graph_from_repo, package_dir
+from chainreaction.graph.repo import (
+    build_graph_from_repo,
+    package_dir,
+    relative_posix,
+)
 from chainreaction.interpret import (
     CONFIG_KINDS,
     ChangeSet,
@@ -73,7 +77,10 @@ def run_pipeline(scenario_id: str, fetch_guide: bool = False,
     hard = {n for n, i in impacts.items() if i.status == "HARD"}
     risky = {n for n, i in impacts.items() if i.status == "AT_RISK"}
 
-    spine_evidence = failure_path(g, impacts, symbols, scen.package)
+    spine_evidence = [
+        (u, v, relative_posix(path, scen.target), line)
+        for u, v, path, line in failure_path(g, impacts, symbols, scen.package)
+    ]
     predicted = predicted_chain(g, spine_evidence)
 
     flagged = hard | risky

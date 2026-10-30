@@ -161,6 +161,24 @@ export default function App() {
                   </div>
                 ))}
               </section>
+              <section>
+                <h2>Claim check</h2>
+                {(report.claim_checks || []).map((c, i) => (
+                  <div key={i} className={`claim ${c.status}`}>
+                    <span className="claim-icon">
+                      {c.status === 'pass'
+                        ? '✓'
+                        : c.status === 'fail'
+                          ? '✗'
+                          : '…'}
+                    </span>
+                    <span className="claim-label">{c.label}</span>
+                    {c.detail && (
+                      <span className="muted"> — {c.detail}</span>
+                    )}
+                  </div>
+                ))}
+              </section>
               {selected && (
                 <section>
                   <h2>{selected}</h2>
