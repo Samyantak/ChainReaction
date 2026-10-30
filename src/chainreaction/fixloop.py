@@ -1,8 +1,8 @@
-"""Fix loop scaffolding: apply unified-diff patches -> run suite -> record.
+"""Fix loop: propose unified-diff patches -> run suite -> record.
 
 Patches apply to a fresh temp copy of the target (the shared snapshot is
-never mutated). Patch *proposal* is an LLM stub until MODEL_API_KEY exists;
-everything else runs for real right now.
+never mutated). Patch proposal uses Muse Spark (needs MODEL_API_KEY);
+the red-to-green mechanics run key-free.
 """
 
 import re
@@ -12,6 +12,9 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
+
+from chainreaction.llm import chat, extract_json
 
 COUNT_RE = re.compile(r"(\d+) (passed|failed|errors?|skipped|xfailed|xpassed)")
 
@@ -66,6 +69,17 @@ def _prune_old_workdirs(keep: Path) -> None:
     for entry in keep.parent.glob("cr-fix-*"):
         if entry != keep and entry.is_dir() and not entry.is_symlink():
             shutil.rmtree(entry, ignore_errors=True)
+
+
+def _clear_pycache(workdir: str | Path) -> None:
+    """Drop bytecode caches so the next suite run sees patched sources.
+
+    A patch that keeps file size and lands in the same mtime second
+    would otherwise reuse the previous run's .pyc and silently no-op.
+    """
+    for cache in Path(workdir).rglob("__pycache__"):
+        if cache.is_dir() and not cache.is_symlink():
+            shutil.rmtree(cache, ignore_errors=True)
 
 
 def _normalize_diff(diff: str) -> str:
@@ -150,6 +164,7 @@ def run_fix_loop(python: str, target: str | Path, patches: list[Patch],
     applied: list[str] = []
     for i, patch in enumerate(patches):
         apply_patch(workdir, patch)
+        _clear_pycache(workdir)
         applied.append(patch.id)
         suite = run_suite(python, workdir, tests_rel,
                           timeout=timeout_per_run)
@@ -162,12 +177,90 @@ def run_fix_loop(python: str, target: str | Path, patches: list[Patch],
     return result
 
 
-def propose_fix(symbol: str, evidence: str) -> Patch:
-    """LLM patch proposal (Muse Spark). Needs MODEL_API_KEY."""
-    raise NotImplementedError(
-        "propose_fix() needs MODEL_API_KEY. "
-        f"Symbol was: {symbol!r} ({evidence})"
-    )
+PROPOSE_SYSTEM_PROMPT = """\
+You are the ChainReaction fix proposer. Given a broken symbol, the file
+that uses it, and the surrounding code, emit ONE minimal unified diff
+that fixes exactly that use. Rules:
+- Output a single JSON object: {"description": "...", "diff": "..."}.
+- The diff must apply with `git apply -p1`: paths like
+  a/nibabel/casting.py and b/nibabel/casting.py, relative to the target
+  root, with at least 3 lines of context around every hunk.
+- Fix ONLY the reported use; do not refactor, reformat, or touch tests.
+- Blank context lines must contain a single space; added/removed lines
+  start with +/-.
+- Prefer the migration guide's recommended replacement."""
+
+
+def propose_fix(symbol: str, evidence: str, target: str | Path = ".",
+                patch_id: str = "P-auto") -> Patch:
+    """Propose a Patch for a broken symbol via Muse Spark.
+
+    evidence is "path/to/file.py:line" relative to the target root.
+    Raises RuntimeError when MODEL_API_KEY is missing.
+    """
+    path, _, lineno = evidence.partition(":")
+    src = Path(target) / path
+    if not lineno.isdigit() or not src.is_file():
+        raise ValueError(f"bad evidence, want file.py:line: {evidence!r}")
+    center = int(lineno)
+    lines = src.read_text(encoding="utf-8").splitlines()
+    lo = max(1, center - 60)
+    hi = min(len(lines), center + 60)
+    excerpt = "\n".join(f"{i}: {lines[i - 1]}" for i in range(lo, hi + 1))
+    user = (f"Broken symbol: {symbol}\nUse site: {evidence}\n\n"
+            f"File excerpt (line-numbered):\n{excerpt}\n")
+    data = extract_json(chat(PROPOSE_SYSTEM_PROMPT, user, max_tokens=2000))
+    diff = data.get("diff", "")
+    if "@@" not in diff:
+        raise ValueError("model did not return a unified diff")
+    return Patch(id=patch_id,
+                 description=data.get("description", f"fix {symbol}"),
+                 diff=diff)
+
+
+FAIL_RE = re.compile(r"^FAILED (\S+)", re.MULTILINE)
+
+
+def failed_tests(result: SuiteResult) -> list[str]:
+    """Parse failing node ids from a suite run's short summary."""
+    return FAIL_RE.findall(result.tail or "")
+
+
+def run_auto_loop(python: str, target: str | Path,
+                  tests_rel: str | list[str],
+                  propose: Callable[[str], Patch], *,
+                  timeout_per_run: int = 600,
+                  max_rounds: int = 3) -> LoopResult:
+    """Red-to-green loop: baseline -> propose one patch -> re-run to green.
+
+    propose(first_failed_nodeid) returns the next Patch (e.g. a partial
+    over propose_fix fed by the test map). One workdir for the whole loop;
+    stops at the first green run. Records only patch iterations — the
+    baseline run that proves red is the caller's SuiteResult.
+    """
+    workdir = copy_target(target)
+    result = LoopResult(workdir=str(workdir))
+    applied: list[str] = []
+    suite = run_suite(python, workdir, tests_rel, timeout=timeout_per_run)
+    for i in range(max_rounds):
+        if suite.returncode == 0:
+            result.green = True
+            break
+        failures = failed_tests(suite)
+        patch = propose(failures[0] if failures else "")
+        patch.id = f"P-r{i + 1}"
+        apply_patch(workdir, patch)
+        _clear_pycache(workdir)
+        applied.append(patch.id)
+        suite = run_suite(python, workdir, tests_rel,
+                          timeout=timeout_per_run)
+        green = suite.returncode == 0
+        result.iterations.append(LoopIteration(i, list(applied), suite, green))
+        result.green = green
+        if green:
+            break
+    _prune_old_workdirs(workdir)
+    return result
 
 
 def main() -> int:  # `python -m chainreaction.fixloop --help`

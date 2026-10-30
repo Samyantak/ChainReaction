@@ -1,15 +1,16 @@
-"""Decision interpreter scaffolding (key-free parts).
+"""Decision interpreter: change-set schema, quote verification, live LLM call.
 
-Owns the change-set schema, quote verification, and the exact prompt +
-JSON schema the Muse Spark call will use once MODEL_API_KEY exists.
-The live `interpret()` (search grounding + structured output) is a stub
-until the key resolves.
+`interpret()` generates the change set with Muse Spark and quote-verifies
+every item against the guide text; paraphrases are dropped automatically.
+Key-free paths (stubs + verification) keep working without MODEL_API_KEY.
 """
 
 import json
 import urllib.request
 from dataclasses import asdict, dataclass, field
 from html.parser import HTMLParser
+
+from chainreaction.llm import chat, extract_json
 
 CHANGE_SET_JSON_SCHEMA = {
     "name": "change_set",
@@ -184,9 +185,34 @@ def to_json(changeset: ChangeSet) -> str:
     return json.dumps(asdict(changeset), indent=2)
 
 
-def interpret(decision: str) -> ChangeSet:
-    """Full interpreter (search grounding + Muse Spark). Needs MODEL_API_KEY."""
-    raise NotImplementedError(
-        "interpret() needs MODEL_API_KEY (search grounding + structured "
-        f"output). Decision was: {decision!r}"
+def interpret(decision: str, guide_text: str, source_url: str = "") -> ChangeSet:
+    """Generate the change set with Muse Spark; verify quotes vs the guide.
+
+    Items whose quotes don't string-match are dropped. Raises
+    RuntimeError when MODEL_API_KEY is missing.
+    """
+    user = (
+        f"Decision: {decision}\n\n"
+        "Migration guide / changelog text (the ONLY quotable source — "
+        "every quote must be an EXACT substring of this text):\n\n"
+        f"{guide_text}\n\n"
+        "Emit the change set as a single JSON object matching this schema:\n"
+        f"{json.dumps(CHANGE_SET_JSON_SCHEMA['schema'])}"
     )
+    data = extract_json(chat(INTERPRET_SYSTEM_PROMPT, user, max_tokens=4000))
+    items = []
+    for raw in data.get("items", []):
+        if not raw.get("symbol") or not raw.get("quote") or not raw.get("kind"):
+            continue
+        detail = raw.get("detail")
+        items.append(ChangeItem(
+            symbol=raw["symbol"],
+            kind=raw["kind"],
+            quote=raw["quote"],
+            replacement=raw.get("replacement"),
+            detail=(BreakDetail(detail.get("expected"), detail.get("actual"),
+                                detail.get("note"))
+                    if isinstance(detail, dict) else None),
+        ))
+    verified, _ = verify_quotes(items, guide_text)
+    return ChangeSet(decision, source_url, verified)

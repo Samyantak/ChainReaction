@@ -113,6 +113,7 @@ def test_config_and_schema_break_kinds():
     ]
 
 
-def test_interpret_stub_names_the_blocker():
-    with pytest.raises(NotImplementedError, match="MODEL_API_KEY"):
-        interpret("upgrade numpy to 2.0")
+def test_interpret_no_key_names_the_blocker(monkeypatch):
+    monkeypatch.delenv("MODEL_API_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="MODEL_API_KEY"):
+        interpret("upgrade numpy to 2.0", "guide text")

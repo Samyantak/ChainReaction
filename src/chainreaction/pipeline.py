@@ -18,6 +18,7 @@ from chainreaction.interpret import (
     change_symbols,
     config_items,
     fetch_text,
+    interpret,
     verify_quotes,
 )
 from chainreaction.propagate import Impact, failure_path, predicted_chain, propagate
@@ -38,9 +39,17 @@ class PipelineResult:
 
 
 def predict(scenario_id: str, fetch_guide: bool = False,
-            guide_text: str | None = None):
+            guide_text: str | None = None, live_interpret: bool = False):
     """Scenario -> change set -> graph -> impacts. No probes run."""
     scen = scenarios.get(scenario_id)
+    if live_interpret:
+        text = (guide_text if guide_text is not None
+                else fetch_text(scen.guide_url))
+        changeset = interpret(scen.decision, text, scen.guide_url)
+        symbols = change_symbols(changeset)
+        g = build_graph_from_repo(scen.target, scen.package)
+        impacts = propagate(g, symbols, config_items(changeset), scen.package)
+        return scen, changeset, symbols, g, impacts
     changeset = ChangeSet(scen.decision, scen.guide_url,
                           [i for i in scen.stub_items])
     if fetch_guide:
@@ -57,9 +66,10 @@ def predict(scenario_id: str, fetch_guide: bool = False,
 
 
 def run_pipeline(scenario_id: str, fetch_guide: bool = False,
-                 guide_text: str | None = None) -> PipelineResult:
+                 guide_text: str | None = None,
+                 live_interpret: bool = False) -> PipelineResult:
     scen, changeset, symbols, g, impacts = predict(
-        scenario_id, fetch_guide, guide_text)
+        scenario_id, fetch_guide, guide_text, live_interpret)
     hard = {n for n, i in impacts.items() if i.status == "HARD"}
     risky = {n for n, i in impacts.items() if i.status == "AT_RISK"}
 

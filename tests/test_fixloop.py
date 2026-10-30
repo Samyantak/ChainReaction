@@ -79,9 +79,11 @@ def test_empty_patch_list_stays_red(tmp_path):
     assert res.green is False and res.iterations == []
 
 
-def test_propose_fix_stub_names_the_blocker():
-    with pytest.raises(NotImplementedError, match="MODEL_API_KEY"):
-        propose_fix("numpy.sctypes", "casting.py:717")
+def test_propose_fix_no_key_names_the_blocker(tmp_path, monkeypatch):
+    monkeypatch.delenv("MODEL_API_KEY", raising=False)
+    (tmp_path / "casting.py").write_text("x = 1\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="MODEL_API_KEY"):
+        propose_fix("numpy.sctypes", "casting.py:1", tmp_path)
 
 
 def test_old_workdirs_pruned_keeping_latest(tmp_path):

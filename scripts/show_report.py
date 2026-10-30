@@ -9,7 +9,12 @@ import sys
 from pathlib import Path
 
 from chainreaction import scenarios
-from chainreaction.explain import check_report, render_json, render_markdown
+from chainreaction.explain import (
+    check_report,
+    generate_narrative,
+    render_json,
+    render_markdown,
+)
 from chainreaction.interpret import fetch_text, verify_quotes
 from chainreaction.pipeline import run_pipeline
 
@@ -22,14 +27,19 @@ def _opt(prefix: str, default: str | None = None) -> str | None:
 def main() -> int:
     scenario_id = _opt("--scenario=", "nibabel-numpy2")
     fetch_guide = "--fetch-guide" in sys.argv
+    live_interpret = "--interpret" in sys.argv
+    narrate = "--narrate" in sys.argv
     out = _opt("--out=")
     scen = scenarios.get(scenario_id)
 
     guide_text = None
-    if fetch_guide:
+    if fetch_guide or live_interpret:
         try:
             guide_text = fetch_text(scen.guide_url)
         except Exception as e:  # noqa: BLE001 - report honestly, keep stub
+            if live_interpret:
+                print(f"interpret needs the live guide; fetch failed: {e}")
+                return 2
             print(f"guide fetch failed ({e}); using unverified stub")
         else:
             verified, dropped = verify_quotes(list(scen.stub_items), guide_text)
@@ -39,8 +49,17 @@ def main() -> int:
     else:
         print("change set source: stub (use --fetch-guide for live verify)")
 
-    res = run_pipeline(scenario_id, fetch_guide=guide_text is not None,
-                       guide_text=guide_text)
+    if live_interpret:
+        print("change set source: live interpret (Muse Spark + quote verify)")
+        try:
+            res = run_pipeline(scenario_id, guide_text=guide_text,
+                               live_interpret=True)
+        except RuntimeError as e:
+            print(f"interpret failed: {e}")
+            return 2
+    else:
+        res = run_pipeline(scenario_id, fetch_guide=guide_text is not None,
+                           guide_text=guide_text)
     g, report = res.graph, res.report
     primary = report.layers[0]
     peeled = next((l for l in report.layers if l.name.startswith("layer2")),
@@ -59,6 +78,15 @@ def main() -> int:
     print("CLAIM VIOLATIONS:" if violations else "CLAIMS_CLEAN")
     for v in violations:
         print(f"  {v}")
+
+    if narrate:
+        try:
+            report.narrative = generate_narrative(report)
+        except RuntimeError as e:
+            print(f"narrative skipped: {e}")
+        else:
+            print("--- narrative ---")
+            print(report.narrative)
 
     md = render_markdown(report)
     if out:

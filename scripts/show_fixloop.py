@@ -8,11 +8,16 @@ Default verifies against the FULL suite (--tests selects a subset).
 import sys
 
 from chainreaction import scenarios
-from chainreaction.fixloop import Patch, run_fix_loop
+from chainreaction.fixloop import Patch, propose_fix, run_fix_loop
 from chainreaction.graph.repo import build_graph_from_repo
 from chainreaction.propagate import propagate
 from chainreaction.testmap import TestMap, predicted_failing
 from chainreaction.verifier import target_python
+
+
+def _opt(prefix: str, default: str | None = None) -> str | None:
+    return next((a.split("=", 1)[1] for a in sys.argv if a.startswith(prefix)),
+                default)
 
 P1_CASTING_IMPORT = """\
 --- a/nibabel/casting.py
@@ -138,14 +143,25 @@ PATCHES = [
 
 
 def main() -> int:
-    tests = next((a.split("=", 1)[1] for a in sys.argv
-                  if a.startswith("--tests=")), "nibabel/tests")
-    timeout = int(next((a.split("=", 1)[1] for a in sys.argv
-                        if a.startswith("--timeout=")), "900"))
-    python = next((a.split("=", 1)[1] for a in sys.argv
-                   if a.startswith("--python=")), target_python("numpy2"))
-    select = next((a.split("=", 1)[1] for a in sys.argv
-                   if a.startswith("--select=")), None)
+    propose = _opt("--propose=")
+    if propose:
+        evidence = _opt("--evidence=")
+        if not evidence:
+            print("propose needs --evidence=file.py:line")
+            return 2
+        try:
+            patch = propose_fix(propose, evidence, "targets/nibabel")
+        except (RuntimeError, ValueError) as e:
+            print(f"propose failed: {e}")
+            return 2
+        print(f"description: {patch.description}")
+        print("--- diff ---")
+        print(patch.diff)
+        return 0
+    tests = _opt("--tests=", "nibabel/tests") or "nibabel/tests"
+    timeout = int(_opt("--timeout=", "900") or "900")
+    python = _opt("--python=") or target_python("numpy2")
+    select = _opt("--select=")
     run_tests: str | list[str] = tests
     if select:
         scen = scenarios.get("nibabel-numpy2")

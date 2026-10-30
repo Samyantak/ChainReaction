@@ -10,6 +10,8 @@ from dataclasses import asdict, dataclass, field
 
 import networkx as nx
 
+from chainreaction.llm import chat
+
 
 @dataclass
 class LayerResult:
@@ -154,3 +156,37 @@ def render_markdown(report: Report) -> str:
 
 def render_json(report: Report) -> str:
     return json.dumps(asdict(report), indent=2)
+
+
+NARRATE_SYSTEM_PROMPT = """\
+You are the ChainReaction explainer. Given an upgrade-impact report as
+JSON, write a 3-5 paragraph plain-English summary for a maintainer:
+what broke, the single verified worst chain of damage (name the
+modules), how confident the evidence is, and what to fix first.
+Refer to modules by exact name; do not invent modules, quotes, or
+numbers beyond the report. Keep it under 300 words."""
+
+
+def generate_narrative(report: Report) -> str:
+    """Summarize a Report with Muse Spark (needs MODEL_API_KEY)."""
+    facts = json.dumps({
+        "decision": report.decision,
+        "target": report.target,
+        "package": report.package,
+        "numpy_version": report.numpy_version,
+        "change_symbols": report.change_symbols,
+        "n_hard": len(report.hard),
+        "n_at_risk": len(report.at_risk),
+        "spine": report.spine,
+        "spine_match": report.spine_match,
+        "spine_evidence": [f"{imp} imports {frm}:{ln}"
+                           for imp, frm, _sym, ln in report.spine_evidence],
+        "pr_url": report.pr_url,
+        "file_precision": report.file_precision,
+        "file_recall": report.file_recall,
+        "file_missing": report.file_missing,
+        "layers": [{"name": l.name, "ok": l.ok, "recall": l.recall,
+                    "missing": l.missing} for l in report.layers],
+    }, indent=2)
+    return chat(NARRATE_SYSTEM_PROMPT, f"Report JSON:\n{facts}\n",
+                max_tokens=1500)
