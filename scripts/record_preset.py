@@ -1,13 +1,14 @@
 """Record a committed preset: live run -> runs/presets/<id>/ -> verify replay.
 
-Usage:  python scripts/record_preset.py nibabel-numpy2
+Usage:  python scripts/record_preset.py nibabel-numpy2 [--fresh]
 
 Needs MODEL_API_KEY (two real model calls: interpret + narrative), the
 target on disk, and the target envs built. Verifies the honest-replay
 proof before finishing: replaying the preset produces a byte-identical
-report.json.
+report.json. --fresh bypasses the LLM cache for a fully fresh recording.
 """
 
+import os
 import shutil
 import sys
 import time
@@ -19,6 +20,16 @@ sys.path.insert(0, str(ROOT / "src"))
 from chainreaction.runs import store, worker
 
 TIMEOUT_S = 1800
+
+
+def parse_args(argv):
+    """(preset, fresh) from argv; raises SystemExit on misuse."""
+    if len(argv) == 3 and argv[2] == "--fresh":
+        return argv[1], True
+    if len(argv) != 2:
+        raise SystemExit("usage: python scripts/record_preset.py <preset> "
+                         "[--fresh]")
+    return argv[1], False
 
 
 def _wait(run_id: str) -> dict:
@@ -33,10 +44,14 @@ def _wait(run_id: str) -> dict:
 
 
 def main() -> int:
-    if len(sys.argv) != 2:
-        print("usage: python scripts/record_preset.py <preset>")
+    try:
+        preset, fresh = parse_args(sys.argv)
+    except SystemExit as exc:
+        print(exc)
         return 2
-    preset = sys.argv[1]
+    if fresh:
+        os.environ["LLM_NO_CACHE"] = "1"
+        print("fresh mode: LLM cache bypassed")
     live = worker.create_run(worker.RunRequest(preset=preset, mode="live"))
     print(f"live run: {live}")
     worker.submit_run(live)

@@ -22,7 +22,10 @@ def relative_posix(path: str | Path, root: str | Path) -> str:
     text = str(path).replace("\\", "/")
     base = str(root).replace("\\", "/").rstrip("/")
     if os.path.isabs(str(path)) or text == base or text.startswith(base + "/"):
-        return os.path.relpath(str(path), str(root)).replace("\\", "/")
+        # Relativize the already-normalized forms: relpath sees
+        # backslashes as ordinary characters on Linux and would emit
+        # garbage like ../t/pkg/a.py for Windows-style inputs.
+        return os.path.relpath(text, base).replace("\\", "/")
     return text
 
 

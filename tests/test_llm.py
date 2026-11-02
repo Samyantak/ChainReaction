@@ -179,7 +179,11 @@ def test_generate_narrative(monkeypatch):
                     spine=["nibabel.casting"])
     assert explain.generate_narrative(report) == "NARRATIVE"
     assert "nibabel.casting" in seen["user"]
-    assert "spine_match" in seen["user"]
+    # De-JSONed brief: prose markers in, raw keys out.
+    assert "Worst chain" in seen["user"]
+    for key in ("spine_match", "numpy_version", "change_symbols",
+                "file_precision", "at_risk", "pr_url", "spine_evidence"):
+        assert key not in seen["user"]
 
 
 def test_failed_tests_parses_summary():

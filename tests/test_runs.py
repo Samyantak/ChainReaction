@@ -152,7 +152,30 @@ def test_probe_adapter_parses_modules_through_scrub(tmp_runs, tmp_path):
     # still work (it parses the unscrubbed text).
     assert res.modules == ["pkg.svc"]
     rec = store.read_jsonl(ctx.dir / store.CMDS)[0]
-    assert "<home>" in rec["stderr"] or "<root>" in rec["stderr"]
+    assert "<tmp>" in rec["stderr"] or "<home>" in rec["stderr"] \
+        or "<root>" in rec["stderr"]
+
+
+def test_fetch_returns_table_rows(tmp_runs):
+    html = (b"<html><body><h2>Main namespace</h2>"
+            b"<p>members that have been removed:</p>"
+            b"<table><tbody><tr><td><p>sctypes</p></td>"
+            b"<td><p>Access dtypes explicitly instead.</p></td></tr>"
+            b"</tbody></table></body></html>")
+    live = RunContext(run_id="u1", manifest=_live_manifest("u1"),
+                      mode="live",
+                      live_fetch=lambda url, timeout: (200, html))
+    out = live.fetch("https://example.com/g")
+    assert "sctypes" in out
+    rows = out.removal_table["removed"]
+    assert [r["symbol"] for r in rows] == ["numpy.sctypes"]
+    assert all(r["quote"] in out for r in rows)
+    rec = store.read_jsonl(live.dir / store.FETCHES)[0]
+    assert rec["removal_table"]["removed"][0]["symbol"] == "numpy.sctypes"
+    replay = RunContext(run_id="u2", manifest=_live_manifest("u2"),
+                        mode="replay", source_dir=live.dir)
+    assert replay.fetch("https://example.com/g").removal_table == \
+        out.removal_table
 
 
 def test_replay_warns_on_unused_recordings(tmp_runs):
@@ -213,8 +236,30 @@ def test_scrubber_replaces_paths_and_key(tmp_path, monkeypatch):
     assert "\r" not in clean
     assert "sk-test-secret" not in clean
     assert "<root>/targets/nibabel/nibabel/casting.py" in clean
-    assert "<env:numpy2>/lib/site-packages/numpy/x.py" in clean
+    # Lib/site-packages collapses: Windows and Linux recordings agree.
+    assert "<env:numpy2>/site-packages/numpy/x.py" in clean
     assert '{"json": "a\\"b"}' in clean  # escapes outside paths survive
+
+
+def test_scrubber_normalizes_foreign_env_and_tmp_paths():
+    import os
+    import tempfile
+
+    from chainreaction.runs.scrub import Scrubber
+
+    scrub = Scrubber.default()
+    linux = "/other/checkout/envs/numpy2/lib/python3.11/site-packages/n.py"
+    assert scrub.text(f'File "{linux}", line 1') == \
+        'File "<env:numpy2>/site-packages/n.py", line 1'
+    mac = "/Users/u/work/envs/sponsorfit/lib/python3.12/site-packages/m.py"
+    assert scrub.text(mac) == "<env:sponsorfit>/site-packages/m.py"
+    tmp = os.path.join(tempfile.gettempdir(), "cr-work", "w.py")
+    assert scrub.text(tmp) == "<tmp>/cr-work/w.py"
+    # Bare relative references are documentation, not paths: untouched.
+    assert scrub.text("see envs/numpy2 for details") == \
+        "see envs/numpy2 for details"
+    twice = scrub.text(scrub.text(linux))
+    assert twice == scrub.text(linux)  # idempotent
 
 
 def test_interpret_falls_back_without_key(tmp_runs, monkeypatch):
@@ -225,6 +270,10 @@ def test_interpret_falls_back_without_key(tmp_runs, monkeypatch):
     stages_mod.stage_interpret(ctx)
     assert ctx.manifest["changeset_source"] == "hand-recorded"
     assert (ctx.dir / "artifacts" / "changeset.json").is_file()
+    saved = json.loads(
+        (ctx.dir / "artifacts" / "changeset.json").read_text(
+            encoding="utf-8"))
+    assert saved["interpret_recall"] is None
     assert not (ctx.dir / store.LLM_CALLS).is_file()
     assert not (ctx.dir / store.FETCHES).is_file()
     # The shared scenario stubs are untouched (verified stays False).

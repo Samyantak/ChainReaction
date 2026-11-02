@@ -52,6 +52,15 @@ class Report:
     grep_hits: int = 0
     ruff_hits: int | None = None
     narrative: str | None = None  # filled by Muse Spark once the key exists
+    # Warnings (deprecated, still work) and behavior-change flags: reported,
+    # never counted as breakage or scored.
+    deprecated_symbols: list[str] = field(default_factory=list)
+    changed_symbols: list[str] = field(default_factory=list)
+    # Interpreter recall against the guide's removal table (None when the
+    # guide has no structured table): did the model cover every row?
+    interpret_recall: float | None = None
+    interpret_table_size: int = 0
+    interpret_missed: list[str] = field(default_factory=list)
 
 
 _MODULE_RE = re.compile(r"\b([A-Za-z_]\w*(?:\.\w+)+)\b")
@@ -92,6 +101,8 @@ def _report_numbers(report: Report) -> set[str]:
         str(len(report.spine)),
         str(len(report.spine_evidence)),
         str(len(report.change_symbols)),
+        str(len(report.deprecated_symbols)),
+        str(len(report.changed_symbols)),
         str(report.grep_hits),
         str(len(report.pr_files)),
         str(len(report.file_missing)),
@@ -101,6 +112,8 @@ def _report_numbers(report: Report) -> set[str]:
     }
     if report.ruff_hits is not None:
         nums.add(str(report.ruff_hits))
+    if report.interpret_table_size:
+        nums.add(str(report.interpret_table_size))
     for layer in report.layers:
         nums.add(str(len(layer.actual)))
         nums.add(str(len(layer.missing)))
@@ -146,6 +159,7 @@ def _narrative_violations_by_kind(report: Report, text: str
 
     known = (set(report.hard) | set(report.at_risk) | set(report.spine)
              | set(report.change_symbols)
+             | set(report.deprecated_symbols) | set(report.changed_symbols)
              | {i.symbol for i in report.change_items}
              | {report.package})
     for layer in report.layers:
@@ -333,6 +347,27 @@ def render_markdown(report: Report) -> str:
            + ("; derived from probe" if i.source != "guide" else "")
            + ")"
            for i in report.change_items],
+        *([] if not report.deprecated_symbols else [
+            "",
+            "Deprecated (warnings — still work, excluded from scores):",
+            "",
+            *[f"- `{s}`" for s in report.deprecated_symbols],
+        ]),
+        *([] if not report.changed_symbols else [
+            "",
+            "Behavior-change flags (excluded from scores):",
+            "",
+            *[f"- `{s}`" for s in report.changed_symbols],
+        ]),
+        *([] if report.interpret_recall is None else [
+            "",
+            f"Removal-table recall: {report.interpret_recall:.2f} "
+            f"({report.interpret_table_size - len(report.interpret_missed)}"
+            f"/{report.interpret_table_size})"
+            + (" (complete)" if not report.interpret_missed else
+               " (missed: "
+               + ", ".join(f"`{m}`" for m in report.interpret_missed) + ")"),
+        ]),
         "",
         "## Prediction",
         "",
@@ -410,12 +445,60 @@ def render_json(report: Report) -> str:
 
 
 NARRATE_SYSTEM_PROMPT = """\
-You are the ChainReaction explainer. Given an upgrade-impact report as
-JSON, write a 3-5 paragraph plain-English summary for a maintainer:
-what broke, the single verified worst chain of damage (name the
-modules), how confident the evidence is, and what to fix first.
-Refer to modules by exact name; do not invent modules, quotes, or
-numbers beyond the report. Keep it under 300 words."""
+You are the ChainReaction explainer. Given an upgrade-impact brief,
+write a 3-5 paragraph plain-English summary for a maintainer: what
+broke, the single verified worst chain of damage (name the modules),
+how confident the evidence is, and what to fix first. Write for a
+reader who never saw the brief: plain sentences, never field names,
+JSON keys, or raw labels like "numpy_version" or "spine_match" — say
+"under NumPy 2.0.2" or "matches the observed failure" instead. Refer
+to modules by exact name; do not invent modules, quotes, or numbers
+beyond the brief. Keep it under 300 words."""
+
+
+def narrative_brief(report: Report) -> str:
+    """Human-readable facts for the narrator (no raw JSON keys)."""
+    numpy_bit = f"tested under NumPy {report.numpy_version or 'unknown'}"
+    if report.before_numpy:
+        numpy_bit += f" (previously {report.before_numpy})"
+    lines = [
+        f"Decision: {report.decision}.",
+        f"Target: {report.target} (package {report.package}), {numpy_bit}.",
+        f"Breaking symbols ({len(report.change_symbols)}): "
+        f"{', '.join(report.change_symbols) or 'none'}.",
+    ]
+    if report.deprecated_symbols:
+        lines.append(
+            f"Deprecated but still working ({len(report.deprecated_symbols)}): "
+            f"{', '.join(report.deprecated_symbols)}.")
+    if report.changed_symbols:
+        lines.append(
+            f"Behavior-change flags ({len(report.changed_symbols)}): "
+            f"{', '.join(report.changed_symbols)}.")
+    lines.append(
+        f"Impact: {len(report.hard)} modules fail at import, "
+        f"{len(report.at_risk)} more are at risk.")
+    lines.append(
+        f"Worst chain: {' -> '.join(report.spine) or '(clean)'} "
+        f"({'matches' if report.spine_match else 'differs from'} "
+        "the observed failure).")
+    if report.spine_evidence:
+        lines.append("Chain evidence: " + "; ".join(
+            f"{u} calls {v} ({path}:{line})"
+            for u, v, path, line in report.spine_evidence) + ".")
+    if report.pr_url:
+        missed = ", ".join(report.file_missing) or "none"
+        lines.append(
+            f"Ground-truth PR {report.pr_url}: file precision "
+            f"{report.file_precision:.2f}, recall {report.file_recall:.2f}; "
+            f"missed files: {missed}.")
+    lines.append("Verification layers: " + "; ".join(
+        f"{layer.name}: import "
+        f"{'works' if layer.ok else 'fails'}, "
+        f"recall {layer.recall:.2f}"
+        + (f", missed {', '.join(layer.missing)}" if layer.missing else "")
+        for layer in report.layers) + ".")
+    return "\n".join(lines)
 
 
 def generate_narrative(report: Report, chat_fn=None) -> str:
@@ -425,24 +508,6 @@ def generate_narrative(report: Report, chat_fn=None) -> str:
     call is recorded and replayable.
     """
     chat_fn = chat_fn or chat
-    facts = json.dumps({
-        "decision": report.decision,
-        "target": report.target,
-        "package": report.package,
-        "numpy_version": report.numpy_version,
-        "change_symbols": report.change_symbols,
-        "n_hard": len(report.hard),
-        "n_at_risk": len(report.at_risk),
-        "spine": report.spine,
-        "spine_match": report.spine_match,
-        "spine_evidence": [f"{u} → {v} at {path}:{line}"
-                           for u, v, path, line in report.spine_evidence],
-        "pr_url": report.pr_url,
-        "file_precision": report.file_precision,
-        "file_recall": report.file_recall,
-        "file_missing": report.file_missing,
-        "layers": [{"name": l.name, "ok": l.ok, "recall": l.recall,
-                    "missing": l.missing} for l in report.layers],
-    }, indent=2, ensure_ascii=False)
-    return chat_fn(NARRATE_SYSTEM_PROMPT, f"Report JSON:\n{facts}\n",
+    return chat_fn(NARRATE_SYSTEM_PROMPT,
+                   f"Upgrade-impact brief:\n{narrative_brief(report)}\n",
                    max_tokens=8000)

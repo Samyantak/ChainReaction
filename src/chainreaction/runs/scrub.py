@@ -10,6 +10,7 @@ stages see identical inputs.
 import json
 import os
 import re
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,7 +20,13 @@ KEY_ENV = "MODEL_API_KEY"
 
 ROOT_PLACEHOLDER = "<root>"
 HOME_PLACEHOLDER = "<home>"
+TMP_PLACEHOLDER = "<tmp>"
 KEY_PLACEHOLDER = "<redacted-key>"
+
+# Environment names created by scripts/make_target_envs.py. Recognized
+# even when the envs were never built here (judges replay without them)
+# and even under a different checkout root (symlinks, other machines).
+KNOWN_ENVS = ("numpy1", "numpy2", "sponsorfit")
 
 
 def env_placeholder(name: str) -> str:
@@ -61,6 +68,38 @@ def _replace_path_token(value: str, needle: str, repl: str) -> str:
     return "".join(out)
 
 
+def _replace_env_token(value: str, name: str) -> str:
+    """Rewrite any `<abs>/envs/<name>/...` span to `<env:name>/...`.
+
+    Catches environment paths under a different checkout root than ours
+    (symlinks, other machines) that the absolute needles miss. Bare
+    relative `envs/<name>` references are left alone.
+    """
+    rx = re.compile(r"[^\s\"']*?[\\/]envs[\\/]" + re.escape(name)
+                    + r"(?=[\\/]|$)")
+    out = []
+    i = 0
+    for m in rx.finditer(value):
+        if m.start() < i:
+            continue
+        out.append(value[i:m.start()])
+        k = m.end()
+        while k < len(value) and value[k] not in " \t\n\r\"'":
+            k += 1
+        out.append(env_placeholder(name)
+                   + value[m.end():k].replace("\\", "/"))
+        i = k
+    out.append(value[i:])
+    return "".join(out)
+
+
+# Windows `Lib/site-packages` vs Linux/Mac `lib/python3.x/site-packages`
+# (or bare `lib/site-packages`): collapse all so recorded tracebacks are
+# byte-identical across OSes.
+_SITE_PACKAGES_RX = re.compile(
+    r"(<env:[^>]+>)/(?:Lib|lib(?:/python3\.\d+)?/site-packages)/")
+
+
 def utc_now_iso() -> str:
     return (datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
             + "Z")
@@ -87,6 +126,12 @@ class Scrubber:
             home = ""
         if home:
             pairs.append((home, HOME_PLACEHOLDER))
+        try:
+            tmp = tempfile.gettempdir()
+        except Exception:  # pragma: no cover - gettempdir rarely fails
+            tmp = ""
+        if tmp:
+            pairs.append((tmp, TMP_PLACEHOLDER))
         # Longest first so nested roots win (envs/ lives under the
         # repo root; uv pythons under home). Matching is separator-
         # insensitive, so mixed E:\a/b spellings match too.
@@ -102,6 +147,9 @@ class Scrubber:
         for needle, repl in self.replacements:
             if needle:
                 value = _replace_path_token(value, needle, repl)
+        for name in KNOWN_ENVS:
+            value = _replace_env_token(value, name)
+        value = _SITE_PACKAGES_RX.sub(r"\1/site-packages/", value)
         return value.replace("\r\n", "\n").replace("\r", "\n")
 
     def untext(self, value: str) -> str:

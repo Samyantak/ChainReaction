@@ -68,6 +68,8 @@ class Scenario:
     before_env: str = "numpy1"  # "" = no before layer
     grep_patterns: list[str] | None = None  # None = numpy defaults
     run_ruff: bool = True
+    repo_url: str = ""
+    ref: str = ""
 
 
 NIBABEL_NUMPY2 = Scenario(
@@ -95,6 +97,8 @@ NIBABEL_NUMPY2 = Scenario(
                    replacement="arr.view(arr.dtype.newbyteorder(order))"),
     ],
     peel_preamble=PEEL_SCTYPES,
+    repo_url="https://github.com/nipy/nibabel",
+    ref="67ea99725d7e40bb6738fc55f8360a609212e72c",
 )
 
 # Exercises the Meta switch without network or cost: tmp dirs, :memory: db.
@@ -137,6 +141,8 @@ SPONSORFIT_META = Scenario(
     before_env="",
     grep_patterns=[r"Provider", r"PRICING", r"_call_openai"],
     run_ruff=False,
+    repo_url="https://github.com/Samyantak/sponsorfit",
+    ref="af24b102773c15c2f59967e1dd26e85dac1fe920",
 )
 
 SCENARIOS = {s.id: s for s in [NIBABEL_NUMPY2, SPONSORFIT_META]}

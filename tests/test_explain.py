@@ -95,9 +95,10 @@ def test_narrative_facts_cite_file_not_imported_module(monkeypatch):
     explain.generate_narrative(report)
     # File travels with the line; no "X imports Y:line" misattribution,
     # and the use edge is not called an import.
-    assert "nibabel → nibabel.analyze at nibabel/__init__.py:41" in seen["user"]
-    assert ("nibabel.casting.ok_floats → numpy.sctypes at "
-            "nibabel/casting.py:717") in seen["user"]
+    assert "nibabel calls nibabel.analyze (nibabel/__init__.py:41)" in \
+        seen["user"]
+    assert ("nibabel.casting.ok_floats calls numpy.sctypes "
+            "(nibabel/casting.py:717)") in seen["user"]
     assert " imports " not in seen["user"]
 
 
@@ -195,6 +196,46 @@ def test_claim_checks_flag_bad_hop_and_narrative(tmp_path):
     assert "demo.ghost" in by_label["narrative module names"].detail
     assert by_label["narrative numbers"].status == "fail"
     assert by_label["predicted nodes exist in graph"].status == "pass"
+
+
+def _tiny_report(stats=None):
+    import networkx as nx
+    from types import SimpleNamespace
+
+    from chainreaction.interpret import ChangeItem, ChangeSet
+    from chainreaction.pipeline import build_report
+
+    scen = SimpleNamespace(decision="d", target="t", package="pkg",
+                           probe_code="", pr_files=[], pr_behavior=[],
+                           pr_url="")
+    cs = ChangeSet("d", "u", [
+        ChangeItem("numpy.sctypes", "removed", "q", verified=True),
+        ChangeItem("numpy.trapz", "deprecated", "q", verified=True),
+        ChangeItem("numpy.asarray", "changed", "q", verified=True),
+    ])
+    layers = [LayerResult("l1", [], [], 1.0, "", True)]
+    return build_report(scen, cs, {"numpy.sctypes"}, nx.DiGraph(), {},
+                        layers, "2.0.2", None, 0, None, stats)
+
+
+def test_build_report_separates_warnings_and_flags():
+    report = _tiny_report()
+    assert report.change_symbols == ["numpy.sctypes"]
+    assert report.deprecated_symbols == ["numpy.trapz"]
+    assert report.changed_symbols == ["numpy.asarray"]
+    assert report.interpret_recall is None
+    assert "excluded from scores" in render_markdown(report)
+
+
+def test_build_report_carries_interpret_stats():
+    report = _tiny_report({"recall": 0.5, "missed": ["numpy.mat"],
+                           "table_size": 2})
+    assert report.interpret_recall == 0.5
+    assert report.interpret_table_size == 2
+    assert report.interpret_missed == ["numpy.mat"]
+    md = render_markdown(report)
+    assert "Removal-table recall: 0.50 (1/2)" in md
+    assert "numpy.mat" in md
 
 
 def test_render_markdown_shows_narrative_claim_check():

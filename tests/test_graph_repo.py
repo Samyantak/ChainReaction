@@ -56,6 +56,15 @@ def test_relative_posix_strips_target_prefix_idempotently(tmp_path):
     assert relative_posix("t\\pkg\\a.py", "t") == "pkg/a.py"
 
 
+def test_relative_posix_handles_windows_paths_on_any_os():
+    # relpath must see normalized separators: on Linux it treats
+    # backslashes as ordinary characters and emits ../t/pkg/a.py garbage.
+    assert relative_posix("E:\\t\\nibabel\\nibabel\\x.py",
+                          "E:\\t\\nibabel") == "nibabel/x.py"
+    assert relative_posix("E:/t/nibabel/nibabel/x.py",
+                          "E:/t/nibabel") == "nibabel/x.py"
+
+
 def test_subpackage_init_relative_import(tmp_path):
     root = tmp_path
     sub = root / "demo" / "sub"

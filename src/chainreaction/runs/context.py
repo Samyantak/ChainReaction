@@ -19,7 +19,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from chainreaction import llm as llm_mod
-from chainreaction.interpret import fetch_page, page_to_text
+from chainreaction.interpret import (
+    FetchedText,
+    decode_page,
+    extract_guide_tables,
+    fetch_page,
+    html_to_text,
+)
 from chainreaction.runs import store as store_mod
 from chainreaction.runs.scrub import ROOT, Scrubber, utc_now_iso
 from chainreaction.verifier import target_python
@@ -344,13 +350,20 @@ class RunContext:
 
     # -- URL fetching --
 
-    def fetch(self, url: str, timeout: int = 60) -> str:
-        """Recorded URL fetch; in replay returns the recorded text."""
+    def fetch(self, url: str, timeout: int = 60) -> FetchedText:
+        """Recorded URL fetch; in replay returns the recorded text.
+
+        Returns the cleaned text plus the guide's structured table rows
+        (FetchedText.removal_table); both come back from the recording
+        on replay so table completion stays offline.
+        """
         if self.mode == "replay":
             rec = self._take("fetch", url, f"url={url}")
             self.emit("fetch", {"url": url, "status": rec.get("status"),
                                  "replayed": True})
-            return rec["text"]
+            table = rec.get("removal_table") or {"removed": [],
+                                                 "deprecated": []}
+            return FetchedText(rec["text"], table)
         self.check_cancelled()
         started = utc_now_iso()
         t0 = time.perf_counter()
@@ -359,12 +372,16 @@ class RunContext:
         else:
             status, raw = fetch_page(url, timeout)
         duration_ms = int((time.perf_counter() - t0) * 1000)
-        text = page_to_text(raw)
+        page = decode_page(raw)
+        text = html_to_text(page)
+        table = self.scrubber.obj(extract_guide_tables(page))
         store_mod.append_jsonl(self.dir / store_mod.FETCHES, {
             "url": url, "status": status,
             "content_sha256": hashlib.sha256(raw).hexdigest(),
-            "bytes": len(raw), "text": text,
+            "bytes": len(raw), "text": text, "removal_table": table,
             "started_at": started, "duration_ms": duration_ms,
         })
-        self.emit("fetch", {"url": url, "status": status, "bytes": len(raw)})
-        return self.scrubber.text(text)
+        self.emit("fetch", {"url": url, "status": status, "bytes": len(raw),
+                             "table_rows": len(table["removed"])
+                             + len(table["deprecated"])})
+        return FetchedText(self.scrubber.text(text), table)

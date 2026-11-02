@@ -97,8 +97,8 @@ def create_run(req: RunRequest) -> str:
         manifest = {
             "run_id": run_id,
             "preset": source.get("preset"),
-            "repo_url": source.get("repo_url", ""),
-            "ref": source.get("ref", ""),
+            "repo_url": req.repo_url or source.get("repo_url", ""),
+            "ref": req.ref or source.get("ref", ""),
             "resolved_commit": source.get("resolved_commit"),
             "decision": req.decision or source.get("decision", ""),
             "guide_url": req.guide_url or source.get("guide_url", ""),
@@ -126,8 +126,8 @@ def create_run(req: RunRequest) -> str:
         manifest = {
             "run_id": run_id,
             "preset": req.preset,
-            "repo_url": req.repo_url or "",
-            "ref": req.ref or "",
+            "repo_url": req.repo_url or scen.repo_url,
+            "ref": req.ref or scen.ref,
             "resolved_commit": None,  # the setup stage resolves it
             "decision": req.decision or scen.decision,
             "guide_url": req.guide_url or scen.guide_url,

@@ -20,7 +20,9 @@ from chainreaction.interpret import (
     CONFIG_KINDS,
     ChangeSet,
     change_symbols,
+    changed_symbols,
     config_items,
+    deprecated_symbols,
     fetch_text,
     interpret,
     verify_quotes,
@@ -86,8 +88,9 @@ def build_layers(scen, probes, flagged: set):
 
 def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
                  layers: list, numpy_version, before_numpy,
-                 grep_count: int, ruff_count):
+                 grep_count: int, ruff_count, interpret_stats=None):
     """Assemble the deterministic Report from prediction + verification."""
+    interpret_stats = interpret_stats or {}
     hard = {n for n, i in impacts.items() if i.status == "HARD"}
     risky = {n for n, i in impacts.items() if i.status == "AT_RISK"}
     spine_evidence = [
@@ -107,6 +110,11 @@ def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
         numpy_version=numpy_version,
         before_numpy=before_numpy,
         change_symbols=sorted(symbols),
+        deprecated_symbols=sorted(deprecated_symbols(changeset)),
+        changed_symbols=sorted(changed_symbols(changeset)),
+        interpret_recall=interpret_stats.get("recall"),
+        interpret_table_size=interpret_stats.get("table_size", 0),
+        interpret_missed=list(interpret_stats.get("missed", [])),
         change_items=[i for i in changeset.items
                       if i.kind in CONFIG_KINDS],
         hard=sorted(hard), at_risk=sorted(risky),

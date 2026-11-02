@@ -32,8 +32,11 @@ from chainreaction.interpret import (
     ChangeItem,
     ChangeSet,
     change_symbols,
+    changed_symbols,
     config_items,
+    deprecated_symbols,
     interpret,
+    interpret_with_table,
 )
 from chainreaction.pipeline import build_layers, build_report
 from chainreaction.propagate import failure_path, predicted_chain, propagate
@@ -93,16 +96,43 @@ def _tool_adapter(ctx, timeout: int = 300):
     return run
 
 
+def _commit_matches(live_commit: str, ref: str) -> bool:
+    return live_commit == ref or (len(ref) < 40
+                                  and live_commit.startswith(ref))
+
+
 def stage_setup(ctx) -> None:
     preset = ctx.manifest.get("preset")
     try:
         scen = scenarios.get(preset)
     except KeyError:
         raise RuntimeError(f"unknown preset: {preset!r}") from None
-    if not (ROOT / scen.target).is_dir():
-        raise RuntimeError(
-            f"target not on disk: {scen.target} (fetch per README)")
-    live_commit = _git_commit(ROOT / scen.target)
+    repo_url = ctx.manifest.get("repo_url") or scen.repo_url
+    ref = ctx.manifest.get("ref") or scen.ref
+    target = Path(scen.target)
+    if not (ROOT / target).is_dir():
+        if ctx.mode == "replay":
+            raise RuntimeError(
+                f"target not on disk: {scen.target}; replay needs the "
+                "source (run scripts/fetch_targets.py)")
+        if not repo_url or not ref:
+            raise RuntimeError(
+                f"target not on disk: {scen.target} (fetch per README)")
+        ctx.emit("log", {"message":
+                         f"setup: cloning {repo_url} at {ref[:12]}"})
+        ctx.run_cmd(["git", "clone", repo_url, scen.target], cwd=".",
+                    env_name=None, timeout=1200)
+        ctx.run_cmd(["git", "-C", scen.target, "checkout", ref], cwd=".",
+                    env_name=None, timeout=300)
+    live_commit = _git_commit(ROOT / target)
+    if ref and live_commit and not _commit_matches(live_commit, ref):
+        raise CommitMismatch(
+            f"target {scen.target} is at {live_commit}, but preset "
+            f"{preset} pins {ref}; check out the pinned commit")
+    if ref and not live_commit:
+        ctx.emit("log", {"message":
+                         f"warning: cannot verify the target commit for "
+                         f"{scen.target} (no git history)"})
     if ctx.mode == "replay":
         expected = ctx.manifest.get("resolved_commit")
         if expected and live_commit and live_commit != expected:
@@ -121,11 +151,8 @@ def stage_setup(ctx) -> None:
             ctx.emit("log", {"message":
                              f"target commit verified: {live_commit[:12]}"})
     elif live_commit:
-        ctx.set_manifest(resolved_commit=live_commit)
-    else:
-        ctx.emit("log", {"message":
-                         f"warning: cannot resolve git commit for "
-                         f"{scen.target}"})
+        ctx.set_manifest(resolved_commit=live_commit, repo_url=repo_url,
+                         ref=ref)
     ctx.state["scenario"] = scen
     ctx.emit("log", {"message":
                      f"setup: preset={preset} target={scen.target} "
@@ -155,16 +182,29 @@ def stage_interpret(ctx) -> None:
         use_model = llm_mod.has_key()
     if use_model:
         guide_text = ctx.fetch(guide_url)
-        changeset = interpret(decision, guide_text, guide_url,
-                              chat_fn=ctx.llm)
+        changeset, stats = interpret_with_table(
+            decision, guide_text, guide_url,
+            guide_text.removal_table, chat_fn=ctx.llm)
         ctx.set_manifest(changeset_source="muse-spark")
+        ctx.state["interpret_stats"] = stats
         symbols = sorted(i.symbol for i in changeset.items)
+        recall = (f"; removal-table recall {stats['recall']:.2f} "
+                  f"({stats['table_size'] - len(stats['missed'])}"
+                  f"/{stats['table_size']})"
+                  if stats["recall"] is not None else "")
         ctx.emit("log", {"message":
-                         f"interpret: {len(changeset.items)} quote-verified "
-                         f"items: {', '.join(symbols) or '(none)'}"})
+                         f"interpret: {len(changeset.items)} items "
+                         f"({len(stats['missed'])} table-completed)"
+                         f"{recall}: {', '.join(symbols) or '(none)'}"})
+        if stats["quote_misses"]:
+            ctx.emit("log", {"message":
+                             "warning: table quotes absent from cleaned "
+                             f"text: {', '.join(stats['quote_misses'])}"})
     else:
         changeset = _stub_changeset(decision, guide_url, scen)
         ctx.set_manifest(changeset_source="hand-recorded")
+        ctx.state["interpret_stats"] = {"recall": None, "missed": [],
+                                        "table_size": 0, "quote_misses": []}
         ctx.emit("log", {"message":
                          "interpret: no MODEL_API_KEY; hand-recorded "
                          "change set (see manifest changeset_source)"})
@@ -172,9 +212,15 @@ def stage_interpret(ctx) -> None:
     ctx.state["changeset"] = changeset
     ctx.state["symbols"] = symbols
     ctx.state["config"] = config_items(changeset)
+    ctx.state["deprecated"] = deprecated_symbols(changeset)
+    ctx.state["changed"] = changed_symbols(changeset)
+    stats = ctx.state["interpret_stats"]
     ctx.save_artifact("changeset.json", {
         "decision": changeset.decision, "source_url": changeset.source_url,
         "changeset_source": ctx.manifest.get("changeset_source"),
+        "interpret_recall": stats["recall"],
+        "interpret_table_size": stats["table_size"],
+        "interpret_missed": stats["missed"],
         "items": [asdict(i) for i in changeset.items],
     })
 
@@ -206,6 +252,8 @@ def stage_predict(ctx) -> None:
         "hard": hard, "at_risk": at_risk, "spine": spine,
         "spine_evidence": spine_evidence,
         "change_symbols": sorted(symbols),
+        "deprecated_symbols": sorted(ctx.state["deprecated"]),
+        "changed_symbols": sorted(ctx.state["changed"]),
     })
     ctx.emit("log", {"message":
                      f"predict: HARD={len(hard)} AT_RISK={len(at_risk)} "
@@ -236,6 +284,8 @@ def stage_verify(ctx) -> None:
     # Probes parsed unscrubbed text (module mapping needs real paths);
     # re-scrub before storing so error tails stay canonical. Live and
     # replay land on identical bytes: scrub(unscrub(recorded)) == recorded.
+    # Recordings pin the scrubber version: re-record presets after any
+    # scrubber change (the byte-compare test enforces it).
     for _, probe in probes:
         probe.stderr = ctx.scrubber.text(probe.stderr)
     for name, probe in probes:
@@ -274,7 +324,8 @@ def stage_report(ctx) -> None:
         ruff_count = None
     report = build_report(scen, changeset, symbols, g, impacts, layers,
                           probes[0][1].numpy_version, before_numpy,
-                          grep_count, ruff_count)
+                          grep_count, ruff_count,
+                          ctx.state.get("interpret_stats"))
     if ctx.mode == "replay":
         want_narrative = (ctx.manifest.get("narrative_source")
                           == "muse-spark")
