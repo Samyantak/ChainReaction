@@ -458,12 +458,18 @@ beyond the brief. Keep it under 300 words."""
 
 def narrative_brief(report: Report) -> str:
     """Human-readable facts for the narrator (no raw JSON keys)."""
-    numpy_bit = f"tested under NumPy {report.numpy_version or 'unknown'}"
-    if report.before_numpy:
-        numpy_bit += f" (previously {report.before_numpy})"
+    versions = (f"tested under NumPy {report.numpy_version}"
+                + (f" (previously {report.before_numpy})"
+                   if report.before_numpy else "")
+                if report.numpy_version
+                else ("previously under NumPy " + report.before_numpy
+                      if report.before_numpy else ""))
+    target_bit = f"Target: {report.target} (package {report.package})"
+    if versions:
+        target_bit += f", {versions}"
     lines = [
         f"Decision: {report.decision}.",
-        f"Target: {report.target} (package {report.package}), {numpy_bit}.",
+        target_bit + ".",
         f"Breaking symbols ({len(report.change_symbols)}): "
         f"{', '.join(report.change_symbols) or 'none'}.",
     ]
@@ -475,8 +481,10 @@ def narrative_brief(report: Report) -> str:
         lines.append(
             f"Behavior-change flags ({len(report.changed_symbols)}): "
             f"{', '.join(report.changed_symbols)}.")
+    fail_word = ("fail at import" if report.probe_kind == "import"
+                 else "fail")
     lines.append(
-        f"Impact: {len(report.hard)} modules fail at import, "
+        f"Impact: {len(report.hard)} modules {fail_word}, "
         f"{len(report.at_risk)} more are at risk.")
     lines.append(
         f"Worst chain: {' -> '.join(report.spine) or '(clean)'} "

@@ -20,6 +20,6 @@ Traceback (most recent call last):
   File "<root>/targets/nibabel/nibabel/quaternions.py", line 32, in <module>
     MAX_FLOAT = np.maximum_sctype(float)
                 ^^^^^^^^^^^^^^^^^
-  File "<env:numpy2>/Lib/site-packages/numpy/__init__.py", line 411, in __getattr__
+  File "<env:numpy2>/site-packages/numpy/__init__.py", line 411, in __getattr__
     raise AttributeError(
 AttributeError: `np.maximum_sctype` was removed in the NumPy 2.0 release. Use a specific dtype instead. You should avoid relying on any implicit mechanism and select the largest dtype of a kind explicitly in the code.

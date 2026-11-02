@@ -1,0 +1,21 @@
+{
+  "base_url_host": "api.meta.ai",
+  "chainreaction_git_sha": "54cf1ea5bc786a81a83ce54b2722b5afeea2b1a1",
+  "changeset_source": "hand-recorded",
+  "created_at": "2026-11-02T01:03:37.842Z",
+  "current_stage": null,
+  "decision": "switch to Meta Model API",
+  "error": null,
+  "finished_at": "2026-11-02T01:03:48.101Z",
+  "guide_url": "https://raw.githubusercontent.com/meta-models/meta-model-cookbook/main/README.md",
+  "mode": "live",
+  "model": "muse-spark-1.3",
+  "narrative_source": "muse-spark",
+  "preset": "sponsorfit-meta",
+  "ref": "af24b102773c15c2f59967e1dd26e85dac1fe920",
+  "replay_from": null,
+  "repo_url": "https://github.com/Samyantak/sponsorfit",
+  "resolved_commit": "af24b102773c15c2f59967e1dd26e85dac1fe920",
+  "run_id": "3c75ddb825ae474dae965c8ae85d513e",
+  "status": "done"
+}

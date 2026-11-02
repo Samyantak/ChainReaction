@@ -179,7 +179,7 @@ def stage_interpret(ctx) -> None:
     if ctx.mode == "replay":
         use_model = ctx.manifest.get("changeset_source") == "muse-spark"
     else:
-        use_model = llm_mod.has_key()
+        use_model = llm_mod.has_key() and scen.live_interpret
     if use_model:
         guide_text = ctx.fetch(guide_url)
         changeset, stats = interpret_with_table(
@@ -205,9 +205,13 @@ def stage_interpret(ctx) -> None:
         ctx.set_manifest(changeset_source="hand-recorded")
         ctx.state["interpret_stats"] = {"recall": None, "missed": [],
                                         "table_size": 0, "quote_misses": []}
-        ctx.emit("log", {"message":
-                         "interpret: no MODEL_API_KEY; hand-recorded "
-                         "change set (see manifest changeset_source)"})
+        if ctx.mode == "live" and not scen.live_interpret:
+            reason = (f"scenario {scen.id} pins the hand-recorded set "
+                      "(code-grounded; live interpreter is guide-only)")
+        else:
+            reason = ("no MODEL_API_KEY; hand-recorded change set "
+                      "(see manifest changeset_source)")
+        ctx.emit("log", {"message": f"interpret: {reason}"})
     symbols = change_symbols(changeset)
     ctx.state["changeset"] = changeset
     ctx.state["symbols"] = symbols

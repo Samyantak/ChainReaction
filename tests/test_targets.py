@@ -113,6 +113,28 @@ def test_fetch_script_rejects_wrong_commit(tmp_path, monkeypatch):
         fetch_targets.ensure_target(scenarios.get("nibabel-numpy2"), run)
 
 
+def test_pinned_scenario_uses_stub_despite_key(monkeypatch):
+    monkeypatch.setattr("chainreaction.llm.has_key", lambda: True)
+    scen = scenarios.get("sponsorfit-meta")
+    assert scen.live_interpret is False
+    manifest = {"preset": scen.id}
+    saved = {}
+
+    def boom(*a, **k):
+        raise AssertionError("model must not be called for a pinned set")
+
+    ctx = SimpleNamespace(manifest=manifest, mode="live",
+                          state={"scenario": scen}, llm=boom, fetch=boom,
+                          emit=lambda *a, **k: None,
+                          set_manifest=manifest.update,
+                          save_artifact=lambda n, o: saved.update({n: o}))
+    stages_mod.stage_interpret(ctx)
+    assert manifest["changeset_source"] == "hand-recorded"
+    assert [i["symbol"] for i in saved["changeset.json"]["items"]] == [
+        i.symbol for i in scen.stub_items]
+    assert scenarios.get("nibabel-numpy2").live_interpret is True
+
+
 def test_record_preset_parses_fresh_flag():
     assert record_preset.parse_args(["prog", "x"]) == ("x", False)
     assert record_preset.parse_args(["prog", "x", "--fresh"]) == ("x", True)

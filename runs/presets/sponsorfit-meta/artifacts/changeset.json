@@ -1,0 +1,49 @@
+{
+  "changeset_source": "hand-recorded",
+  "decision": "switch to Meta Model API",
+  "interpret_missed": [],
+  "interpret_recall": null,
+  "interpret_table_size": 0,
+  "items": [
+    {
+      "detail": {
+        "actual": "Literal[\"anthropic\",\"openai\",\"ollama\"]",
+        "expected": "\"meta\" in Provider",
+        "note": null
+      },
+      "kind": "rejected_value",
+      "quote": "The default model is **Muse Spark** (`muse-spark-1.3`)",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "sponsorfit.llm.Provider",
+      "verified": true
+    },
+    {
+      "detail": {
+        "actual": "openai.OpenAI() with no base_url",
+        "expected": "base_url=https://api.meta.ai/v1",
+        "note": null
+      },
+      "kind": "missing_param",
+      "quote": "base_url=\"https://api.meta.ai/v1\",",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "sponsorfit.llm.MeteredLLMClient._call_openai",
+      "verified": true
+    },
+    {
+      "detail": {
+        "actual": "KeyError: no meta provider table",
+        "expected": "PRICING[\"meta\"][\"muse-spark-1.3\"]",
+        "note": null
+      },
+      "kind": "missing_key",
+      "quote": "",
+      "replacement": null,
+      "source": "probe",
+      "symbol": "sponsorfit.pricing.PRICING",
+      "verified": true
+    }
+  ],
+  "source_url": "https://raw.githubusercontent.com/meta-models/meta-model-cookbook/main/README.md"
+}

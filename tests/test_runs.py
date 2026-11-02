@@ -253,6 +253,8 @@ def test_scrubber_normalizes_foreign_env_and_tmp_paths():
         'File "<env:numpy2>/site-packages/n.py", line 1'
     mac = "/Users/u/work/envs/sponsorfit/lib/python3.12/site-packages/m.py"
     assert scrub.text(mac) == "<env:sponsorfit>/site-packages/m.py"
+    win = ("E:\\work\\envs\\numpy2\\Lib\\site-packages\\numpy\\__init__.py")
+    assert scrub.text(win) == "<env:numpy2>/site-packages/numpy/__init__.py"
     tmp = os.path.join(tempfile.gettempdir(), "cr-work", "w.py")
     assert scrub.text(tmp) == "<tmp>/cr-work/w.py"
     # Bare relative references are documentation, not paths: untouched.

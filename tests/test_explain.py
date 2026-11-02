@@ -102,6 +102,26 @@ def test_narrative_facts_cite_file_not_imported_module(monkeypatch):
     assert " imports " not in seen["user"]
 
 
+def test_narrative_brief_skips_numpy_for_decision_probes():
+    report = Report(
+        decision="switch to Meta Model API", target="targets/sponsorfit",
+        package="sponsorfit", numpy_version="", change_symbols=[],
+        spine=[], hard=[], at_risk=["sponsorfit.llm"],
+        probe_kind="decision",
+        layers=[LayerResult("decision", [], [], 1.0, "")],
+    )
+    brief = explain.narrative_brief(report)
+    assert "NumPy" not in brief
+    assert "unknown" not in brief
+    assert "0 modules fail, 1 more are at risk" in brief
+    # The version decision keeps its exact wording.
+    nib = _narrative_report()
+    nib.before_numpy = "1.26.4"
+    brief = explain.narrative_brief(nib)
+    assert "tested under NumPy 2.0.2 (previously 1.26.4)" in brief
+    assert "2 modules fail at import" in brief
+
+
 def _narrative_report():
     return Report(
         decision="upgrade numpy to 2.0", target="t", package="demo",

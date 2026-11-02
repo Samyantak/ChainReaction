@@ -1,0 +1,10 @@
+# probe: decision
+# ok: False
+# numpy: None
+# modules: sponsorfit.llm
+## stderr
+Traceback (most recent call last):
+  File "<string>", line 8, in <module>
+  File "<root>/targets/sponsorfit/src/sponsorfit/llm.py", line 78, in call
+    raise ValueError(f"unknown provider: {provider}")
+ValueError: unknown provider: meta

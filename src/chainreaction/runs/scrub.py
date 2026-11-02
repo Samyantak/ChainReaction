@@ -95,9 +95,10 @@ def _replace_env_token(value: str, name: str) -> str:
 
 # Windows `Lib/site-packages` vs Linux/Mac `lib/python3.x/site-packages`
 # (or bare `lib/site-packages`): collapse all so recorded tracebacks are
-# byte-identical across OSes.
+# byte-identical across OSes. `/site-packages` sits outside the
+# alternation: matching bare `Lib/` would duplicate it on Windows.
 _SITE_PACKAGES_RX = re.compile(
-    r"(<env:[^>]+>)/(?:Lib|lib(?:/python3\.\d+)?/site-packages)/")
+    r"(<env:[^>]+>)/(?:Lib|lib(?:/python3\.\d+)?)/site-packages/")
 
 
 def utc_now_iso() -> str:

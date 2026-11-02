@@ -70,6 +70,10 @@ class Scenario:
     run_ruff: bool = True
     repo_url: str = ""
     ref: str = ""
+    # False when the change set is code-grounded (our definitions vs the
+    # decision): the guide-only interpreter cannot name our symbols, so
+    # the scenario pins the hand-recorded set until the M4 investigator.
+    live_interpret: bool = True
 
 
 NIBABEL_NUMPY2 = Scenario(
@@ -143,6 +147,7 @@ SPONSORFIT_META = Scenario(
     run_ruff=False,
     repo_url="https://github.com/Samyantak/sponsorfit",
     ref="af24b102773c15c2f59967e1dd26e85dac1fe920",
+    live_interpret=False,
 )
 
 SCENARIOS = {s.id: s for s in [NIBABEL_NUMPY2, SPONSORFIT_META]}

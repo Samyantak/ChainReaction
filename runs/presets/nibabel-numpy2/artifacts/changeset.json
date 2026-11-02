@@ -1,7 +1,37 @@
 {
   "changeset_source": "muse-spark",
   "decision": "upgrade numpy to 2.0",
+  "interpret_missed": [],
+  "interpret_recall": 1.0,
+  "interpret_table_size": 62,
   "items": [
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "add_docstring It’s still available as np.lib.add_docstring .",
+      "replacement": "numpy.lib.add_docstring",
+      "source": "guide",
+      "symbol": "numpy.add_docstring",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "add_newdoc It’s still available as np.lib.add_newdoc .",
+      "replacement": "numpy.lib.add_newdoc",
+      "source": "guide",
+      "symbol": "numpy.add_newdoc",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "add_newdoc_ufunc It’s an internal function and doesn’t have a replacement.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.add_newdoc_ufunc",
+      "verified": true
+    },
     {
       "detail": null,
       "kind": "removed",
@@ -9,6 +39,87 @@
       "replacement": "numpy.all",
       "source": "guide",
       "symbol": "numpy.alltrue",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "asfarray Use np.asarray with a float dtype instead.",
+      "replacement": "numpy.asarray",
+      "source": "guide",
+      "symbol": "numpy.asfarray",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "byte_bounds Now it’s available under np.lib.array_utils.byte_bounds",
+      "replacement": "numpy.lib.array_utils.byte_bounds",
+      "source": "guide",
+      "symbol": "numpy.byte_bounds",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "cast Use np.asarray(arr, dtype=dtype) instead.",
+      "replacement": "numpy.asarray",
+      "source": "guide",
+      "symbol": "numpy.cast",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "cfloat Use np.complex128 instead.",
+      "replacement": "numpy.complex128",
+      "source": "guide",
+      "symbol": "numpy.cfloat",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "charrarray It’s still available as np.char.chararray .",
+      "replacement": "numpy.char.chararray",
+      "source": "guide",
+      "symbol": "numpy.charrarray",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "clongfloat Use np.clongdouble instead.",
+      "replacement": "numpy.clongdouble",
+      "source": "guide",
+      "symbol": "numpy.clongfloat",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "compare_chararrays It’s still available as np.char.compare_chararrays .",
+      "replacement": "numpy.char.compare_chararrays",
+      "source": "guide",
+      "symbol": "numpy.compare_chararrays",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "compat There’s no replacement, as Python 2 is no longer supported.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.compat",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "complex_ Use np.complex128 instead.",
+      "replacement": "numpy.complex128",
+      "source": "guide",
+      "symbol": "numpy.complex_",
       "verified": true
     },
     {
@@ -23,10 +134,307 @@
     {
       "detail": null,
       "kind": "removed",
+      "quote": "DataSource It’s still available as np.lib.npyio.DataSource .",
+      "replacement": "numpy.lib.npyio.DataSource",
+      "source": "guide",
+      "symbol": "numpy.DataSource",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "deprecate Emit DeprecationWarning with warnings.warn directly, or use typing.deprecated .",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.deprecate",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "deprecate_with_doc Emit DeprecationWarning with warnings.warn directly, or use typing.deprecated .",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.deprecate_with_doc",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "disp Use your own printing function instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.disp",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "fastCopyAndTranspose Use arr.T.copy() instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.fastCopyAndTranspose",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "find_common_type Use numpy.promote_types or numpy.result_type instead.",
+      "replacement": "numpy.promote_types",
+      "source": "guide",
+      "symbol": "numpy.find_common_type",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "format_parser It’s still available as np.rec.format_parser .",
+      "replacement": "numpy.rec.format_parser",
+      "source": "guide",
+      "symbol": "numpy.format_parser",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "get_array_wrap",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.get_array_wrap",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "float_ Use np.float64 instead.",
+      "replacement": "numpy.float64",
+      "source": "guide",
+      "symbol": "numpy.float_",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "geterrobj Use the np.errstate context manager instead.",
+      "replacement": "numpy.errstate",
+      "source": "guide",
+      "symbol": "numpy.geterrobj",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "Inf Use np.inf instead.",
+      "replacement": "numpy.inf",
+      "source": "guide",
+      "symbol": "numpy.Inf",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "Infinity Use np.inf instead.",
+      "replacement": "numpy.inf",
+      "source": "guide",
+      "symbol": "numpy.Infinity",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "infty Use np.inf instead.",
+      "replacement": "numpy.inf",
+      "source": "guide",
+      "symbol": "numpy.infty",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "issctype Use issubclass(rep, np.generic) instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.issctype",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "issubclass_ Use issubclass builtin instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.issubclass_",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "issubsctype Use np.issubdtype instead.",
+      "replacement": "numpy.issubdtype",
+      "source": "guide",
+      "symbol": "numpy.issubsctype",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "mat Use np.asmatrix instead.",
+      "replacement": "numpy.asmatrix",
+      "source": "guide",
+      "symbol": "numpy.mat",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "maximum_sctype Use a specific dtype instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.maximum_sctype",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "NaN Use np.nan instead.",
+      "replacement": "numpy.nan",
+      "source": "guide",
+      "symbol": "numpy.NaN",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "nbytes Use np.dtype(<dtype>).itemsize instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.nbytes",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "NINF Use -np.inf instead.",
+      "replacement": "numpy.inf",
+      "source": "guide",
+      "symbol": "numpy.NINF",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "NZERO Use -0.0 instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.NZERO",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "longcomplex Use np.clongdouble instead.",
+      "replacement": "numpy.clongdouble",
+      "source": "guide",
+      "symbol": "numpy.longcomplex",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "longfloat Use np.longdouble instead.",
+      "replacement": "numpy.longdouble",
+      "source": "guide",
+      "symbol": "numpy.longfloat",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "lookfor Search NumPy’s documentation directly.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.lookfor",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "obj2sctype Use np.dtype(obj).type instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.obj2sctype",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "PINF Use np.inf instead.",
+      "replacement": "numpy.inf",
+      "source": "guide",
+      "symbol": "numpy.PINF",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
       "quote": "product Use np.prod instead.",
       "replacement": "numpy.prod",
       "source": "guide",
       "symbol": "numpy.product",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "PZERO Use 0.0 instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.PZERO",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "recfromcsv Use np.genfromtxt with comma delimiter instead.",
+      "replacement": "numpy.genfromtxt",
+      "source": "guide",
+      "symbol": "numpy.recfromcsv",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "recfromtxt Use np.genfromtxt instead.",
+      "replacement": "numpy.genfromtxt",
+      "source": "guide",
+      "symbol": "numpy.recfromtxt",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "round_ Use np.round instead.",
+      "replacement": "numpy.round",
+      "source": "guide",
+      "symbol": "numpy.round_",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "safe_eval Use ast.literal_eval instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.safe_eval",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "sctype2char Use np.dtype(obj).char instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.sctype2char",
       "verified": true
     },
     {
@@ -41,35 +449,98 @@
     {
       "detail": null,
       "kind": "removed",
-      "quote": "mat Use np.asmatrix instead.",
-      "replacement": "numpy.asmatrix",
+      "quote": "seterrobj Use the np.errstate context manager instead.",
+      "replacement": "numpy.errstate",
       "source": "guide",
-      "symbol": "numpy.mat",
+      "symbol": "numpy.seterrobj",
       "verified": true
     },
     {
       "detail": null,
-      "kind": "deprecated",
-      "quote": "in1d Use np.isin instead.",
-      "replacement": "numpy.isin",
+      "kind": "removed",
+      "quote": "set_numeric_ops For the general case, use PyUFunc_ReplaceLoopBySignature .",
+      "replacement": null,
       "source": "guide",
-      "symbol": "numpy.in1d",
+      "symbol": "numpy.set_numeric_ops",
       "verified": true
     },
     {
       "detail": null,
-      "kind": "deprecated",
-      "quote": "trapz Use np.trapezoid or a scipy.integrate function instead.",
-      "replacement": "numpy.trapezoid",
+      "kind": "removed",
+      "quote": "set_string_function Use np.set_printoptions instead with a formatter for custom printing of NumPy objects.",
+      "replacement": "numpy.set_printoptions",
       "source": "guide",
-      "symbol": "numpy.trapz",
+      "symbol": "numpy.set_string_function",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "singlecomplex Use np.complex64 instead.",
+      "replacement": "numpy.complex64",
+      "source": "guide",
+      "symbol": "numpy.singlecomplex",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "string_ Use np.bytes_ instead.",
+      "replacement": "numpy.bytes_",
+      "source": "guide",
+      "symbol": "numpy.string_",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "sometrue Use np.any instead.",
+      "replacement": "numpy.any",
+      "source": "guide",
+      "symbol": "numpy.sometrue",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "source Use inspect.getsource instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.source",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "tracemalloc_domain It’s now available from np.lib .",
+      "replacement": "numpy.lib.tracemalloc_domain",
+      "source": "guide",
+      "symbol": "numpy.tracemalloc_domain",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "unicode_ Use np.str_ instead.",
+      "replacement": "numpy.str_",
+      "source": "guide",
+      "symbol": "numpy.unicode_",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "who Use an IDE variable explorer or locals() instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.who",
       "verified": true
     },
     {
       "detail": null,
       "kind": "removed",
       "quote": "newbyteorder Use arr.view(arr.dtype.newbyteorder(order)) instead.",
-      "replacement": "arr.view(arr.dtype.newbyteorder(order))",
+      "replacement": null,
       "source": "guide",
       "symbol": "numpy.ndarray.newbyteorder",
       "verified": true
@@ -85,47 +556,38 @@
     },
     {
       "detail": null,
-      "kind": "changed",
-      "quote": "The np.core namespace is now officially private and has been renamed to np._core .",
-      "replacement": "numpy._core",
-      "source": "guide",
-      "symbol": "numpy.core",
-      "verified": true
-    },
-    {
-      "detail": null,
-      "kind": "changed",
-      "quote": "np.lib is now empty and contains only a handful of specialized submodules, classes and functions:",
+      "kind": "removed",
+      "quote": "setitem Use arr[index] = value instead.",
       "replacement": null,
       "source": "guide",
-      "symbol": "numpy.lib",
+      "symbol": "numpy.ndarray.setitem",
       "verified": true
     },
     {
       "detail": null,
-      "kind": "changed",
-      "quote": "np.float32(3) + 3. now returns a float32 when it previously returned a float64.",
-      "replacement": null,
+      "kind": "deprecated",
+      "quote": "in1d Use np.isin instead.",
+      "replacement": "numpy.isin",
       "source": "guide",
-      "symbol": "numpy.float32",
+      "symbol": "numpy.in1d",
       "verified": true
     },
     {
       "detail": null,
-      "kind": "changed",
-      "quote": "The default integer is now equivalent to np.intp .",
-      "replacement": "numpy.intp",
+      "kind": "deprecated",
+      "quote": "row_stack Use np.vstack instead ( row_stack was an alias for vstack ).",
+      "replacement": "numpy.vstack",
       "source": "guide",
-      "symbol": "numpy.intp",
+      "symbol": "numpy.row_stack",
       "verified": true
     },
     {
       "detail": null,
-      "kind": "changed",
-      "quote": "Code using np.array(..., copy=False) can in most cases be changed to np.asarray(...) .",
-      "replacement": "numpy.asarray",
+      "kind": "deprecated",
+      "quote": "trapz Use np.trapezoid or a scipy.integrate function instead.",
+      "replacement": "numpy.trapezoid",
       "source": "guide",
-      "symbol": "numpy.asarray",
+      "symbol": "numpy.trapz",
       "verified": true
     }
   ],
