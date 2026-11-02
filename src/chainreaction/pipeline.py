@@ -5,11 +5,16 @@ results. Live guide fetching is opt-in (needs network).
 """
 
 from dataclasses import dataclass
+from pathlib import Path
 
 import networkx as nx
 
 from chainreaction import scenarios
-from chainreaction.baselines import grep_hits, ruff_npy201
+from chainreaction.baselines import (
+    grep_hits,
+    patterns_for_changeset,
+    ruff_npy201,
+)
 from chainreaction.explain import LayerResult, Report
 from chainreaction.graph.repo import (
     build_graph_from_repo,
@@ -25,10 +30,24 @@ from chainreaction.interpret import (
     deprecated_symbols,
     fetch_text,
     interpret,
-    verify_quotes,
+    interpret_vendor,
+    verify_all,
 )
-from chainreaction.propagate import Impact, failure_path, predicted_chain, propagate
-from chainreaction.scorer import chain_match, direct_use_files, precision_recall
+from chainreaction.propagate import (
+    Impact,
+    failure_path,
+    order_config_by_entry,
+    predicted_chain,
+    probe_entries,
+    propagate,
+    vendor_chain,
+)
+from chainreaction.scorer import (
+    chain_match,
+    direct_use_files,
+    precision_recall,
+    used_breaking_symbols,
+)
 from chainreaction.verifier import (
     run_import_probe,
     run_snippet_probe,
@@ -51,24 +70,82 @@ def predict(scenario_id: str, fetch_guide: bool = False,
     if live_interpret:
         text = (guide_text if guide_text is not None
                 else fetch_text(scen.guide_url))
-        changeset = interpret(scen.decision, text, scen.guide_url)
+        if scen.code_aware:
+            changeset = interpret_vendor(
+                scen.decision, text, scen.target, scen.package,
+                scen.guide_url)
+        else:
+            changeset = interpret(scen.decision, text, scen.guide_url)
         symbols = change_symbols(changeset)
         g = build_graph_from_repo(scen.target, scen.package)
-        impacts = propagate(g, symbols, config_items(changeset), scen.package)
+        cfg = config_items(changeset)
+        entries = probe_entries(scen.probe_code or "", scen.package, g)
+        impacts = propagate(g, symbols, cfg, scen.package,
+                            entries=tuple(entries))
         return scen, changeset, symbols, g, impacts
     changeset = ChangeSet(scen.decision, scen.guide_url,
                           [i for i in scen.stub_items])
     if fetch_guide:
         text = guide_text if guide_text is not None else fetch_text(scen.guide_url)
-        changeset.items, _ = verify_quotes(changeset.items, text)
+        changeset.items, _ = verify_all(changeset.items, text, scen.target,
+                                         scen.package)
     else:
         for item in changeset.items:
             item.verified = True  # offline: trust the recorded quotes
     symbols = change_symbols(changeset)
 
     g = build_graph_from_repo(scen.target, scen.package)
-    impacts = propagate(g, symbols, config_items(changeset), scen.package)
+    cfg = config_items(changeset)
+    entries = probe_entries(scen.probe_code or "", scen.package, g)
+    impacts = propagate(g, symbols, cfg, scen.package, entries=tuple(entries))
     return scen, changeset, symbols, g, impacts
+
+
+def spine_for_scenario(g, impacts, symbols: set, scen, config) -> list:
+    """Predicted failure hops: vendor call path or import chain.
+
+    Decision probes with known entries predict the call path from the
+    probe entry to the first rejecting site; everything else (and any
+    vendor case without code grounding) falls back to the import-time
+    failure path. Shared by stage_predict and build_report so the two
+    never disagree.
+    """
+    probe_code = getattr(scen, "probe_code", "")
+    if probe_code:
+        entries = probe_entries(probe_code, scen.package, g)
+        if entries:
+            ordered = order_config_by_entry(g, entries, list(config),
+                                            scen.package)
+            hops = vendor_chain(g, scen.package, entries, ordered)
+            if hops:
+                return [(u, v, relative_posix(path, scen.target), line)
+                        for u, v, path, line in hops]
+    return [(u, v, relative_posix(path, scen.target), line)
+            for u, v, path, line in failure_path(g, impacts, symbols,
+                                                 scen.package)]
+
+
+def _failure_site(frames, root: str | Path) -> str | None:
+    """Deepest traceback frame under the target root, as "path:line".
+
+    The probe's cwd is the target root, so frames under it relativize
+    cleanly (nibabel/casting.py:717); env frames (numpy/__init__.py)
+    and <string> never match and are skipped. None when the probe
+    passed or no frame sits under the root.
+    """
+    try:
+        root_abs = Path(root).resolve()
+    except OSError:
+        return None
+    for frame in reversed(frames or []):
+        if not str(frame.file).endswith(".py"):
+            continue
+        try:
+            rel = Path(frame.file).resolve().relative_to(root_abs)
+        except (ValueError, OSError):
+            continue
+        return f"{rel.as_posix()}:{frame.line}"
+    return None
 
 
 def build_layers(scen, probes, flagged: set):
@@ -81,6 +158,7 @@ def build_layers(scen, probes, flagged: set):
             name, probe.modules, missing, recall,
             "\n".join(probe.stderr.splitlines()[-4:]) if probe.stderr else "",
             probe.ok,
+            _failure_site(getattr(probe, "frames", None), scen.target),
         ))
     before_numpy = probes[-1][1].numpy_version if scen.before_env else None
     return layers, before_numpy
@@ -93,11 +171,25 @@ def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
     interpret_stats = interpret_stats or {}
     hard = {n for n, i in impacts.items() if i.status == "HARD"}
     risky = {n for n, i in impacts.items() if i.status == "AT_RISK"}
-    spine_evidence = [
-        (u, v, relative_posix(path, scen.target), line)
-        for u, v, path, line in failure_path(g, impacts, symbols, scen.package)
-    ]
+    cfg = [i for i in changeset.items
+           if i.kind in CONFIG_KINDS and i.verified]
+    spine_evidence = spine_for_scenario(g, impacts, symbols, scen, cfg)
     predicted = predicted_chain(g, spine_evidence)
+    layer_fixes = [f"{layer.name}: {layer.failure_site}" for layer in layers
+                   if not layer.ok and layer.failure_site]
+    if getattr(scen, "probe_code", ""):
+        entries = probe_entries(scen.probe_code, scen.package, g)
+        ordered = (order_config_by_entry(g, entries, cfg, scen.package)
+                   if entries else list(cfg))
+        fix_order = [
+            f"{item.symbol}: {item.code_file}:{item.code_line}"
+            for item in ordered
+            if getattr(item, "source", "") == "code"
+            and getattr(item, "code_file", "")
+            and getattr(item, "code_line", 0)
+        ] + layer_fixes
+    else:
+        fix_order = layer_fixes
     score = chain_match(predicted, layers[0].actual)
     file_score = (precision_recall(direct_use_files(g, symbols, scen.target),
                                    set(scen.pr_files))
@@ -110,6 +202,7 @@ def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
         numpy_version=numpy_version,
         before_numpy=before_numpy,
         change_symbols=sorted(symbols),
+        used_symbols=sorted(used_breaking_symbols(g, symbols)),
         deprecated_symbols=sorted(deprecated_symbols(changeset)),
         changed_symbols=sorted(changed_symbols(changeset)),
         interpret_recall=interpret_stats.get("recall"),
@@ -121,7 +214,7 @@ def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
                       if i.kind in CONFIG_KINDS],
         hard=sorted(hard), at_risk=sorted(risky),
         spine=predicted, spine_evidence=spine_evidence,
-        spine_match=score.match,
+        spine_match=score.match, fix_order=fix_order,
         pr_url=scen.pr_url, pr_files=list(scen.pr_files),
         file_precision=file_score.precision if file_score else None,
         file_recall=file_score.recall if file_score else None,
@@ -160,7 +253,7 @@ def run_pipeline(scenario_id: str, fetch_guide: bool = False,
     layers, before_numpy = build_layers(scen, probes, flagged)
 
     pkgdir = package_dir(scen.target, scen.package)
-    hits = grep_hits(pkgdir, scen.grep_patterns)
+    hits = grep_hits(pkgdir, patterns_for_changeset(changeset))
     ruff = ruff_npy201(pkgdir) if scen.run_ruff else None
     report = build_report(scen, changeset, symbols, g, impacts, layers,
                           probes[0][1].numpy_version, before_numpy,

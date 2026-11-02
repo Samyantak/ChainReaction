@@ -22,6 +22,33 @@ The model may only assert what a tool returned. Deterministic tools produce ever
 fact; Muse Spark drives the investigation. Every claim traces to a `file:line`,
 a cited changelog span, or a test result.
 
+## Why vendor switches read the code (ablation)
+
+Dependency upgrades break in the vendor's changelog (NumPy 2.0 lists its
+63 removed symbols), so a guide-only interpreter suffices. Vendor switches
+break in our code: the provider name our schema rejects, the `base_url`
+our client never passes, the pricing entry our table lacks. Meta's docs
+can't name those gaps, so a guide-only pass can't find them by design.
+
+For vendor decisions ChainReaction runs a code-aware interpreter: the repo
+source (~1,900 lines for SponsorFit, well within Muse Spark's 1M context)
+plus the vendor guide, with every config break quoting an exact span of
+our source with `file:line`, string-verified like guide quotes. It also
+keeps the model honest about naming: the guide-only pass found
+`openai.OpenAI.base_url` (dropped as out-of-package) for what the
+code-aware pass correctly anchors as
+`sponsorfit.llm.MeteredLLMClient._call_openai`.
+
+SponsorFit × "switch to Meta Model API", decision-probe recall:
+
+| Interpreter | Recall | What it found |
+|---|---|---|
+| Guide-only | 0.0 | 0/1 modules; 3 config items dropped (see `docs/ablation/`) |
+| Code-aware | 1.0 | 3/3 breaks: `llm.py:14`, `llm.py:160`, `pricing.py:23` |
+
+A first version of the M4 investigator agent, showing long context and
+grounded output.
+
 ## Setup
 
 ```

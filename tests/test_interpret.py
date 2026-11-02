@@ -266,7 +266,126 @@ def test_drop_out_of_package_items_keeps_external_kinds():
         "sponsorfit.llm.Provider", "muse-voice", "numpy.sctypes"]
 
 
+def test_verify_all_splits_groundings_in_order(tmp_path):
+    from chainreaction.interpret import verify_all
+
+    pkg = tmp_path / "src" / "fit"
+    pkg.mkdir(parents=True)
+    (pkg / "llm.py").write_text("X = 1\n", encoding="utf-8")
+    items = [
+        ChangeItem("numpy.sctypes", "removed", "sctypes was removed"),
+        ChangeItem("fit.llm.X", "missing_key", "", source="code",
+                   code_quote="X = 1", code_file="src/fit/llm.py",
+                   code_line=1),
+        ChangeItem("fit.llm.Y", "missing_key", "", source="code",
+                   code_quote="not in source", code_file="src/fit/llm.py",
+                   code_line=1),
+        ChangeItem("numpy.gone", "removed", "paraphrase, not quoted"),
+    ]
+    verified, dropped = verify_all(items, "guide: sctypes was removed",
+                                   tmp_path, "fit")
+    assert [i.symbol for i in verified] == ["numpy.sctypes", "fit.llm.X"]
+    assert [i.symbol for i in dropped] == ["fit.llm.Y", "numpy.gone"]
+
+
 def test_interpret_no_key_names_the_blocker(monkeypatch):
     monkeypatch.delenv("MODEL_API_KEY", raising=False)
     with pytest.raises(RuntimeError, match="MODEL_API_KEY"):
         interpret("upgrade numpy to 2.0", "guide text")
+
+
+def test_collect_package_sources_numbers_lines(tmp_path):
+    from chainreaction.interpret import collect_package_sources
+
+    pkg = tmp_path / "src" / "fit"
+    pkg.mkdir(parents=True)
+    (pkg / "llm.py").write_text(
+        'Provider = Literal["a"]\nself._x = openai.OpenAI()\n',
+        encoding="utf-8")
+    text, files = collect_package_sources(tmp_path, "fit")
+    assert files == {"src/fit/llm.py":
+                     'Provider = Literal["a"]\n'
+                     "self._x = openai.OpenAI()\n"}
+    assert "=== FILE: src/fit/llm.py ===" in text
+    assert '1: Provider = Literal["a"]' in text
+    assert "2: self._x = openai.OpenAI()" in text
+
+
+def test_verify_code_quotes_needs_exact_span_and_line():
+    from chainreaction.interpret import verify_code_quotes
+
+    files = {"src/fit/llm.py":
+             'Provider = Literal["anthropic", "openai"]\n'
+             "x = 1\n"}
+    good = ChangeItem("fit.llm.Provider", "rejected_value", "",
+                      source="code",
+                      code_quote='Provider = Literal["anthropic", "openai"]',
+                      code_file="src/fit/llm.py", code_line=1)
+    paraphrase = ChangeItem("fit.llm.Provider", "rejected_value", "",
+                            source="code",
+                            code_quote="Provider allows two providers",
+                            code_file="src/fit/llm.py", code_line=1)
+    drifted = ChangeItem("fit.llm.Provider", "rejected_value", "",
+                         source="code",
+                         code_quote='Provider = Literal["anthropic", "openai"]',
+                         code_file="src/fit/llm.py", code_line=2)
+    missing = ChangeItem("fit.llm.Provider", "rejected_value", "",
+                         source="code",
+                         code_quote='Provider = Literal["anthropic", "openai"]',
+                         code_file="src/fit/nope.py", code_line=1)
+    verified, dropped = verify_code_quotes(
+        [good, paraphrase, drifted, missing], files)
+    assert verified == [good] and good.verified is True
+    assert len(dropped) == 3
+    assert all(i.verified is False for i in dropped)
+
+
+def test_verify_quotes_drops_code_items_without_files():
+    verified, dropped = verify_quotes(
+        [ChangeItem("fit.a", "missing_param", "", source="code",
+                    code_quote="x", code_file="f.py", code_line=1)],
+        "guide text")
+    assert verified == [] and len(dropped) == 1
+
+
+def test_interpret_vendor_grounds_config_in_code(tmp_path):
+    import json as json_mod
+
+    from chainreaction.interpret import interpret_vendor
+
+    pkg = tmp_path / "src" / "fit"
+    pkg.mkdir(parents=True)
+    (pkg / "llm.py").write_text(
+        'Provider = Literal["anthropic", "openai"]\n', encoding="utf-8")
+    guide = "Point your client at https://api.meta.ai/v1 for Meta."
+
+    def fake(system, user, max_tokens=8000, response_format=None):
+        assert "Vendor guide text" in user
+        assert "=== FILE: src/fit/llm.py ===" in user
+        assert response_format["json_schema"]["name"] == "vendor_change_set"
+        return json_mod.dumps({"items": [
+            {"symbol": "fit.llm.Provider", "kind": "rejected_value",
+             "quote": "", "replacement": None,
+             "code_quote": 'Provider = Literal["anthropic", "openai"]',
+             "code_file": "src/fit/llm.py", "code_line": 1,
+             "detail": {"expected": '"meta" in Provider',
+                        "actual": 'Literal["anthropic","openai"]',
+                        "note": None}},
+            {"symbol": "fit.llm.Other", "kind": "missing_param",
+             "quote": "", "replacement": None,
+             "code_quote": "paraphrased, not in source",
+             "code_file": "src/fit/llm.py", "code_line": 1,
+             "detail": {"expected": "x", "actual": "y", "note": None}},
+            {"symbol": "meta.voice", "kind": "changed",
+             "quote": "Point your client at https://api.meta.ai/v1",
+             "replacement": None, "code_quote": "", "code_file": "",
+             "code_line": 0, "detail": None},
+        ]})
+
+    cs = interpret_vendor("switch", guide, tmp_path, "fit", "u",
+                          chat_fn=fake)
+    by_symbol = {i.symbol: i for i in cs.items}
+    assert set(by_symbol) == {"fit.llm.Provider", "meta.voice"}
+    assert by_symbol["fit.llm.Provider"].source == "code"
+    assert by_symbol["fit.llm.Provider"].verified is True
+    assert by_symbol["meta.voice"].source == "guide"

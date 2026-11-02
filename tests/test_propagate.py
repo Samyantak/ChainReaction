@@ -9,9 +9,12 @@ from chainreaction.interpret import ChangeItem
 from chainreaction.propagate import (
     Impact,
     failure_path,
+    order_config_by_entry,
     predicted_chain,
+    probe_entries,
     propagate,
     resolve_symbol,
+    vendor_chain,
 )
 
 
@@ -256,3 +259,98 @@ def test_failure_path_empty_when_package_clean(tmp_path):
     assert failure_path(g, propagate(g, {"numpy.nope"}),
                         {"numpy.nope"}, "demo") == []
     assert predicted_chain(g, []) == []
+
+
+def _vendor_pkg(tmp_path):
+    pkg = tmp_path / "fit"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("from . import llm\n", encoding="utf-8")
+    (pkg / "llm.py").write_text(
+        "from typing import Literal\n"
+        "Provider = Literal[\"a\"]\n"
+        "class Client:\n"
+        "    def call(self, provider):\n"
+        "        if provider == \"a\":\n"
+        "            return self._do()\n"
+        "        raise ValueError(provider)\n"
+        "    def _do(self):\n"
+        "        return 1\n",
+        encoding="utf-8",
+    )
+    (pkg / "app.py").write_text(
+        "from .llm import Client\n"
+        "def run(client: Client):\n"
+        "    return client.call(\"x\")\n",
+        encoding="utf-8",
+    )
+    (pkg / "util.py").write_text(
+        "def helper():\n    return 0\n", encoding="utf-8")
+    return tmp_path
+
+
+_VENDOR_PROBE = (
+    "from fit.llm import Client\n"
+    "client = Client()\n"
+    "client.call(\"meta\")\n"
+)
+
+
+def _vendor_items():
+    return [
+        ChangeItem("fit.llm.Provider", "rejected_value", "", verified=True,
+                   source="code", code_quote='Provider = Literal["a"]',
+                   code_file="fit/llm.py", code_line=2),
+        ChangeItem("fit.llm.Client._do", "missing_param", "", verified=True,
+                   source="code", code_quote="return 1",
+                   code_file="fit/llm.py", code_line=9),
+        ChangeItem("fit.util.helper", "missing_key", "", verified=True,
+                   source="code", code_quote="return 0",
+                   code_file="fit/util.py", code_line=2),
+    ]
+
+
+def test_probe_entries_finds_constructed_method_calls(tmp_path):
+    g = build_graph_from_repo(_vendor_pkg(tmp_path), "fit")
+    assert probe_entries(_VENDOR_PROBE, "fit", g) == [
+        "fit.llm.Client", "fit.llm.Client.call"]
+    assert probe_entries("", "fit", g) == []
+    assert probe_entries("def broken(:", "fit", g) == []
+    assert probe_entries("import os\nos.getcwd()\n", "fit", g) == []
+
+
+def test_vendor_reached_config_fails_module_hard(tmp_path):
+    g = build_graph_from_repo(_vendor_pkg(tmp_path), "fit")
+    entries = probe_entries(_VENDOR_PROBE, "fit", g)
+    impacts = propagate(g, set(), _vendor_items(), "fit",
+                        entries=tuple(entries))
+    assert impacts["fit.llm"].status == "HARD"
+    assert impacts["fit.llm.Client._do"].status == "AT_RISK"
+    assert impacts["fit.llm.Client.call"].status == "AT_RISK"
+    assert impacts["fit.app.run"].status == "AT_RISK"
+    # Call-time breaks never fail importers: app imports llm at module
+    # level and stays clean.
+    assert "fit.app" not in impacts
+    assert "fit" not in impacts
+    # Unreached config stays a guess, never HARD.
+    assert impacts["fit.util.helper"].status == "AT_RISK"
+    assert "fit.util" not in impacts
+
+
+def test_vendor_config_without_entries_stays_at_risk(tmp_path):
+    g = build_graph_from_repo(_vendor_pkg(tmp_path), "fit")
+    impacts = propagate(g, set(), _vendor_items(), "fit")
+    assert impacts["fit.llm"].status == "AT_RISK"
+    assert impacts["fit.llm.Client._do"].status == "AT_RISK"
+    assert not [n for n, i in impacts.items() if i.status == "HARD"]
+
+
+def test_vendor_order_and_chain_hit_provider_first(tmp_path):
+    g = build_graph_from_repo(_vendor_pkg(tmp_path), "fit")
+    entries = probe_entries(_VENDOR_PROBE, "fit", g)
+    ordered = order_config_by_entry(g, entries, _vendor_items(), "fit")
+    assert [i.symbol for i in ordered] == [
+        "fit.llm.Provider", "fit.llm.Client._do", "fit.util.helper"]
+    hops = vendor_chain(g, "fit", entries, ordered)
+    assert hops == [("fit.llm.Client.call", "fit.llm", "fit/llm.py", 2)]
+    assert predicted_chain(g, hops) == ["fit.llm"]
+    assert vendor_chain(g, "fit", [], ordered) == []

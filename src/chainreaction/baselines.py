@@ -8,6 +8,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from chainreaction.interpret import CONFIG_KINDS, SEED_KINDS
+
 # Illustrative subset of NumPy 2.0 removals (not exhaustive).
 NUMPY2_PATTERNS = [
     r"np\.sctypes",
@@ -31,9 +33,39 @@ class Hit:
     text: str
 
 
+def patterns_for_changeset(changeset) -> list[str]:
+    """Grep patterns derived from the change set's own breakage symbols.
+
+    One word-boundary pattern per verified removed/renamed member and
+    config break short name (numpy.sctypes -> \\bsctypes\\b,
+    ...PRICING -> \\bPRICING\\b), sorted and deduped. No hand-picked
+    lists: the same rule serves every decision and repo, and an empty
+    change set searches for nothing. Grep stays dumb — it cannot tell
+    a real use from a comment — which is exactly what the baseline
+    measures.
+    """
+    shorts = set()
+    for item in changeset.items:
+        if item.kind not in SEED_KINDS + CONFIG_KINDS:
+            continue
+        if not getattr(item, "verified", False):
+            continue
+        short = item.symbol.rpartition(".")[2] or item.symbol
+        if short:
+            shorts.add(short)
+    return [r"\b" + re.escape(short) + r"\b" for short in sorted(shorts)]
+
+
 def grep_hits(root: str | Path, patterns: list[str] | None = None) -> list[Hit]:
+    """Naive regex search for removed-symbol mentions (the dumb baseline).
+
+    None keeps the illustrative NumPy defaults; an explicit list —
+    possibly empty — is used as given.
+    """
     root = Path(root)
-    compiled = [(p, re.compile(p)) for p in (patterns or NUMPY2_PATTERNS)]
+    if patterns is None:
+        patterns = NUMPY2_PATTERNS
+    compiled = [(p, re.compile(p)) for p in patterns]
     hits: list[Hit] = []
     for path in sorted(root.rglob("*.py")):
         try:
@@ -48,13 +80,18 @@ def grep_hits(root: str | Path, patterns: list[str] | None = None) -> list[Hit]:
     return hits
 
 
-def _ruff_exe() -> str | None:
-    found = shutil.which("ruff")
+def resolve_tool(name: str) -> str | None:
+    """Locate a PATH tool (ruff today): PATH first, venv sibling second."""
+    found = shutil.which(name)
     if found:
         return found
-    name = "ruff.exe" if os.name == "nt" else "ruff"
-    cand = Path(sys.executable).parent / name
+    exe = f"{name}.exe" if os.name == "nt" else name
+    cand = Path(sys.executable).parent / exe
     return str(cand) if cand.exists() else None
+
+
+def _ruff_exe() -> str | None:
+    return resolve_tool("ruff")
 
 
 def ruff_npy201(target: str | Path, run=None) -> list[Hit] | None:
@@ -78,6 +115,8 @@ def ruff_npy201(target: str | Path, run=None) -> list[Hit] | None:
         )
         out = proc.stdout
     else:
+        # Never resolve here: the adapter records under the logical tool
+        # name, so replay serves the recording even where ruff is absent.
         res = run(["ruff", *args], ".")
         if getattr(res, "missing", None):
             return None

@@ -2,13 +2,16 @@
   "changeset_source": "muse-spark",
   "decision": "upgrade numpy to 2.0",
   "dropped_symbols": [],
-  "interpret_blind_hits": 6,
-  "interpret_blind_recall": 0.0967741935483871,
+  "interpret_blind_hits": 9,
+  "interpret_blind_recall": 0.14516129032258066,
   "interpret_missed": [],
   "interpret_recall": 1.0,
   "interpret_table_size": 62,
   "items": [
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "add_docstring It’s still available as np.lib.add_docstring .",
@@ -18,6 +21,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "add_newdoc It’s still available as np.lib.add_newdoc .",
@@ -27,6 +33,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "add_newdoc_ufunc It’s an internal function and doesn’t have a replacement.",
@@ -36,6 +45,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "alltrue Use np.all instead.",
@@ -45,6 +57,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "asfarray Use np.asarray with a float dtype instead.",
@@ -54,6 +69,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "byte_bounds Now it’s available under np.lib.array_utils.byte_bounds",
@@ -63,6 +81,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "cast Use np.asarray(arr, dtype=dtype) instead.",
@@ -72,6 +93,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "cfloat Use np.complex128 instead.",
@@ -81,6 +105,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "charrarray It’s still available as np.char.chararray .",
@@ -90,6 +117,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "clongfloat Use np.clongdouble instead.",
@@ -99,6 +129,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "compare_chararrays It’s still available as np.char.compare_chararrays .",
@@ -108,6 +141,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "compat There’s no replacement, as Python 2 is no longer supported.",
@@ -117,6 +153,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "complex_ Use np.complex128 instead.",
@@ -126,6 +165,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "cumproduct Use np.cumprod instead.",
@@ -135,6 +177,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "DataSource It’s still available as np.lib.npyio.DataSource .",
@@ -144,6 +189,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "deprecate Emit DeprecationWarning with warnings.warn directly, or use typing.deprecated .",
@@ -153,6 +201,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "deprecate_with_doc Emit DeprecationWarning with warnings.warn directly, or use typing.deprecated .",
@@ -162,6 +213,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "disp Use your own printing function instead.",
@@ -171,6 +225,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "fastCopyAndTranspose Use arr.T.copy() instead.",
@@ -180,6 +237,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "find_common_type Use numpy.promote_types or numpy.result_type instead.",
@@ -189,6 +249,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "format_parser It’s still available as np.rec.format_parser .",
@@ -198,6 +261,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "get_array_wrap float_ Use np.float64 instead.",
@@ -207,6 +273,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "float_ Use np.float64 instead.",
@@ -216,6 +285,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "geterrobj Use the np.errstate context manager instead.",
@@ -225,6 +297,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "Inf Use np.inf instead.",
@@ -234,6 +309,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "Infinity Use np.inf instead.",
@@ -243,6 +321,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "infty Use np.inf instead.",
@@ -252,6 +333,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "issctype Use issubclass(rep, np.generic) instead.",
@@ -261,6 +345,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "issubclass_ Use issubclass builtin instead.",
@@ -270,6 +357,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "issubsctype Use np.issubdtype instead.",
@@ -279,6 +369,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "mat Use np.asmatrix instead.",
@@ -288,6 +381,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "maximum_sctype Use a specific dtype instead.",
@@ -297,6 +393,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "NaN Use np.nan instead.",
@@ -306,6 +405,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "nbytes Use np.dtype(<dtype>).itemsize instead.",
@@ -315,15 +417,21 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "NINF Use -np.inf instead.",
-      "replacement": null,
+      "replacement": "numpy.inf",
       "source": "guide",
       "symbol": "numpy.NINF",
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "NZERO Use -0.0 instead.",
@@ -333,6 +441,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "longcomplex Use np.clongdouble instead.",
@@ -342,6 +453,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "longfloat Use np.longdouble instead.",
@@ -351,6 +465,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "lookfor Search NumPy’s documentation directly.",
@@ -360,6 +477,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "obj2sctype Use np.dtype(obj).type instead.",
@@ -369,6 +489,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "PINF Use np.inf instead.",
@@ -378,6 +501,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "product Use np.prod instead.",
@@ -387,6 +513,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "PZERO Use 0.0 instead.",
@@ -396,6 +525,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "recfromcsv Use np.genfromtxt with comma delimiter instead.",
@@ -405,6 +537,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "recfromtxt Use np.genfromtxt instead.",
@@ -414,6 +549,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "round_ Use np.round instead.",
@@ -423,6 +561,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "safe_eval Use ast.literal_eval instead.",
@@ -432,6 +573,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "sctype2char Use np.dtype(obj).char instead.",
@@ -441,6 +585,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "sctypes Access dtypes explicitly instead.",
@@ -450,6 +597,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "seterrobj Use the np.errstate context manager instead.",
@@ -459,6 +609,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "set_numeric_ops For the general case, use PyUFunc_ReplaceLoopBySignature .",
@@ -468,6 +621,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "set_string_function Use np.set_printoptions instead with a formatter for custom printing of NumPy objects.",
@@ -477,6 +633,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "singlecomplex Use np.complex64 instead.",
@@ -486,6 +645,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "string_ Use np.bytes_ instead.",
@@ -495,6 +657,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "sometrue Use np.any instead.",
@@ -504,6 +669,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "source Use inspect.getsource instead.",
@@ -513,6 +681,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "tracemalloc_domain It’s now available from np.lib .",
@@ -522,6 +693,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "unicode_ Use np.str_ instead.",
@@ -531,6 +705,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "who Use an IDE variable explorer or locals() instead.",
@@ -540,6 +717,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "newbyteorder Use arr.view(arr.dtype.newbyteorder(order)) instead.",
@@ -549,6 +729,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "ptp Use np.ptp(arr, ...) instead.",
@@ -558,6 +741,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "removed",
       "quote": "setitem Use arr[index] = value instead.",
@@ -567,6 +753,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "deprecated",
       "quote": "in1d Use np.isin instead.",
@@ -576,6 +765,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "deprecated",
       "quote": "row_stack Use np.vstack instead ( row_stack was an alias for vstack ).",
@@ -585,6 +777,9 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "deprecated",
       "quote": "trapz Use np.trapezoid or a scipy.integrate function instead.",
@@ -594,12 +789,51 @@
       "verified": true
     },
     {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
       "detail": null,
       "kind": "renamed",
-      "quote": "has been renamed to np._core .",
+      "quote": "The np.core namespace is now officially private and has been renamed to np._core .",
       "replacement": "numpy._core",
       "source": "guide",
       "symbol": "numpy.core",
+      "verified": true
+    },
+    {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
+      "detail": null,
+      "kind": "changed",
+      "quote": "NumPy 2.0 changes promotion (the result of combining dissimilar data types) as per NEP 50 .",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.promote_types",
+      "verified": true
+    },
+    {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
+      "detail": null,
+      "kind": "changed",
+      "quote": "np.float32(3) + 3. now returns a float32 when it previously returned a float64.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.float32",
+      "verified": true
+    },
+    {
+      "code_file": "",
+      "code_line": 0,
+      "code_quote": "",
+      "detail": null,
+      "kind": "changed",
+      "quote": "The default integer used by NumPy is now 64bit on all 64bit systems (and 32bit on 32bit system).",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.intp",
       "verified": true
     }
   ],

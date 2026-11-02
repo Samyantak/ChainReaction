@@ -4,7 +4,12 @@ import networkx as nx
 import pytest
 
 from chainreaction.baselines import _ruff_exe, grep_hits
-from chainreaction.scorer import chain_match, direct_use_files, precision_recall
+from chainreaction.scorer import (
+    chain_match,
+    direct_use_files,
+    precision_recall,
+    used_breaking_symbols,
+)
 
 
 def test_chain_match_exact_and_details():
@@ -33,6 +38,19 @@ def test_direct_use_files_scores_symbol_uses_not_cascade():
     assert direct_use_files(g, {"numpy.sctypes"}, "t") == {"pkg/a.py"}
 
 
+def test_used_breaking_symbols_matches_prefix_and_uses():
+    g = nx.DiGraph()
+    g.add_edge("pkg.a", "numpy.sctypes", kind="USES_EXTERNAL",
+               file="t/pkg/a.py", line=3)
+    g.add_edge("pkg.a", "numpy.compat.py3k.asbytes", kind="USES_EXTERNAL",
+               file="t/pkg/a.py", line=9)
+    g.add_edge("pkg.a", "numpy.other", kind="USES_EXTERNAL",
+               file="t/pkg/a.py", line=11)
+    assert used_breaking_symbols(
+        g, {"numpy.sctypes", "numpy.compat", "numpy.missing"}) == {
+        "numpy.sctypes", "numpy.compat"}
+
+
 def test_grep_hits_finds_numpy2_patterns(tmp_path):
     (tmp_path / "a.py").write_text(
         "x = np.sctypes['float']\ny = 1\nz = np.float_(1.0)\n", encoding="utf-8"
@@ -53,3 +71,44 @@ def test_ruff_baseline_smoke(tmp_path):
     (tmp_path / "a.py").write_text("import numpy as np\nx = np.sctypes\n")
     hits = ruff_npy201(tmp_path)
     assert hits is not None and any(h.file.endswith("a.py") for h in hits)
+
+
+def test_patterns_for_changeset_derives_shorts():
+    from chainreaction.baselines import patterns_for_changeset
+    from chainreaction.interpret import ChangeItem, ChangeSet
+
+    cs = ChangeSet("d", "u", [
+        ChangeItem("numpy.sctypes", "removed", "q", verified=True),
+        ChangeItem("numpy.ndarray.newbyteorder", "removed", "q",
+                   verified=True),
+        ChangeItem("fit.llm.Provider", "rejected_value", "q", verified=True),
+        ChangeItem("numpy.unverified", "removed", "q", verified=False),
+        ChangeItem("numpy.trapz", "deprecated", "q", verified=True),
+        ChangeItem("meta.voice", "changed", "q", verified=True),
+    ])
+    assert patterns_for_changeset(cs) == [
+        r"\bProvider\b", r"\bnewbyteorder\b", r"\bsctypes\b"]
+
+
+def test_grep_hits_empty_list_searches_nothing(tmp_path):
+    from chainreaction.baselines import grep_hits
+
+    (tmp_path / "a.py").write_text("x = np.sctypes\n", encoding="utf-8")
+    assert grep_hits(tmp_path, []) == []
+    assert grep_hits(tmp_path) != []  # None keeps numpy defaults
+
+
+def test_ruff_npy201_replays_without_exe(monkeypatch):
+    from types import SimpleNamespace
+
+    from chainreaction import baselines
+    from chainreaction.baselines import ruff_npy201
+
+    def _boom():
+        raise AssertionError("injected runs must not resolve ruff")
+
+    monkeypatch.setattr(baselines, "_ruff_exe", _boom)
+    run = lambda cmd, cwd: SimpleNamespace(  # noqa: E731 - tiny fake
+        stdout="pkg/a.py:3:9: NPY201 numpy.sctypes\n", missing=None)
+    hits = ruff_npy201("pkg", run=run)
+    assert [(h.file, h.line) for h in hits] == [("pkg/a.py", 3)]

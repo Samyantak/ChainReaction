@@ -124,14 +124,20 @@ def test_live_interpret_drops_out_of_package_symbols(monkeypatch):
     saved, events = {}, []
     guide = ("Set the base URL to https://api.meta.ai/v1 and export "
              "MODEL_API_KEY before calling.")
+    # Code-aware reply: both items ground in the real llm.py:14 line
+    # (verification passes); the sanitizer then drops the out-of-package
+    # symbol and keeps the in-package one.
+    code_quote = 'Provider = Literal["anthropic", "openai", "ollama"]'
     reply = json_mod.dumps({"items": [
         {"symbol": "MODEL_API_KEY", "kind": "missing_param",
-         "quote": "export MODEL_API_KEY before calling.",
-         "replacement": None,
+         "quote": "", "replacement": None,
+         "code_quote": code_quote, "code_file": "src/sponsorfit/llm.py",
+         "code_line": 14,
          "detail": {"expected": "x", "actual": "y", "note": None}},
         {"symbol": "sponsorfit.llm.Provider", "kind": "rejected_value",
-         "quote": "Set the base URL to https://api.meta.ai/v1",
-         "replacement": None,
+         "quote": "", "replacement": None,
+         "code_quote": code_quote, "code_file": "src/sponsorfit/llm.py",
+         "code_line": 14,
          "detail": {"expected": "x", "actual": "y", "note": None}},
     ]})
     ctx = SimpleNamespace(

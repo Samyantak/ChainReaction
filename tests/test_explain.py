@@ -84,6 +84,7 @@ def test_narrative_facts_cite_file_not_imported_module(monkeypatch):
     report = Report(
         decision="d", target="t", package="nibabel",
         numpy_version="2.0.2", change_symbols=["numpy.sctypes"],
+        used_symbols=["numpy.sctypes"],
         hard=["nibabel", "nibabel.analyze"], at_risk=[],
         spine=["nibabel", "nibabel.analyze"],
         spine_evidence=[
@@ -93,13 +94,13 @@ def test_narrative_facts_cite_file_not_imported_module(monkeypatch):
         ],
     )
     explain.generate_narrative(report)
-    # File travels with the line; no "X imports Y:line" misattribution,
-    # and the use edge is not called an import.
-    assert "nibabel calls nibabel.analyze (nibabel/__init__.py:41)" in \
+    # File travels with the line; module hops are imports, external
+    # reads are uses — never "calls".
+    assert "nibabel imports nibabel.analyze (nibabel/__init__.py:41)" in \
         seen["user"]
-    assert ("nibabel.casting.ok_floats calls numpy.sctypes "
+    assert ("nibabel.casting.ok_floats uses numpy.sctypes "
             "(nibabel/casting.py:717)") in seen["user"]
-    assert " imports " not in seen["user"]
+    assert " calls " not in seen["user"]
 
 
 def test_narrative_brief_skips_numpy_for_decision_probes():
@@ -311,3 +312,259 @@ def test_render_markdown_shows_narrative_claim_check():
     good = _narrative_report()
     good.narrative = "The verified chain is demo → demo.leaf."
     assert "✓ clean" in render_markdown(good)
+
+
+def test_brief_names_used_symbols_not_guide_total():
+    report = _narrative_report()
+    report.change_symbols = ["numpy.a", "numpy.b", "numpy.c"]
+    report.used_symbols = ["numpy.b"]
+    brief = explain.narrative_brief(report)
+    assert "Breaking symbols (3): numpy.a, numpy.b, numpy.c." in brief
+    assert ("Removed symbols used by this repo (1): numpy.b. "
+            "Only these can cause failures here.") in brief
+    # The used count is a grounded number.
+    report.narrative = "Only 1 of the 3 symbols is used here."
+    assert check_narrative(report) == []
+
+
+def test_brief_fix_order_marks_importers_not_edit_sites():
+    report = _narrative_report()
+    report.layers = [
+        LayerResult("layer1", ["demo", "demo.leaf"], [], 1.0, "", False,
+                    "demo/casting.py:717"),
+        LayerResult("layer2 (peeled)", ["demo", "demo.other"], [], 1.0,
+                    "", False, "demo/quaternions.py:32"),
+        LayerResult("before (numpy1)", [], [], 1.0, "", True, None),
+    ]
+    brief = explain.narrative_brief(report)
+    assert ("Fix order: layer1: demo/casting.py:717; "
+            "layer2 (peeled): demo/quaternions.py:32.") in brief
+    assert "importers, not edit sites" in brief
+    assert "in one step" in brief
+    # Both fix sites are citable evidence, not violations.
+    report.narrative = ("Fix demo/casting.py:717 first, then "
+                        "demo/quaternions.py:32.")
+    assert check_narrative(report) == []
+
+
+def test_brief_executes_verb_for_import_time_defs():
+    report = Report(
+        decision="d", target="t", package="demo",
+        numpy_version="2.0.2", change_symbols=["numpy.sctypes"],
+        used_symbols=["numpy.sctypes"],
+        hard=["demo"], at_risk=[], spine=["demo", "demo.leaf"],
+        spine_evidence=[
+            ("demo", "demo.leaf", "demo/__init__.py", 1),
+            ("demo.leaf", "demo.leaf.helper", "demo/leaf.py", 10),
+            ("demo.leaf.helper", "numpy.sctypes", "demo/leaf.py", 5),
+        ],
+        spine_match=True,
+        layers=[LayerResult("layer1", [], [], 1.0, "", True)],
+    )
+    brief = explain.narrative_brief(report)
+    assert "demo imports demo.leaf (demo/__init__.py:1)" in brief
+    assert ("demo.leaf executes demo.leaf.helper at import "
+            "(demo/leaf.py:10)") in brief
+    assert "demo.leaf.helper uses numpy.sctypes (demo/leaf.py:5)" in brief
+
+
+def test_brief_lists_code_grounded_config_breaks():
+    from chainreaction.interpret import BreakDetail, ChangeItem
+
+    report = Report(
+        decision="switch to Meta Model API", target="targets/sponsorfit",
+        package="sponsorfit", numpy_version="", change_symbols=[],
+        hard=[], at_risk=["sponsorfit.llm"],
+        spine=[], spine_evidence=[], probe_kind="decision",
+        change_items=[
+            ChangeItem("sponsorfit.llm.Provider", "rejected_value", "",
+                       detail=BreakDetail('"meta" in Provider',
+                                          'Literal["a","o"]'),
+                       verified=True, source="code",
+                       code_quote='Provider = Literal["a","o"]',
+                       code_file="src/sponsorfit/llm.py", code_line=14),
+        ],
+        layers=[LayerResult("decision", ["sponsorfit.llm"], [], 1.0,
+                            "", False, "src/sponsorfit/llm.py:78")],
+    )
+    brief = explain.narrative_brief(report)
+    assert "Config breaks (1): sponsorfit.llm.Provider (rejected_value" in \
+        brief
+    assert "src/sponsorfit/llm.py:14" in brief
+    assert "Fix order: decision: src/sponsorfit/llm.py:78." in brief
+    # Code file:line and layer site are both citable evidence.
+    report.narrative = ("Provider at src/sponsorfit/llm.py:14 rejects meta; "
+                        "the probe fails at src/sponsorfit/llm.py:78.")
+    assert check_narrative(report) == []
+
+
+def test_checker_allows_detail_modules_and_bare_site_lines():
+    from chainreaction.interpret import BreakDetail, ChangeItem
+
+    report = Report(
+        decision="switch", target="t", package="fit",
+        numpy_version="", change_symbols=[], hard=[], at_risk=["fit.llm"],
+        spine=[], spine_evidence=[], probe_kind="decision",
+        change_items=[
+            ChangeItem("fit.llm.Caller", "missing_param", "",
+                       detail=BreakDetail("x", "openai.OpenAI() bare"),
+                       verified=True, source="code",
+                       code_quote="openai.OpenAI()", code_file="fit/a.py",
+                       code_line=160),
+        ],
+        layers=[LayerResult("decision", ["fit.llm"], [], 1.0, "", False,
+                            "fit/a.py:78")],
+    )
+    # SDK dotted name quoted from the brief's detail, and bare line
+    # numbers from the code and probe sites, are all grounded.
+    report.narrative = ("The openai.OpenAI call at line 160 fails; "
+                        "see line 78.")
+    assert check_narrative(report) == []
+
+
+def _vendor_graph(tmp_path):
+    pkg = tmp_path / "fit"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "llm.py").write_text(
+        "Provider = 1\n"
+        "class Client:\n"
+        "    def call(self):\n"
+        "        return 1\n",
+        encoding="utf-8",
+    )
+    return build_graph_from_repo(tmp_path, "fit")
+
+
+def _vendor_item(**over):
+    from chainreaction.interpret import ChangeItem
+
+    args = dict(symbol="fit.llm.Provider", kind="rejected_value", quote="",
+                verified=True, source="code",
+                code_quote="Provider = 1", code_file="fit/llm.py",
+                code_line=1)
+    args.update(over)
+    return ChangeItem(**args)
+
+
+def test_code_hop_passes_with_verified_quote(tmp_path):
+    g = _vendor_graph(tmp_path)
+    report = Report(
+        decision="switch", target="t", package="fit",
+        numpy_version=None, change_symbols=[], hard=["fit.llm"],
+        at_risk=["fit.llm.Client.call"],
+        spine=["fit.llm"],
+        spine_evidence=[("fit.llm.Client.call", "fit.llm",
+                         "fit/llm.py", 1)],
+        spine_match=True, probe_kind="decision",
+        change_items=[_vendor_item()],
+        layers=[LayerResult("decision", ["fit.llm"], [], 1.0, "", False,
+                            "fit/llm.py:4")],
+    )
+    assert check_report(g, report) == []
+    hop = [c for c in claim_checks(g, report)
+           if c.label == "fit.llm.Client.call → fit.llm"][0]
+    assert (hop.status, hop.detail) == ("pass", "fit/llm.py:1 (code-grounded)")
+    brief = explain.narrative_brief(report)
+    assert ("fit.llm.Client.call reaches fit.llm (fit/llm.py:1)") in brief
+
+
+def test_code_hop_fails_without_matching_quote(tmp_path):
+    g = _vendor_graph(tmp_path)
+    report = Report(
+        decision="switch", target="t", package="fit",
+        numpy_version=None, change_symbols=[], hard=["fit.llm"],
+        at_risk=[], spine=["fit.llm"],
+        spine_evidence=[("fit.llm.Client.call", "fit.llm",
+                         "fit/llm.py", 99)],
+        spine_match=True, probe_kind="decision",
+        change_items=[_vendor_item()], layers=[],
+    )
+    assert any("missing from graph" in v for v in check_report(g, report))
+
+
+def test_brief_vendor_fix_order_peels_layers():
+    report = Report(
+        decision="switch", target="t", package="fit",
+        numpy_version=None, change_symbols=[], hard=["fit.llm"],
+        at_risk=[], spine=["fit.llm"], spine_evidence=[],
+        spine_match=True, probe_kind="decision",
+        fix_order=["fit.llm.Provider: fit/llm.py:1",
+                   "fit.llm.Other: fit/llm.py:9",
+                   "decision: fit/llm.py:4"],
+        layers=[LayerResult("decision", ["fit.llm"], [], 1.0, "", False,
+                            "fit/llm.py:4")],
+    )
+    brief = explain.narrative_brief(report)
+    assert ("Fix order: fit.llm.Provider: fit/llm.py:1; "
+            "fit.llm.Other: fit/llm.py:9; decision: fit/llm.py:4.") in brief
+    assert "reveals the next layer" in brief
+    assert "importers" not in brief
+
+
+def test_render_hides_numpy_rows_for_decisions():
+    report = _narrative_report()
+    report.probe_kind = "decision"
+    report.numpy_version = None
+    report.ruff_hits = None
+    md = render_markdown(report)
+    assert "numpy:" not in md
+    assert "ruff" not in md
+    assert "Predicted call chain:" in md
+    assert "Chain vs decision actual:" in md
+
+
+def test_render_keeps_numpy_rows_for_imports():
+    md = render_markdown(_narrative_report())
+    assert "numpy: 2.0.2" in md
+    assert "ruff NPY201: 1 hits" in md
+    assert "Predicted layer-1 chain:" in md
+
+
+def test_narrate_prompt_bans_reliability_claims():
+    assert "past runs or general reliability" in \
+        explain.NARRATE_SYSTEM_PROMPT
+
+
+def test_build_report_vendor_chain_and_fix_order(tmp_path):
+    from types import SimpleNamespace
+
+    from chainreaction.interpret import ChangeSet
+    from chainreaction.pipeline import build_report
+    from chainreaction.propagate import probe_entries, propagate
+
+    pkg = tmp_path / "fit"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "llm.py").write_text(
+        "Provider = 1\n"
+        "class Client:\n"
+        "    def call(self):\n"
+        "        return self._do()\n"
+        "    def _do(self):\n"
+        "        return 1\n",
+        encoding="utf-8",
+    )
+    g = build_graph_from_repo(tmp_path, "fit")
+    probe = ("from fit.llm import Client\nclient = Client()\n"
+             "client.call()\n")
+    scen = SimpleNamespace(decision="switch", target=str(tmp_path),
+                           package="fit", probe_code=probe, pr_files=[],
+                           pr_behavior=[], pr_url="")
+    items = [
+        _vendor_item(),
+        _vendor_item(symbol="fit.llm.Client._do", kind="missing_param",
+                     code_quote="return 1", code_line=6),
+    ]
+    entries = probe_entries(probe, "fit", g)
+    impacts = propagate(g, set(), items, "fit", entries=tuple(entries))
+    layers = [LayerResult("decision", ["fit.llm"], [], 1.0, "", False,
+                          "fit/llm.py:4")]
+    report = build_report(scen, ChangeSet("switch", "u", items), set(), g,
+                          impacts, layers, None, None, 0, None)
+    assert report.spine == ["fit.llm"]
+    assert report.spine_match is True
+    assert report.fix_order == ["fit.llm.Provider: fit/llm.py:1",
+                                "fit.llm.Client._do: fit/llm.py:6",
+                                "decision: fit/llm.py:4"]
+    assert check_report(g, report) == []

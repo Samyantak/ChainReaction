@@ -1,11 +1,7 @@
 {
   "changeset_source": "muse-spark",
   "decision": "switch to Meta Model API",
-  "dropped_symbols": [
-    "MODEL_API_KEY",
-    "muse-spark-1.3",
-    "openai.OpenAI.base_url"
-  ],
+  "dropped_symbols": [],
   "interpret_blind_hits": 0,
   "interpret_blind_recall": null,
   "interpret_missed": [],
@@ -13,12 +9,51 @@
   "interpret_table_size": 0,
   "items": [
     {
-      "detail": null,
-      "kind": "changed",
-      "quote": "Muse Voice Transcribe is the one part of the Model API that is not an HTTP endpoint",
-      "replacement": null,
-      "source": "guide",
-      "symbol": "meta.muse_voice.transcribe",
+      "code_file": "src/sponsorfit/llm.py",
+      "code_line": 14,
+      "code_quote": "Provider = Literal[\"anthropic\", \"openai\", \"ollama\"]",
+      "detail": {
+        "actual": "Literal[\"anthropic\",\"openai\",\"ollama\"]",
+        "expected": "\"meta\" in Provider",
+        "note": "Meta Model API needs a distinct provider; call() raises ValueError unknown provider for anything outside the Literal"
+      },
+      "kind": "rejected_value",
+      "quote": "",
+      "replacement": "meta",
+      "source": "code",
+      "symbol": "sponsorfit.llm.Provider",
+      "verified": true
+    },
+    {
+      "code_file": "src/sponsorfit/llm.py",
+      "code_line": 160,
+      "code_quote": "self._openai_client = openai.OpenAI()",
+      "detail": {
+        "actual": "openai.OpenAI() with no base_url argument",
+        "expected": "OpenAI client constructed with base_url https://api.meta.ai/v1",
+        "note": "Meta is OpenAI-compatible only via base_url override; client never passes base_url"
+      },
+      "kind": "missing_param",
+      "quote": "base_url=\"https://api.meta.ai/v1\"",
+      "replacement": "https://api.meta.ai/v1",
+      "source": "code",
+      "symbol": "sponsorfit.llm.MeteredLLMClient._call_openai",
+      "verified": true
+    },
+    {
+      "code_file": "src/sponsorfit/pricing.py",
+      "code_line": 23,
+      "code_quote": "rates = PRICING[provider][model]  # KeyError on unknown model — fail loud, never log $0",
+      "detail": {
+        "actual": "PRICING keys are anthropic/openai only (claude-*, gpt-4o*)",
+        "expected": "PRICING contains muse-spark-1.3 rates",
+        "note": "compute_cost_usd fails loud on unknown model; preview free still needs explicit entry"
+      },
+      "kind": "missing_key",
+      "quote": "muse-spark-1.3",
+      "replacement": "muse-spark-1.3",
+      "source": "code",
+      "symbol": "sponsorfit.pricing.PRICING",
       "verified": true
     }
   ],

@@ -213,6 +213,47 @@ def test_run_cmd_echo_and_missing_tool(tmp_runs):
     assert (res2.returncode, res2.stdout) == (0, "hi\n")
 
 
+def test_tool_cmd_records_logical_name_cross_os(tmp_runs, monkeypatch):
+    import chainreaction.runs.context as ctx_mod
+
+    monkeypatch.setattr(ctx_mod, "resolve_tool", lambda name: sys.executable)
+    live = RunContext(run_id="u1", manifest=_live_manifest("u1"))
+    res = live.run_cmd(["C:\\venv\\Scripts\\ruff.exe", "-c", "print('x')"],
+                       cwd=".", env_name=None, tool="ruff")
+    assert (res.returncode, res.stdout) == (0, "x\n")
+    rec = store.read_jsonl(live.dir / store.CMDS)[0]
+    assert rec["cmd"][0] == "<tool:ruff>"
+    assert rec["missing"] is None
+
+    # Replay on another OS resolves nothing: a different argv[0] (or no
+    # executable at all) still serves the recording by logical name.
+    def _boom(name):
+        raise AssertionError("replay must not resolve tools")
+
+    monkeypatch.setattr(ctx_mod, "resolve_tool", _boom)
+    replay = RunContext(run_id="u2", manifest=_live_manifest("u2"),
+                        mode="replay", source_dir=live.dir)
+    res2 = replay.run_cmd(["/home/u/.local/bin/ruff", "-c", "print('x')"],
+                          cwd=".", env_name=None, tool="ruff")
+    assert (res2.returncode, res2.stdout) == (0, "x\n")
+
+
+def test_tool_cmd_missing_live_stays_missing_on_replay(tmp_runs, monkeypatch):
+    import chainreaction.runs.context as ctx_mod
+
+    monkeypatch.setattr(ctx_mod, "resolve_tool", lambda name: None)
+    live = RunContext(run_id="u1", manifest=_live_manifest("u1"))
+    res = live.run_cmd(["ruff", "--version"], cwd=".", env_name=None,
+                       tool="ruff")
+    assert res.missing == "<tool:ruff>"
+    assert res.returncode is None
+    replay = RunContext(run_id="u2", manifest=_live_manifest("u2"),
+                        mode="replay", source_dir=live.dir)
+    res2 = replay.run_cmd(["ruff", "--version"], cwd=".", env_name=None,
+                          tool="ruff")
+    assert res2.missing == "<tool:ruff>"
+
+
 def test_run_cmd_timeout_kills_and_records(tmp_runs):
     live = RunContext(run_id="u1", manifest=_live_manifest("u1"))
     res = live.run_cmd(

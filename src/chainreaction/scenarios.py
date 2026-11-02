@@ -66,10 +66,13 @@ class Scenario:
     pr_behavior: list[str] = field(default_factory=list)
     verify_env: str = "numpy2"
     before_env: str = "numpy1"  # "" = no before layer
-    grep_patterns: list[str] | None = None  # None = numpy defaults
     run_ruff: bool = True
     repo_url: str = ""
     ref: str = ""
+    # Vendor switches break in our code, not the vendor docs: the
+    # interpreter reads the repo source plus the guide and grounds
+    # every config item in a code span (M4 investigator prototype).
+    code_aware: bool = False
 
 
 NIBABEL_NUMPY2 = Scenario(
@@ -125,24 +128,33 @@ SPONSORFIT_META = Scenario(
         ChangeItem("sponsorfit.llm.Provider", "rejected_value",
                    "The default model is **Muse Spark** (`muse-spark-1.3`)",
                    detail=BreakDetail('"meta" in Provider',
-                                      'Literal["anthropic","openai","ollama"]')),
+                                      'Literal["anthropic","openai","ollama"]'),
+                   source="code",
+                   code_quote='Provider = Literal["anthropic", "openai", '
+                              '"ollama"]',
+                   code_file="src/sponsorfit/llm.py", code_line=14),
         ChangeItem("sponsorfit.llm.MeteredLLMClient._call_openai",
                    "missing_param",
                    'base_url="https://api.meta.ai/v1",',
                    detail=BreakDetail("base_url=https://api.meta.ai/v1",
-                                      "openai.OpenAI() with no base_url")),
+                                      "openai.OpenAI() with no base_url"),
+                   source="code",
+                   code_quote="self._openai_client = openai.OpenAI()",
+                   code_file="src/sponsorfit/llm.py", code_line=160),
         ChangeItem("sponsorfit.pricing.PRICING", "missing_key", "",
                    detail=BreakDetail('PRICING["meta"]["muse-spark-1.3"]',
                                       "KeyError: no meta provider table"),
-                   source="probe"),
+                   source="code",
+                   code_quote="rates = PRICING[provider][model]",
+                   code_file="src/sponsorfit/pricing.py", code_line=23),
     ],
     probe_code=META_PROBE,
     verify_env="sponsorfit",
     before_env="",
-    grep_patterns=[r"Provider", r"PRICING", r"_call_openai"],
     run_ruff=False,
     repo_url="https://github.com/Samyantak/sponsorfit",
     ref="af24b102773c15c2f59967e1dd26e85dac1fe920",
+    code_aware=True,
 )
 
 SCENARIOS = {s.id: s for s in [NIBABEL_NUMPY2, SPONSORFIT_META]}

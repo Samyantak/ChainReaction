@@ -16,7 +16,11 @@ from types import SimpleNamespace
 
 from chainreaction import llm as llm_mod
 from chainreaction import scenarios
-from chainreaction.baselines import grep_hits, ruff_npy201
+from chainreaction.baselines import (
+    grep_hits,
+    patterns_for_changeset,
+    ruff_npy201,
+)
 from chainreaction.explain import (
     check_narrative,
     generate_narrative,
@@ -36,11 +40,12 @@ from chainreaction.interpret import (
     config_items,
     deprecated_symbols,
     drop_out_of_package_items,
-    interpret,
+    interpret_vendor,
     interpret_with_table,
 )
-from chainreaction.pipeline import build_layers, build_report
-from chainreaction.propagate import failure_path, predicted_chain, propagate
+from chainreaction.pipeline import build_layers, build_report, spine_for_scenario
+from chainreaction.propagate import predicted_chain, probe_entries, propagate
+from chainreaction.scorer import used_breaking_symbols
 from chainreaction.runs.context import CommitMismatch
 from chainreaction.runs.scrub import ROOT
 from chainreaction.verifier import run_import_probe, run_snippet_probe
@@ -84,11 +89,12 @@ def _env_adapter(ctx, env_name: str, timeout: int = 300):
     return run
 
 
-def _tool_adapter(ctx, timeout: int = 300):
-    """ctx.run_cmd adapter for PATH tools (ruff); env_name=None."""
+def _tool_adapter(ctx, tool: str = "ruff", timeout: int = 300):
+    """ctx.run_cmd adapter for PATH tools; recorded under <tool:name>."""
 
     def run(cmd, cwd):
-        res = ctx.run_cmd(cmd, cwd=cwd, env_name=None, timeout=timeout)
+        res = ctx.run_cmd(cmd, cwd=cwd, env_name=None, timeout=timeout,
+                          tool=tool)
         return SimpleNamespace(
             returncode=res.returncode,
             stdout=ctx.scrubber.untext(res.stdout),
@@ -168,7 +174,9 @@ def _stub_changeset(decision: str, guide_url: str, scen) -> ChangeSet:
                         detail=(BreakDetail(i.detail.expected,
                                             i.detail.actual, i.detail.note)
                                 if i.detail else None),
-                        verified=True, source=i.source)
+                        verified=True, source=i.source,
+                        code_quote=i.code_quote, code_file=i.code_file,
+                        code_line=i.code_line)
              for i in scen.stub_items]
     return ChangeSet(decision, guide_url, items)
 
@@ -184,27 +192,43 @@ def stage_interpret(ctx) -> None:
     dropped: list[str] = []
     if use_model:
         guide_text = ctx.fetch(guide_url)
-        changeset, stats = interpret_with_table(
-            decision, guide_text, guide_url,
-            guide_text.removal_table, chat_fn=ctx.llm)
-        changeset, dropped = drop_out_of_package_items(changeset,
-                                                       scen.package)
-        ctx.set_manifest(changeset_source="muse-spark")
-        ctx.state["interpret_stats"] = stats
-        symbols = sorted(i.symbol for i in changeset.items)
-        recall = (f"; Muse Spark alone: {stats['blind_hits']}"
-                  f"/{stats['table_size']} → with table extraction: "
-                  f"{stats['table_size'] - len(stats['missed'])}"
-                  f"/{stats['table_size']}"
-                  if stats["recall"] is not None else "")
-        ctx.emit("log", {"message":
-                         f"interpret: {len(changeset.items)} items "
-                         f"({len(stats['missed'])} table-completed)"
-                         f"{recall}: {', '.join(symbols) or '(none)'}"})
-        if stats["quote_misses"]:
+        if scen.code_aware:
+            changeset = interpret_vendor(
+                decision, guide_text, scen.target, scen.package,
+                guide_url, chat_fn=ctx.llm)
+            changeset, dropped = drop_out_of_package_items(
+                changeset, scen.package)
+            stats = {"recall": None, "missed": [], "table_size": 0,
+                     "quote_misses": [], "blind_hits": 0,
+                     "blind_recall": None}
+            ctx.set_manifest(changeset_source="muse-spark")
+            ctx.state["interpret_stats"] = stats
+            symbols = sorted(i.symbol for i in changeset.items)
             ctx.emit("log", {"message":
-                             "warning: table quotes absent from cleaned "
-                             f"text: {', '.join(stats['quote_misses'])}"})
+                             f"interpret: code-aware, {len(changeset.items)} "
+                             f"items: {', '.join(symbols) or '(none)'}"})
+        else:
+            changeset, stats = interpret_with_table(
+                decision, guide_text, guide_url,
+                guide_text.removal_table, chat_fn=ctx.llm)
+            changeset, dropped = drop_out_of_package_items(
+                changeset, scen.package)
+            ctx.set_manifest(changeset_source="muse-spark")
+            ctx.state["interpret_stats"] = stats
+            symbols = sorted(i.symbol for i in changeset.items)
+            recall = (f"; Muse Spark alone: {stats['blind_hits']}"
+                      f"/{stats['table_size']} → with table extraction: "
+                      f"{stats['table_size'] - len(stats['missed'])}"
+                      f"/{stats['table_size']}"
+                      if stats["recall"] is not None else "")
+            ctx.emit("log", {"message":
+                             f"interpret: {len(changeset.items)} items "
+                             f"({len(stats['missed'])} table-completed)"
+                             f"{recall}: {', '.join(symbols) or '(none)'}"})
+            if stats["quote_misses"]:
+                ctx.emit("log", {"message":
+                                 "warning: table quotes absent from cleaned "
+                                 f"text: {', '.join(stats['quote_misses'])}"})
         if dropped:
             ctx.emit("log", {"message":
                              f"warning: dropped {len(dropped)} model "
@@ -249,14 +273,12 @@ def stage_predict(ctx) -> None:
     symbols = ctx.state["symbols"]
     config = ctx.state["config"]
     g = build_graph_from_repo(scen.target, scen.package)
-    impacts = propagate(g, symbols, config, scen.package)
+    entries = probe_entries(scen.probe_code or "", scen.package, g)
+    impacts = propagate(g, symbols, config, scen.package,
+                        entries=tuple(entries))
     hard = sorted(n for n, i in impacts.items() if i.status == "HARD")
     at_risk = sorted(n for n, i in impacts.items() if i.status == "AT_RISK")
-    spine_evidence = [
-        (u, v, relative_posix(path, scen.target), line)
-        for u, v, path, line in failure_path(g, impacts, symbols,
-                                             scen.package)
-    ]
+    spine_evidence = spine_for_scenario(g, impacts, symbols, scen, config)
     spine = predicted_chain(g, spine_evidence)
     ctx.state["graph"] = g
     ctx.state["impacts"] = impacts
@@ -266,8 +288,10 @@ def stage_predict(ctx) -> None:
         "hard": hard, "at_risk": at_risk, "spine": spine,
         "spine_evidence": spine_evidence,
         "change_symbols": sorted(symbols),
+        "used_symbols": sorted(used_breaking_symbols(g, symbols)),
         "deprecated_symbols": sorted(ctx.state["deprecated"]),
         "changed_symbols": sorted(ctx.state["changed"]),
+        "probe_entries": entries,
     })
     ctx.emit("log", {"message":
                      f"predict: HARD={len(hard)} AT_RISK={len(at_risk)} "
@@ -330,7 +354,8 @@ def stage_report(ctx) -> None:
     flagged = set(ctx.state["hard"]) | set(ctx.state["at_risk"])
     layers, before_numpy = build_layers(scen, probes, flagged)
     pkgdir = package_dir(scen.target, scen.package)
-    grep_count = len(grep_hits(pkgdir, scen.grep_patterns))
+    grep_count = len(grep_hits(pkgdir,
+                           patterns_for_changeset(changeset)))
     if scen.run_ruff:
         ruff = ruff_npy201(relative_posix(pkgdir, "."), run=_tool_adapter(ctx))
         ruff_count = len(ruff) if ruff is not None else None

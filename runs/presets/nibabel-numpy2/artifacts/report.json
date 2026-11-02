@@ -223,7 +223,11 @@
     "numpy.unicode_",
     "numpy.who"
   ],
-  "changed_symbols": [],
+  "changed_symbols": [
+    "numpy.float32",
+    "numpy.intp",
+    "numpy.promote_types"
+  ],
   "decision": "upgrade numpy to 2.0",
   "deprecated_symbols": [
     "numpy.in1d",
@@ -242,7 +246,11 @@
   ],
   "file_precision": 1.0,
   "file_recall": 0.625,
-  "grep_hits": 34,
+  "fix_order": [
+    "layer1: nibabel/casting.py:717",
+    "layer2 (peeled): nibabel/quaternions.py:32"
+  ],
+  "grep_hits": 315,
   "hard": [
     "nibabel",
     "nibabel._compression",
@@ -471,8 +479,8 @@
     "nibabel.wrapstruct",
     "nibabel.xmlutils"
   ],
-  "interpret_blind_hits": 6,
-  "interpret_blind_recall": 0.0967741935483871,
+  "interpret_blind_hits": 9,
+  "interpret_blind_recall": 0.14516129032258066,
   "interpret_missed": [],
   "interpret_recall": 1.0,
   "interpret_table_size": 62,
@@ -486,6 +494,7 @@
         "nibabel.casting"
       ],
       "error_tail": "             ^^^^^^^^^^\n  File \"<env:numpy2>/site-packages/numpy/__init__.py\", line 411, in __getattr__\n    raise AttributeError(\nAttributeError: `np.sctypes` was removed in the NumPy 2.0 release. Access dtypes explicitly instead.. Did you mean: 'dtypes'?",
+      "failure_site": "nibabel/casting.py:717",
       "missing": [],
       "name": "layer1",
       "ok": false,
@@ -502,6 +511,7 @@
         "nibabel.quaternions"
       ],
       "error_tail": "                ^^^^^^^^^^^^^^^^^\n  File \"<env:numpy2>/site-packages/numpy/__init__.py\", line 411, in __getattr__\n    raise AttributeError(\nAttributeError: `np.maximum_sctype` was removed in the NumPy 2.0 release. Use a specific dtype instead. You should avoid relying on any implicit mechanism and select the largest dtype of a kind explicitly in the code.",
+      "failure_site": "nibabel/quaternions.py:32",
       "missing": [],
       "name": "layer2 (peeled)",
       "ok": false,
@@ -510,13 +520,14 @@
     {
       "actual": [],
       "error_tail": "",
+      "failure_site": null,
       "missing": [],
       "name": "before (numpy1)",
       "ok": true,
       "recall": 1.0
     }
   ],
-  "narrative": "Moving nibabel to NumPy 2.0 breaks imports. Tested under NumPy 2.0.2, up from 1.26.4, 63 removed NumPy symbols cause failures, leaving 226 modules failing at import with 155 more at risk. Three other symbols are deprecated but still work, so they do not need immediate action.\n\nThe single verified worst chain that matches the observed failure starts at nibabel, which loads nibabel.analyze, which loads nibabel.arrayproxy, which loads nibabel.volumeutils, which loads nibabel.casting. Specifically, nibabel calls nibabel.analyze at nibabel/__init__.py line 41, nibabel.analyze calls nibabel.arrayproxy at nibabel/analyze.py line 88, nibabel.arrayproxy calls nibabel.volumeutils at nibabel/arrayproxy.py line 39, nibabel.volumeutils calls nibabel.casting at nibabel/volumeutils.py line 23, and nibabel.casting fails in ok_floats at nibabel/casting.py lines 723 and 717 when it uses a type dictionary removed in NumPy 2.0.\n\nEvidence is very strong. Import fails under NumPy 2.0.2 in both direct and peeled checks, while import works under the older NumPy. Comparison with the real upstream fix shows every flagged file was correct, with 5 of 8 total changes found, including all 5 breaking changes, and no missed files. Three additional files with behavior changes were flagged separately for review.\n\nFix nibabel.casting first, replacing the removed type lookup in ok_floats, then work outward through nibabel.volumeutils, nibabel.arrayproxy, nibabel.analyze and nibabel to restore import.\n",
+  "narrative": "Moving nibabel to NumPy 2.0 breaks imports at scale. Tested under NumPy 2.0.2, up from 1.26.4, 226 modules fail at import and 155 more are at risk. Of 63 removed NumPy symbols overall, only 5 are used in this package, so only those can cause failures here. Three other used symbols still work but are deprecated, and three behavior changes are flagged separately.\n\nThe verified worst path matches the observed failure and runs from nibabel through nibabel.analyze and nibabel.arrayproxy and nibabel.volumeutils to nibabel.casting. nibabel imports nibabel.analyze at nibabel/__init__.py:41, nibabel.analyze imports nibabel.arrayproxy at nibabel/analyze.py:88, nibabel.arrayproxy imports nibabel.volumeutils at nibabel/arrayproxy.py:39, and nibabel.volumeutils imports nibabel.casting at nibabel/volumeutils.py:23. nibabel.casting then runs nibabel.casting.ok_floats at import at nibabel/casting.py:723, which uses the removed numpy.sctypes at nibabel/casting.py:717.\n\nEvidence is strong. The import fails under NumPy 2.0.2 and works under 1.26.4, including after peeling back outer layers. Compared against the real fix, every flagged file was correct and all 5 breaking files were found, with 5 of 8 changed files overall and no missed files among the breaking changes.\n\nFix nibabel/casting.py:717 first, then nibabel/quaternions.py:32. The modules in the chain above are importers, not edit sites, so do not edit them to work around the failure. Fixing each edit site in order unblocks its chain in one step. The three files with behavior changes, nibabel/conftest.py, nibabel/freesurfer/io.py and nibabel/spatialimages.py, should be reviewed separately.",
   "numpy_version": "2.0.2",
   "package": "nibabel",
   "pr_files": [
@@ -578,5 +589,12 @@
     ]
   ],
   "spine_match": true,
-  "target": "targets/nibabel"
+  "target": "targets/nibabel",
+  "used_symbols": [
+    "numpy.compat",
+    "numpy.longcomplex",
+    "numpy.maximum_sctype",
+    "numpy.ndarray.newbyteorder",
+    "numpy.sctypes"
+  ]
 }

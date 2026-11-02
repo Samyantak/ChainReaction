@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from chainreaction import llm as llm_mod
+from chainreaction.baselines import resolve_tool
 from chainreaction.interpret import (
     FetchedText,
     decode_page,
@@ -235,12 +236,14 @@ class RunContext:
             return self.scrubber.text(text)
         return text
 
-    def _cmd_key(self, cmd: list, env_name) -> tuple:
+    def _cmd_key(self, cmd: list, env_name, tool=None) -> tuple:
         # Portable across machines: the env interpreter (an absolute,
-        # OS-specific path) matches by role, and relative tool args
-        # match with forward slashes.
+        # OS-specific path) matches by role, PATH tools match by logical
+        # name (<tool:ruff>), and relative args match with forward slashes.
         parts = [self.scrubber.text(part).replace("\\", "/") for part in cmd]
-        if env_name is not None:
+        if tool is not None:
+            parts[0] = f"<tool:{tool}>"
+        elif env_name is not None:
             parts[0] = ENV_PYTHON
         return tuple(parts)
 
@@ -267,11 +270,17 @@ class RunContext:
         self._env_versions[env_name] = versions
         return versions
 
-    def run_cmd(self, cmd, cwd=".", env_name=None, timeout=300) -> CmdResult:
-        """Recorded subprocess; in replay returns the recorded result."""
+    def run_cmd(self, cmd, cwd=".", env_name=None, timeout=300,
+                tool: str | None = None) -> CmdResult:
+        """Recorded subprocess; in replay returns the recorded result.
+
+        tool= names a PATH tool ("ruff"): live resolves it to a real
+        executable but records under <tool:name>; replay matches the
+        logical name and never looks the executable up.
+        """
         cmd = [str(part) for part in cmd]
         cwd_rel = self._cwd_key(cwd)
-        key_cmd = self._cmd_key(cmd, env_name)
+        key_cmd = self._cmd_key(cmd, env_name, tool)
         if self.mode == "replay":
             rec = self._take("cmd", (key_cmd, cwd_rel, env_name),
                              f"cmd={list(key_cmd)} cwd={cwd_rel} "
@@ -289,6 +298,24 @@ class RunContext:
         self.check_cancelled()
         started = utc_now_iso()
         t0 = time.perf_counter()
+        if tool is not None:
+            exe = resolve_tool(tool)
+            if exe is None:
+                duration_ms = int((time.perf_counter() - t0) * 1000)
+                store_mod.append_jsonl(self.dir / store_mod.CMDS, {
+                    "cmd": list(key_cmd),
+                    "cmd_display": [f"<tool:{tool}>", *cmd[1:]],
+                    "cwd": cwd_rel, "env_name": env_name, "versions": {},
+                    "returncode": None, "stdout": "", "stderr": "",
+                    "duration_ms": duration_ms, "timed_out": False,
+                    "missing": f"<tool:{tool}>", "started_at": started,
+                })
+                self.emit("cmd", {"cmd": list(key_cmd), "cwd": cwd_rel,
+                                   "env_name": env_name,
+                                   "missing": f"<tool:{tool}>"})
+                return CmdResult(None, "", "", duration_ms, False,
+                                 f"<tool:{tool}>", {})
+            cmd = [exe, *cmd[1:]]
         try:
             proc = subprocess.Popen(
                 cmd, cwd=str(self._exec_cwd(cwd)),

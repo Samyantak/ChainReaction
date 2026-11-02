@@ -1,28 +1,28 @@
 # ChainReaction report: switch to Meta Model API
 
-Target: `targets/sponsorfit` (pre-existing, analyzed by ChainReaction) | numpy: n/a (decision probe)
+Target: `targets/sponsorfit` (pre-existing, analyzed by ChainReaction)
 
 ## Change set
 
-
-Behavior-change flags (excluded from scores):
-
-- `meta.muse_voice.transcribe`
+- `sponsorfit.llm.Provider` (rejected_value: "meta" in Provider -> Literal["anthropic","openai","ollama"]; Meta Model API needs a distinct provider; call() raises ValueError unknown provider for anything outside the Literal; `src/sponsorfit/llm.py:14`)
+- `sponsorfit.llm.MeteredLLMClient._call_openai` (missing_param: OpenAI client constructed with base_url https://api.meta.ai/v1 -> openai.OpenAI() with no base_url argument; Meta is OpenAI-compatible only via base_url override; client never passes base_url; `src/sponsorfit/llm.py:160`)
+- `sponsorfit.pricing.PRICING` (missing_key: PRICING contains muse-spark-1.3 rates -> PRICING keys are anthropic/openai only (claude-*, gpt-4o*); compute_cost_usd fails loud on unknown model; preview free still needs explicit entry; `src/sponsorfit/pricing.py:23`)
 
 ## Prediction
 
-HARD: 0 modules | AT_RISK: 0 nodes
+HARD: 2 modules | AT_RISK: 5 nodes
 
-Predicted layer-1 chain:
+Predicted call chain:
 
-Chain vs layer-1 actual: DIFFERS
+- `sponsorfit.llm.MeteredLLMClient.call` -> `sponsorfit.llm` (src/sponsorfit/llm.py:14)
+Chain vs decision actual: MATCH
 
 ## Verification
 
-### decision (recall 0.00)
+### decision (recall 1.00)
 
 Actual: `sponsorfit.llm`
-Missed: `sponsorfit.llm`
+Site: `src/sponsorfit/llm.py:78`
 ```
   File "<string>", line 8, in <module>
   File "<root>/targets/sponsorfit/src/sponsorfit/llm.py", line 78, in call
@@ -33,16 +33,16 @@ ValueError: unknown provider: meta
 ## Baselines
 
 - grep: 7 hits
-- ruff NPY201: n/a hits
 
 ## Narrative
 
-You are considering switching the sponsorfit package to the Meta Model API. The scan found no removed functions and no modules failing, with nothing else marked at risk. The only change noted was a behavior difference in Muse voice transcription.
+The plan to switch to the Meta Model API breaks the sponsorfit package in three places. Nothing is removed, but the code still assumes the old setup.
 
-Because nothing failed, there is no verified chain of damage to report. That empty result does not match the failure you actually saw, so it does not explain what happened.
+In sponsorfit.llm the provider definition only permits anthropic, openai and ollama, so meta is not accepted. Also in sponsorfit.llm the client for OpenAI calls is created without an address, while it now must point at https://api.meta.ai/v1. In sponsorfit.pricing the pricing table covers only anthropic and openai families such as claude and gpt-4o types, with no rates for muse-spark-1.3.
 
-Confidence in this result is very low. The check of the proposed switch breaks during import, and it missed the known problem area in sponsorfit.llm, catching none of what it should have caught.
+Two modules fail with five more at risk. The single verified worst chain centers on sponsorfit.llm and matches the observed failure, since the call through MeteredLLMClient in sponsorfit.llm reaches the provider definition at src/sponsorfit/llm.py:14. Evidence is strong because a direct probe fails.
 
-Fix verification first. Get the import working and make sure sponsorfit.llm is actually exercised before trusting the switch, and manually test the transcription behavior as the most likely source of trouble.
+Fix first the provider definition in sponsorfit.llm at src/sponsorfit/llm.py:14, then the OpenAI call helper in sponsorfit.llm at src/sponsorfit/llm.py:160, then the pricing table in sponsorfit.pricing at src/sponsorfit/pricing.py:23, and finally the decision site at src/sponsorfit/llm.py:78. Work in that order and re-probe after each step, as each fix reveals the next layer.
+
 
 Claim check: ✓ clean

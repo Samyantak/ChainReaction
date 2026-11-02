@@ -44,6 +44,24 @@ def precision_recall(predicted: set[str], actual: set[str]) -> SetScore:
                     predicted=predicted, actual=actual)
 
 
+def used_breaking_symbols(g: nx.DiGraph, broken: set[str]) -> set[str]:
+    """Broken symbols with at least one USES_EXTERNAL use in the repo.
+
+    The guide lists every removed member (63 for NumPy 2.0); only the
+    handful the repo actually references can seed failures. The
+    narrative brief reports this subset so the model cites the right
+    count instead of the guide total.
+    """
+    used = set()
+    for _u, v, d in g.edges(data=True):
+        if d.get("kind") != "USES_EXTERNAL":
+            continue
+        hit = matches_symbol(v, broken)
+        if hit is not None:
+            used.add(hit)
+    return used
+
+
 def direct_use_files(g: nx.DiGraph, broken: set[str], target: str
                    ) -> set[str]:
     """Repo-relative source files that use a broken symbol directly.

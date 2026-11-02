@@ -1,33 +1,32 @@
-{"data": {"stage": "setup"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 1, "stage": "setup", "ts": "2026-11-02T01:57:31.688Z", "type": "stage_start"}
-{"data": {"message": "setup: preset=sponsorfit-meta target=targets/sponsorfit commit=af24b102773c15c2f59967e1dd26e85dac1fe920"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 2, "stage": "setup", "ts": "2026-11-02T01:57:31.720Z", "type": "log"}
-{"data": {"stage": "setup"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 3, "stage": "setup", "ts": "2026-11-02T01:57:31.721Z", "type": "stage_end"}
-{"data": {"stage": "interpret"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 4, "stage": "interpret", "ts": "2026-11-02T01:57:31.722Z", "type": "stage_start"}
-{"data": {"bytes": 12609, "status": 200, "table_rows": 0, "url": "https://raw.githubusercontent.com/meta-models/meta-model-cookbook/main/README.md"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 5, "stage": "interpret", "ts": "2026-11-02T01:57:31.849Z", "type": "fetch"}
-{"data": {"cached": false, "model": "muse-spark-1.3", "prompt_hash": "445265cd64d17820042224d40dd6727f8df9b306581db836fc142370323d625b"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 6, "stage": "interpret", "ts": "2026-11-02T01:57:53.514Z", "type": "llm_call"}
-{"data": {"message": "interpret: 1 items (0 table-completed): meta.muse_voice.transcribe"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 7, "stage": "interpret", "ts": "2026-11-02T01:57:53.517Z", "type": "log"}
-{"data": {"message": "warning: dropped 3 model symbols outside package sponsorfit: MODEL_API_KEY, muse-spark-1.3, openai.OpenAI.base_url"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 8, "stage": "interpret", "ts": "2026-11-02T01:57:53.517Z", "type": "log"}
-{"data": {"name": "changeset.json"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 9, "stage": "interpret", "ts": "2026-11-02T01:57:53.519Z", "type": "artifact"}
-{"data": {"stage": "interpret"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 10, "stage": "interpret", "ts": "2026-11-02T01:57:53.520Z", "type": "stage_end"}
-{"data": {"stage": "investigate"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 11, "stage": "investigate", "ts": "2026-11-02T01:57:53.525Z", "type": "stage_start"}
-{"data": {"message": "investigator agent arrives in M4 (not in M1)"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 12, "stage": "investigate", "ts": "2026-11-02T01:57:53.526Z", "type": "log"}
-{"data": {"stage": "investigate"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 13, "stage": "investigate", "ts": "2026-11-02T01:57:53.526Z", "type": "stage_end"}
-{"data": {"stage": "predict"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 14, "stage": "predict", "ts": "2026-11-02T01:57:53.528Z", "type": "stage_start"}
-{"data": {"name": "prediction.json"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 15, "stage": "predict", "ts": "2026-11-02T01:57:53.552Z", "type": "artifact"}
-{"data": {"message": "predict: HARD=0 AT_RISK=0 spine=(clean)"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 16, "stage": "predict", "ts": "2026-11-02T01:57:53.552Z", "type": "log"}
-{"data": {"stage": "predict"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 17, "stage": "predict", "ts": "2026-11-02T01:57:53.552Z", "type": "stage_end"}
-{"data": {"stage": "verify"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 18, "stage": "verify", "ts": "2026-11-02T01:57:53.554Z", "type": "stage_start"}
-{"data": {"cmd": ["<env-python>", "-c", "import sys\nimport tempfile\nsys.path.insert(0, \"src\")\ntmp = tempfile.mkdtemp()\nfrom sponsorfit.llm import MeteredLLMClient\nclient = MeteredLLMClient(run_id=\"probe\", db_path=\":memory:\",\n                          traces_dir=tmp)\nclient.call(provider=\"meta\", model=\"muse-spark-1.3\",\n            messages=[{\"role\": \"user\", \"content\": \"ping\"}])\n"], "cwd": "targets/sponsorfit", "env_name": "sponsorfit", "returncode": 1, "timed_out": false}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 19, "stage": "verify", "ts": "2026-11-02T01:57:53.691Z", "type": "cmd"}
-{"data": {"name": "verify/decision.log"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 20, "stage": "verify", "ts": "2026-11-02T01:57:53.694Z", "type": "artifact"}
-{"data": {"message": "verify: 1 probe(s): decision=FAILED"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 21, "stage": "verify", "ts": "2026-11-02T01:57:53.695Z", "type": "log"}
-{"data": {"stage": "verify"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 22, "stage": "verify", "ts": "2026-11-02T01:57:53.696Z", "type": "stage_end"}
-{"data": {"stage": "fix"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 23, "stage": "fix", "ts": "2026-11-02T01:57:53.718Z", "type": "stage_start"}
-{"data": {"message": "fix loop arrives in M5 (not in M1)"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 24, "stage": "fix", "ts": "2026-11-02T01:57:53.719Z", "type": "log"}
-{"data": {"stage": "fix"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 25, "stage": "fix", "ts": "2026-11-02T01:57:53.719Z", "type": "stage_end"}
-{"data": {"stage": "report"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 26, "stage": "report", "ts": "2026-11-02T01:57:53.721Z", "type": "stage_start"}
-{"data": {"cached": false, "model": "muse-spark-1.3", "prompt_hash": "4fc86d9d53acf6e512d0b6de7e889d41cdb628698cab8dcfff0151014711c7ca"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 27, "stage": "report", "ts": "2026-11-02T01:58:04.037Z", "type": "llm_call"}
-{"data": {"message": "narrative: claim check clean"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 28, "stage": "report", "ts": "2026-11-02T01:58:04.039Z", "type": "log"}
-{"data": {"name": "report.json"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 29, "stage": "report", "ts": "2026-11-02T01:58:04.041Z", "type": "artifact"}
-{"data": {"name": "report.md"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 30, "stage": "report", "ts": "2026-11-02T01:58:04.043Z", "type": "artifact"}
-{"data": {"message": "report: chain DIFFERS"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 31, "stage": "report", "ts": "2026-11-02T01:58:04.044Z", "type": "log"}
-{"data": {"stage": "report"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 32, "stage": "report", "ts": "2026-11-02T01:58:04.044Z", "type": "stage_end"}
-{"data": {"message": "run done (live)"}, "run_id": "c3690fb36448406c954215d4866d4a5f", "seq": 33, "stage": "report", "ts": "2026-11-02T01:58:04.044Z", "type": "log"}
+{"data": {"stage": "setup"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 1, "stage": "setup", "ts": "2026-11-02T05:15:06.932Z", "type": "stage_start"}
+{"data": {"message": "setup: preset=sponsorfit-meta target=targets/sponsorfit commit=af24b102773c15c2f59967e1dd26e85dac1fe920"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 2, "stage": "setup", "ts": "2026-11-02T05:15:06.955Z", "type": "log"}
+{"data": {"stage": "setup"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 3, "stage": "setup", "ts": "2026-11-02T05:15:06.956Z", "type": "stage_end"}
+{"data": {"stage": "interpret"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 4, "stage": "interpret", "ts": "2026-11-02T05:15:06.957Z", "type": "stage_start"}
+{"data": {"bytes": 12609, "status": 200, "table_rows": 0, "url": "https://raw.githubusercontent.com/meta-models/meta-model-cookbook/main/README.md"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 5, "stage": "interpret", "ts": "2026-11-02T05:15:07.073Z", "type": "fetch"}
+{"data": {"cached": true, "model": "muse-spark-1.3", "prompt_hash": "778005813bb2f7c079194a8ce12dbc569d5e6b20d08d5798ddf197153dfe5eb7"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 6, "stage": "interpret", "ts": "2026-11-02T05:15:07.098Z", "type": "llm_call"}
+{"data": {"message": "interpret: code-aware, 3 items: sponsorfit.llm.MeteredLLMClient._call_openai, sponsorfit.llm.Provider, sponsorfit.pricing.PRICING"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 7, "stage": "interpret", "ts": "2026-11-02T05:15:07.100Z", "type": "log"}
+{"data": {"name": "changeset.json"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 8, "stage": "interpret", "ts": "2026-11-02T05:15:07.103Z", "type": "artifact"}
+{"data": {"stage": "interpret"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 9, "stage": "interpret", "ts": "2026-11-02T05:15:07.103Z", "type": "stage_end"}
+{"data": {"stage": "investigate"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 10, "stage": "investigate", "ts": "2026-11-02T05:15:07.105Z", "type": "stage_start"}
+{"data": {"message": "investigator agent arrives in M4 (not in M1)"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 11, "stage": "investigate", "ts": "2026-11-02T05:15:07.106Z", "type": "log"}
+{"data": {"stage": "investigate"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 12, "stage": "investigate", "ts": "2026-11-02T05:15:07.106Z", "type": "stage_end"}
+{"data": {"stage": "predict"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 13, "stage": "predict", "ts": "2026-11-02T05:15:07.108Z", "type": "stage_start"}
+{"data": {"name": "prediction.json"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 14, "stage": "predict", "ts": "2026-11-02T05:15:07.125Z", "type": "artifact"}
+{"data": {"message": "predict: HARD=2 AT_RISK=5 spine=sponsorfit.llm"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 15, "stage": "predict", "ts": "2026-11-02T05:15:07.125Z", "type": "log"}
+{"data": {"stage": "predict"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 16, "stage": "predict", "ts": "2026-11-02T05:15:07.125Z", "type": "stage_end"}
+{"data": {"stage": "verify"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 17, "stage": "verify", "ts": "2026-11-02T05:15:07.127Z", "type": "stage_start"}
+{"data": {"cmd": ["<env-python>", "-c", "import sys\nimport tempfile\nsys.path.insert(0, \"src\")\ntmp = tempfile.mkdtemp()\nfrom sponsorfit.llm import MeteredLLMClient\nclient = MeteredLLMClient(run_id=\"probe\", db_path=\":memory:\",\n                          traces_dir=tmp)\nclient.call(provider=\"meta\", model=\"muse-spark-1.3\",\n            messages=[{\"role\": \"user\", \"content\": \"ping\"}])\n"], "cwd": "targets/sponsorfit", "env_name": "sponsorfit", "returncode": 1, "timed_out": false}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 18, "stage": "verify", "ts": "2026-11-02T05:15:07.257Z", "type": "cmd"}
+{"data": {"name": "verify/decision.log"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 19, "stage": "verify", "ts": "2026-11-02T05:15:07.259Z", "type": "artifact"}
+{"data": {"message": "verify: 1 probe(s): decision=FAILED"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 20, "stage": "verify", "ts": "2026-11-02T05:15:07.260Z", "type": "log"}
+{"data": {"stage": "verify"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 21, "stage": "verify", "ts": "2026-11-02T05:15:07.260Z", "type": "stage_end"}
+{"data": {"stage": "fix"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 22, "stage": "fix", "ts": "2026-11-02T05:15:07.262Z", "type": "stage_start"}
+{"data": {"message": "fix loop arrives in M5 (not in M1)"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 23, "stage": "fix", "ts": "2026-11-02T05:15:07.262Z", "type": "log"}
+{"data": {"stage": "fix"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 24, "stage": "fix", "ts": "2026-11-02T05:15:07.263Z", "type": "stage_end"}
+{"data": {"stage": "report"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 25, "stage": "report", "ts": "2026-11-02T05:15:07.264Z", "type": "stage_start"}
+{"data": {"cached": false, "model": "muse-spark-1.3", "prompt_hash": "39ad018cceeb3bbf63b77f88da6ed118debd274f423be7d4df5dc4f732670371"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 26, "stage": "report", "ts": "2026-11-02T05:15:35.970Z", "type": "llm_call"}
+{"data": {"message": "narrative: claim check clean"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 27, "stage": "report", "ts": "2026-11-02T05:15:35.972Z", "type": "log"}
+{"data": {"name": "report.json"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 28, "stage": "report", "ts": "2026-11-02T05:15:35.976Z", "type": "artifact"}
+{"data": {"name": "report.md"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 29, "stage": "report", "ts": "2026-11-02T05:15:35.978Z", "type": "artifact"}
+{"data": {"message": "report: chain MATCH"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 30, "stage": "report", "ts": "2026-11-02T05:15:35.978Z", "type": "log"}
+{"data": {"stage": "report"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 31, "stage": "report", "ts": "2026-11-02T05:15:35.978Z", "type": "stage_end"}
+{"data": {"message": "run done (live)"}, "run_id": "179e0cb48621459b9213ec2c64a1c40c", "seq": 32, "stage": "report", "ts": "2026-11-02T05:15:35.979Z", "type": "log"}

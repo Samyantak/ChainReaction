@@ -16,7 +16,7 @@ from chainreaction.explain import (
     render_json,
     render_markdown,
 )
-from chainreaction.interpret import fetch_text, verify_quotes
+from chainreaction.interpret import fetch_text, verify_all
 from chainreaction.pipeline import run_pipeline
 
 
@@ -47,7 +47,8 @@ def main() -> int:
                 return 2
             print(f"guide fetch failed ({e}); using unverified stub")
         else:
-            verified, dropped = verify_quotes(list(scen.stub_items), guide_text)
+            verified, dropped = verify_all(list(scen.stub_items), guide_text,
+                                           scen.target, scen.package)
             print(f"guide fetched ({len(guide_text)} chars): {len(verified)} "
                   f"verified, {len(dropped)} dropped — "
                   f"dropped={[i.symbol for i in dropped]}")
@@ -107,9 +108,7 @@ def main() -> int:
         print(md)
 
     spine_ok = report.spine_match
-    ok = primary.recall == 1.0 and not violations
-    if report.probe_kind == "import":
-        ok = ok and spine_ok
+    ok = primary.recall == 1.0 and not violations and spine_ok
     summary = f"spine_match={spine_ok} primary_recall={primary.recall:.2f}"
     if peeled is not None:
         ok = ok and peeled.recall == 1.0

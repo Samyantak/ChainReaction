@@ -7,12 +7,16 @@ Rules (architecture doc):
 - A use inside a def that is not executed at import marks the def AT_RISK;
   its callers become AT_RISK (transitively). A module executing an impacted
   def at import fails HARD.
+- A config break the decision probe reaches through calls fails its module
+  HARD, the same way an import-time removal does: the probe will hit it.
+  Config the probe cannot reach stays AT_RISK.
 - HARD wins over AT_RISK. Every impact keeps its full via-chain with
   file:line evidence.
 
 Guards (try/except ImportError, version checks) are not detected yet.
 """
 
+import ast
 from dataclasses import dataclass, field
 
 import networkx as nx
@@ -50,7 +54,8 @@ def resolve_symbol(g: nx.DiGraph, package: str, symbol: str) -> str:
 
 def propagate(g: nx.DiGraph, broken: set[str],
               config: list[ChangeItem] | tuple = (),
-              package: str = "") -> dict[str, Impact]:
+              package: str = "",
+              entries: tuple[str, ...] = ()) -> dict[str, Impact]:
     impacts: dict[str, Impact] = {}
     defs = _def_index(g)
 
@@ -65,13 +70,16 @@ def propagate(g: nx.DiGraph, broken: set[str],
         return False
 
     # 0. Config seeds: definitions that cannot serve the decision.
-    # Decision-time breaks (never import-time), so AT_RISK; no graph
-    # edge to cite â€” the ChangeItem detail is the evidence.
+    # Unreached config is AT_RISK; entries and reached breaks are marked
+    # in step 2.5, after the import closure — a call-time vendor break
+    # must not fail importers the way an import-time removal does.
     if config and not package:
         raise ValueError("config items need the package name to resolve")
+    reach = _vendor_reach(g, entries) if entries else {}
     for item in config:
-        mark(resolve_symbol(g, package, item.symbol), "AT_RISK",
-             item.symbol, [])
+        node = resolve_symbol(g, package, item.symbol)
+        if node not in reach:
+            mark(node, "AT_RISK", item.symbol, [])
 
     # 1. Seeds: direct uses of broken symbols.
     for u, v, d in g.edges(data=True):
@@ -110,6 +118,26 @@ def propagate(g: nx.DiGraph, broken: set[str],
                 changed |= mark(u, "HARD", imp.symbol, hop + imp.via)
             elif u not in impacts:
                 changed |= mark(u, "AT_RISK", imp.symbol, hop + imp.via)
+
+    # 2.5. Vendor seeds: the probe reaches these breaks through calls,
+    # so their modules fail HARD (the probe will hit them), like an
+    # import-time removal — but without failing their importers, since
+    # importing a module with a call-time break still works. Entries
+    # ride along as AT_RISK: the probe path runs through them. Via
+    # lists the forward probe path from the entry; the ChangeItem code
+    # quote evidences the site itself.
+    if entries:
+        for item in config:
+            node = resolve_symbol(g, package, item.symbol)
+            if node in reach:
+                module = (node if g.nodes[node].get("kind") == "module"
+                          else _owner_module(g, node))
+                mark(module, "HARD", item.symbol, reach[node][2])
+                if node != module:
+                    mark(node, "AT_RISK", item.symbol, [])
+        for entry in entries:
+            if entry in g.nodes and _is_def(g, entry):
+                mark(entry, "AT_RISK", entry, [])
 
     # 3. AT_RISK closure over callers + import-time executors (fixpoint).
     callers: dict[str, list[tuple[str, dict]]] = {}
@@ -305,3 +333,202 @@ def _resolve_call(
     if f"{module}.{name}" in cands:
         return f"{module}.{name}"
     return cands[0] if len(cands) == 1 else None
+
+
+def _call_dotted(func: ast.AST) -> str | None:
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        parts = []
+        cur = func
+        while isinstance(cur, ast.Attribute):
+            parts.append(cur.attr)
+            cur = cur.value
+        if isinstance(cur, ast.Name):
+            parts.append(cur.id)
+            return ".".join(reversed(parts))
+    return None
+
+
+def probe_entries(probe_code: str, package: str, g: nx.DiGraph) -> list[str]:
+    """Package defs the decision probe calls (its entry points).
+
+    Tracks package imports, locals constructed from package classes
+    (`client = MeteredLLMClient(...)`), and calls through them
+    (`client.call(...)`), plus direct calls of imported defs. Names
+    missing from the graph are skipped; [] means the probe's entries
+    are unknown and vendor prediction degrades to AT_RISK.
+    """
+    if not probe_code:
+        return []
+    try:
+        tree = ast.parse(probe_code)
+    except SyntaxError:
+        return []
+    imported: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                if a.name == package or a.name.startswith(package + "."):
+                    imported[a.asname or a.name.split(".")[0]] = a.name
+        elif isinstance(node, ast.ImportFrom):
+            if node.level or not (node.module or "").startswith(package):
+                continue
+            for a in node.names:
+                if a.name != "*":
+                    imported[a.asname or a.name] = (
+                        f"{node.module}.{a.name}")
+    constructed: dict[str, str] = {}
+    for node in ast.walk(tree):
+        targets = []
+        value = None
+        if isinstance(node, ast.Assign):
+            targets, value = node.targets, node.value
+        elif isinstance(node, ast.AnnAssign):
+            targets, value = [node.target], node.value
+        if not isinstance(value, ast.Call):
+            continue
+        cls = _call_dotted(value.func)
+        if cls in imported:
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    constructed[target.id] = imported[cls]
+    entries = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        dotted = _call_dotted(node.func)
+        if not dotted:
+            continue
+        cand = None
+        if "." in dotted:
+            head, _, rest = dotted.partition(".")
+            if head in constructed and "." not in rest:
+                cand = f"{constructed[head]}.{rest}"
+            elif head in imported:
+                cand = f"{imported[head]}.{rest}"
+        elif dotted in imported:
+            cand = imported[dotted]
+        if (cand is not None and cand in g.nodes
+                and g.nodes[cand].get("kind") in ("function", "class")):
+            entries.add(cand)
+    return sorted(entries)
+
+
+def _calls_succ(g: nx.DiGraph, defs) -> dict[str, list]:
+    """Resolved CALLS adjacency over defs: u -> [(target, raw, file, line)]."""
+    succ: dict[str, list] = {}
+    for u, raw, d in g.edges(data=True):
+        if d.get("kind") != "CALLS" or not _is_def(g, u):
+            continue
+        target = _resolve_call(g, u, raw, defs)
+        if target is None or not _is_def(g, target):
+            continue
+        succ.setdefault(u, []).append((target, raw, d["file"], d["line"]))
+    for hops in succ.values():
+        hops.sort(key=lambda e: (e[3], e[0]))
+    return succ
+
+
+def _vendor_reach(g: nx.DiGraph, entries) -> dict:
+    """Nodes the probe reaches: node -> (depth, first_line, path hops).
+
+    Depth 0 is an entry and its enclosing scopes (class, module); deeper
+    nodes follow resolved CALLS edges. Modules also inherit reach from
+    their reached defs. first_line is the CALLS edge line leaving the
+    entry (0 at depth 0); path lists the forward hops from the entry.
+    """
+    defs = _def_index(g)
+    succ = _calls_succ(g, defs)
+    reach: dict = {}
+    for entry in sorted(entries):
+        if entry not in g.nodes or not _is_def(g, entry):
+            continue
+        node = entry
+        while node and node in g.nodes and g.nodes[node].get("kind") in (
+                "function", "class", "module"):
+            reach.setdefault(node, (0, 0, []))
+            node = node.rpartition(".")[0] if "." in node else ""
+    queue = sorted(e for e in entries if e in reach)
+    while queue:
+        nxt = []
+        for u in queue:
+            depth, first, path = reach[u]
+            for target, raw, path_, line in succ.get(u, []):
+                if target in reach:
+                    continue
+                hop = (u, raw, path_, line)
+                reach[target] = (depth + 1, first or line, path + [hop])
+                nxt.append(target)
+        queue = sorted(nxt)
+    for node, data in g.nodes(data=True):
+        if data.get("kind") != "module" or node in reach:
+            continue
+        cands = [(reach[d][0], reach[d][1], reach[d][2])
+                 for d in defs_all_in(g, node) if d in reach]
+        if cands:
+            reach[node] = min(cands)
+    return reach
+
+
+def defs_all_in(g: nx.DiGraph, module: str) -> list[str]:
+    """Every function/class defined under a module."""
+    prefix = module + "."
+    return [n for n, d in g.nodes(data=True)
+            if d.get("kind") in ("function", "class")
+            and (n == module or n.startswith(prefix))]
+
+
+_UNREACHED = 10 ** 9
+
+
+def order_config_by_entry(g: nx.DiGraph, entries, items: list,
+                          package: str) -> list:
+    """Config items in probe-hit order (entry scopes first, then by CALLS).
+
+    Sort key is (CALLS depth from the entry, first edge line out of the
+    entry, symbol); unreached items sort last by (code line, symbol).
+    The order is the vendor fix order: fixing the first item and
+    re-probing reveals the next, like import-layer peeling.
+    """
+    reach = _vendor_reach(g, entries) if entries else {}
+    keyed = []
+    for item in items:
+        node = resolve_symbol(g, package, item.symbol)
+        if node in reach:
+            depth, first, _ = reach[node]
+            line = first if depth else (getattr(item, "code_line", 0) or 0)
+            keyed.append(((depth, line, item.symbol), item))
+        else:
+            keyed.append(((_UNREACHED, getattr(item, "code_line", 0) or 0,
+                           item.symbol), item))
+    keyed.sort(key=lambda pair: pair[0])
+    return [item for _, item in keyed]
+
+
+def vendor_chain(g: nx.DiGraph, package: str, entries,
+                 ordered: list) -> list[tuple[str, str, str, int]]:
+    """First-failure call path: probe entry to the rejecting site.
+
+    One hop (entry def, break module, code file, code line) grounded in
+    the first ordered code-verified config item; [] when entries are
+    unknown or no item carries code grounding. The spine projects this
+    onto modules, matching the probe's actual modules on success.
+    """
+    funcs = sorted(e for e in entries
+                   if e in g.nodes and g.nodes[e].get("kind") == "function")
+    cands = funcs or sorted(entries)
+    if not cands:
+        return []
+    primary = cands[0]
+    for item in ordered:
+        if (getattr(item, "source", "") != "code"
+                or not getattr(item, "verified", False)
+                or not getattr(item, "code_file", "")
+                or not getattr(item, "code_line", 0)):
+            continue
+        node = resolve_symbol(g, package, item.symbol)
+        module = (node if g.nodes[node].get("kind") == "module"
+                  else _owner_module(g, node))
+        return [(primary, module, item.code_file, item.code_line)]
+    return []

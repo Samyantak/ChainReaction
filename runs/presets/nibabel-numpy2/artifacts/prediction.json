@@ -221,7 +221,11 @@
     "numpy.unicode_",
     "numpy.who"
   ],
-  "changed_symbols": [],
+  "changed_symbols": [
+    "numpy.float32",
+    "numpy.intp",
+    "numpy.promote_types"
+  ],
   "deprecated_symbols": [
     "numpy.in1d",
     "numpy.row_stack",
@@ -455,6 +459,7 @@
     "nibabel.wrapstruct",
     "nibabel.xmlutils"
   ],
+  "probe_entries": [],
   "spine": [
     "nibabel",
     "nibabel.analyze",
@@ -499,5 +504,12 @@
       "nibabel/casting.py",
       717
     ]
+  ],
+  "used_symbols": [
+    "numpy.compat",
+    "numpy.longcomplex",
+    "numpy.maximum_sctype",
+    "numpy.ndarray.newbyteorder",
+    "numpy.sctypes"
   ]
 }

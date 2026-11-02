@@ -23,6 +23,10 @@ class LayerResult:
     recall: float = 1.0
     error_tail: str = ""
     ok: bool = True  # the probe process exited 0 (import passed)
+    # Deepest target frame of the probe traceback, repo-relative
+    # "path/to/file.py:line" (None when the probe passed). The brief's
+    # fix order lists these; the claim checker accepts them as evidence.
+    failure_site: str | None = None
 
 
 @dataclass
@@ -65,6 +69,15 @@ class Report:
     interpret_missed: list[str] = field(default_factory=list)
     interpret_blind_hits: int = 0
     interpret_blind_recall: float | None = None
+    # Breaking symbols with at least one repo use (subset of
+    # change_symbols). Only these can seed failures; the brief names
+    # them so the narrative cites the used count, not the guide total.
+    used_symbols: list[str] = field(default_factory=list)
+    # Ordered "label: file:line" fix list: probe layer sites for import
+    # upgrades, config break sites in probe-hit order plus the probe
+    # site for vendor decisions. The brief reads this; the fix loop
+    # peels it one entry at a time.
+    fix_order: list[str] = field(default_factory=list)
 
 
 _MODULE_RE = re.compile(r"\b([A-Za-z_]\w*(?:\.\w+)+)\b")
@@ -105,6 +118,8 @@ def _report_numbers(report: Report) -> set[str]:
         str(len(report.spine)),
         str(len(report.spine_evidence)),
         str(len(report.change_symbols)),
+        str(len(report.used_symbols)),
+        str(len(report.change_items)),
         str(len(report.deprecated_symbols)),
         str(len(report.changed_symbols)),
         str(report.grep_hits),
@@ -131,15 +146,31 @@ def _report_numbers(report: Report) -> set[str]:
             nums.update(_float_spellings(value))
     for _, _, _, line in report.spine_evidence:
         nums.add(str(line))
+    for layer in report.layers:
+        if layer.failure_site and ":" in layer.failure_site:
+            _, _, lineno = layer.failure_site.rpartition(":")
+            if lineno.isdigit():
+                nums.add(lineno)
+    for item in report.change_items:
+        code_line = getattr(item, "code_line", 0)
+        if getattr(item, "source", "") == "code" and code_line:
+            nums.add(str(int(code_line)))
     for version in (report.numpy_version, report.before_numpy):
         if version:
             nums.add(version)
             parts = version.split(".")  # "numpy 2.0" short for "2.0.2"
             for i in range(1, len(parts)):
                 nums.add(".".join(parts[:i]))
-    for blob in (report.decision, report.target, report.pr_url,
-                 *report.change_symbols, *report.pr_files,
-                 *report.file_missing):
+    blobs = [report.decision, report.target, report.pr_url,
+             *report.change_symbols, *report.pr_files,
+             *report.file_missing]
+    for item in report.change_items:
+        blobs.append(item.symbol)
+        detail = getattr(item, "detail", None)
+        if detail is not None:
+            blobs.extend([detail.expected or "", detail.actual or "",
+                          detail.note or ""])
+    for blob in blobs:
         nums.update(_NUMBER_RE.findall(blob or ""))
     return nums
 
@@ -149,8 +180,9 @@ def _narrative_violations_by_kind(report: Report, text: str
     """Narrative violations grouped by claim kind.
 
     Kinds are "module" (unknown dotted names), "evidence" (file:line
-    with no matching spine hop), and "number" (not in the report's
-    number set). Bare *.py filenames are stripped, not verified.
+    with no matching spine hop, layer failure site, or code-grounded
+    config item), and "number" (not in the report's number set). Bare
+    *.py filenames are stripped, not verified.
     """
     # Blank URLs, file:line spans, then bare filenames, so their
     # fragments (github.com, __init__.py, line numbers, casting.py)
@@ -166,12 +198,18 @@ def _narrative_violations_by_kind(report: Report, text: str
     redacted = _PY_NAME_RE.sub(" ", redacted)
 
     known = (set(report.hard) | set(report.at_risk) | set(report.spine)
-             | set(report.change_symbols)
+             | set(report.change_symbols) | set(report.used_symbols)
              | set(report.deprecated_symbols) | set(report.changed_symbols)
              | {i.symbol for i in report.change_items}
              | {report.package})
     for layer in report.layers:
         known.update(layer.actual)
+    for item in report.change_items:
+        detail = getattr(item, "detail", None)
+        if detail is not None:
+            for blob in (detail.expected or "", detail.actual or "",
+                         detail.note or ""):
+                known.update(_MODULE_RE.findall(blob))
     for name in list(known):  # enclosing scopes of impacted defs are real
         parts = name.split(".")
         for i in range(2, len(parts)):
@@ -185,6 +223,16 @@ def _narrative_violations_by_kind(report: Report, text: str
 
     evidence = [(_norm_path(path), line)
                 for _, _, path, line in report.spine_evidence]
+    for layer in report.layers:
+        if layer.failure_site and ":" in layer.failure_site:
+            path, _, lineno = layer.failure_site.rpartition(":")
+            if lineno.isdigit():
+                evidence.append((_norm_path(path), int(lineno)))
+    for item in report.change_items:
+        code_file = getattr(item, "code_file", "")
+        code_line = getattr(item, "code_line", 0)
+        if getattr(item, "source", "") == "code" and code_file and code_line:
+            evidence.append((_norm_path(code_file), int(code_line)))
     cites: list[str] = []
     for path, line in cited:
         norm = _norm_path(path)
@@ -230,6 +278,40 @@ def check_narrative(report: Report, narrative: str | None = None
     return grouped["module"] + grouped["evidence"] + grouped["number"]
 
 
+def _code_hop_item(report: Report, path: str, line: int):
+    """Verified code item grounding a (path, line) hop, else None.
+
+    Vendor call-path hops cite the config break's code quote rather
+    than a graph edge; the quote is the grounding, checked here.
+    """
+    for item in getattr(report, "change_items", []) or []:
+        if getattr(item, "source", "") != "code":
+            continue
+        if not getattr(item, "verified", False):
+            continue
+        code_file = getattr(item, "code_file", "")
+        code_line = getattr(item, "code_line", 0)
+        if not code_file or not code_line or int(code_line) != line:
+            continue
+        norm, want = _norm_path(code_file), _norm_path(path)
+        if norm == want or norm.endswith("/" + want) \
+                or want.endswith("/" + norm):
+            return item
+    return None
+
+
+def _code_hop_ok(g: nx.DiGraph, report: Report, u: str, v: str,
+                 path: str, line: int) -> bool:
+    """A hop without a graph edge passes when a verified code item pins
+    its file:line and the hop target is that item's symbol or scope."""
+    item = _code_hop_item(report, path, line)
+    if item is None or u not in g.nodes:
+        return False
+    symbol = item.symbol
+    return (v == symbol or v == symbol.rpartition(".")[0]
+            or symbol.startswith(v + "."))
+
+
 def check_report(g: nx.DiGraph, report: Report) -> list[str]:
     """Verify every structural and narrative claim; return violations."""
     violations = []
@@ -252,7 +334,9 @@ def check_report(g: nx.DiGraph, report: Report) -> list[str]:
         u, v, path, line = hop
         data = g.edges.get((u, v))
         if data is None:
-            violations.append(f"evidence edge missing from graph: {u} -> {v}")
+            if not _code_hop_ok(g, report, u, v, path, line):
+                violations.append(
+                    f"evidence edge missing from graph: {u} -> {v}")
         elif _norm_path(str(data.get("file"))) != _norm_path(path) \
                 or data.get("line") != line:
             violations.append(
@@ -306,8 +390,12 @@ def claim_checks(g: nx.DiGraph, report: Report) -> list[ClaimCheck]:
         label = f"{u} → {v}"
         data = g.edges.get((u, v))
         if data is None:
-            checks.append(ClaimCheck(label, "fail",
-                                     "edge missing from graph"))
+            if _code_hop_ok(g, report, u, v, path, line):
+                checks.append(ClaimCheck(label, "pass",
+                                         f"{path}:{line} (code-grounded)"))
+            else:
+                checks.append(ClaimCheck(label, "fail",
+                                         "edge missing from graph"))
         elif _norm_path(str(data.get("file"))) != _norm_path(path) \
                 or data.get("line") != line:
             checks.append(ClaimCheck(
@@ -348,14 +436,18 @@ def _file_score_bits(report: Report):
 
 
 def render_markdown(report: Report) -> str:
-    numpy_label = report.numpy_version or (
-        "n/a (decision probe)" if report.probe_kind == "decision" else "unknown")
+    decision = report.probe_kind == "decision"
+    target_line = (f"Target: `{report.target}` "
+                   "(pre-existing, analyzed by ChainReaction)")
+    if not decision:
+        numpy_label = report.numpy_version or "unknown"
+        target_line += (f" | numpy: {numpy_label}"
+                        + (f" (before: {report.before_numpy})"
+                           if report.before_numpy else ""))
     lines = [
         f"# ChainReaction report: {report.decision}",
         "",
-        f"Target: `{report.target}` (pre-existing, analyzed by ChainReaction) | "
-        f"numpy: {numpy_label}"
-        + (f" (before: {report.before_numpy})" if report.before_numpy else ""),
+        target_line,
         "",
         "## Change set",
         "",
@@ -363,12 +455,21 @@ def render_markdown(report: Report) -> str:
         *[f"- `{i.symbol}` ({i.kind}: "
            f"{i.detail.expected} -> {i.detail.actual}"
            + (f"; {i.detail.note}" if i.detail.note else "")
-           + ("; derived from probe" if i.source != "guide" else "")
+           + ("; derived from probe" if i.source == "probe" else "")
+           + (f"; `{i.code_file}:{i.code_line}`"
+              if i.source == "code" and getattr(i, "code_file", "") else "")
            + ")"
            if i.detail is not None else f"- `{i.symbol}` ({i.kind}"
-           + ("; derived from probe" if i.source != "guide" else "")
+           + ("; derived from probe" if i.source == "probe" else "")
+           + (f"; `{i.code_file}:{i.code_line}`"
+              if i.source == "code" and getattr(i, "code_file", "") else "")
            + ")"
            for i in report.change_items],
+        *([] if not report.used_symbols else [
+            "",
+            f"Used by this repo ({len(report.used_symbols)}): "
+            + ", ".join(f"`{s}`" for s in report.used_symbols),
+        ]),
         *([] if not report.deprecated_symbols else [
             "",
             "Deprecated (warnings — still work, excluded from scores):",
@@ -397,14 +498,15 @@ def render_markdown(report: Report) -> str:
         "",
         f"HARD: {len(report.hard)} modules | AT_RISK: {len(report.at_risk)} nodes",
         "",
-        "Predicted layer-1 chain:",
+        "Predicted call chain:" if decision else "Predicted layer-1 chain:",
         "",
         *[
             f"- `{u}` -> `{v}` ({path}:{line})"
             for u, v, path, line in report.spine_evidence
         ],
-        f"Chain vs layer-1 actual: "
-        f"{'MATCH' if report.spine_match else 'DIFFERS'}",
+        (f"Chain vs decision actual: "
+         if decision else "Chain vs layer-1 actual: ")
+        + f"{'MATCH' if report.spine_match else 'DIFFERS'}",
         "",
     ]
     if report.pr_url:
@@ -427,11 +529,14 @@ def render_markdown(report: Report) -> str:
         ]
     lines += ["## Verification", ""]
     for layer in report.layers:
+        clean = "(probe ok)" if decision else "(import ok)"
         lines += [
             f"### {layer.name} (recall {layer.recall:.2f})",
             "",
-            f"Actual: {' -> '.join(f'`{m}`' for m in layer.actual) or '(import ok)'}",
+            f"Actual: {' -> '.join(f'`{m}`' for m in layer.actual) or clean}",
         ]
+        if layer.failure_site:
+            lines.append(f"Site: `{layer.failure_site}`")
         if layer.missing:
             lines.append(f"Missed: {', '.join(f'`{m}`' for m in layer.missing)}")
         if layer.error_tail:
@@ -441,8 +546,9 @@ def render_markdown(report: Report) -> str:
         "## Baselines",
         "",
         f"- grep: {report.grep_hits} hits",
-        f"- ruff NPY201: "
-        f"{report.ruff_hits if report.ruff_hits is not None else 'n/a'} hits",
+        *([] if report.ruff_hits is None else [
+            f"- ruff NPY201: {report.ruff_hits} hits",
+        ]),
         "",
         "## Narrative",
         "",
@@ -477,7 +583,8 @@ reader who never saw the brief: plain sentences, never field names,
 JSON keys, or raw labels like "numpy_version" or "spine_match" — say
 "under NumPy 2.0.2" or "matches the observed failure" instead. Refer
 to modules by exact name; do not invent modules, quotes, or numbers
-beyond the brief. Keep it under 300 words."""
+beyond the brief. Make no claims about past runs or general reliability
+— describe only this brief. Keep it under 300 words."""
 
 
 def narrative_brief(report: Report) -> str:
@@ -497,6 +604,28 @@ def narrative_brief(report: Report) -> str:
         f"Breaking symbols ({len(report.change_symbols)}): "
         f"{', '.join(report.change_symbols) or 'none'}.",
     ]
+    if report.change_symbols or report.used_symbols:
+        lines.append(
+            f"Removed symbols used by this repo "
+            f"({len(report.used_symbols)}): "
+            f"{', '.join(report.used_symbols) or 'none'}. "
+            "Only these can cause failures here.")
+    if report.change_items:
+        bits = []
+        for item in report.change_items:
+            bit = f"{item.symbol} ({item.kind}"
+            detail = getattr(item, "detail", None)
+            if detail is not None and (detail.expected or detail.actual):
+                bit += (f": needs {detail.expected}; "
+                        f"code has {detail.actual}")
+            if getattr(item, "source", "") == "code" and getattr(
+                    item, "code_file", ""):
+                bit += f"; {item.code_file}:{item.code_line}"
+            bit += ")"
+            bits.append(bit)
+        lines.append(
+            f"Config breaks ({len(report.change_items)}): "
+            + "; ".join(bits) + ".")
     if report.deprecated_symbols:
         lines.append(
             f"Deprecated but still working ({len(report.deprecated_symbols)}): "
@@ -515,8 +644,23 @@ def narrative_brief(report: Report) -> str:
         f"({'matches' if report.spine_match else 'differs from'} "
         "the observed failure).")
     if report.spine_evidence:
+        spine_set = set(report.spine)
+
+        def _hop(u: str, v: str, path: str, line: int) -> str:
+            if _code_hop_item(report, path, line) is not None:
+                return f"{u} reaches {v} ({path}:{line})"
+            external = v != report.package and not v.startswith(
+                report.package + ".")
+            if external:
+                return f"{u} uses {v} ({path}:{line})"
+            if u in spine_set and v in spine_set:
+                return f"{u} imports {v} ({path}:{line})"
+            if u in spine_set:
+                return f"{u} executes {v} at import ({path}:{line})"
+            return f"{u} calls {v} ({path}:{line})"
+
         lines.append("Chain evidence: " + "; ".join(
-            f"{u} calls {v} ({path}:{line})"
+            _hop(u, v, path, line)
             for u, v, path, line in report.spine_evidence) + ".")
     if report.pr_url:
         flagged, total, breaking, missed = _file_score_bits(report)
@@ -532,12 +676,27 @@ def narrative_brief(report: Report) -> str:
             lines.append(
                 "Behavior-change files (flagged separately, not scored): "
                 f"{', '.join(report.file_behavior)}.")
+    probe_word = "probe" if report.probe_kind == "decision" else "import"
     lines.append("Verification layers: " + "; ".join(
-        f"{layer.name}: import "
+        f"{layer.name}: {probe_word} "
         f"{'works' if layer.ok else 'fails'}, "
         f"recall {layer.recall:.2f}"
         + (f", missed {', '.join(layer.missing)}" if layer.missing else "")
         for layer in report.layers) + ".")
+    order = list(getattr(report, "fix_order", []) or []) or [
+        f"{layer.name}: {layer.failure_site}" for layer in report.layers
+        if not layer.ok and layer.failure_site]
+    if order:
+        lines.append("Fix order: " + "; ".join(order) + ".")
+        if report.probe_kind == "decision":
+            lines.append(
+                "Fix each site in order and re-probe: each fix reveals "
+                "the next layer.")
+        else:
+            lines.append(
+                "The chain modules above are importers, not edit sites: "
+                "fixing each site in order unblocks its chain in one step; "
+                "do not edit the importers.")
     return "\n".join(lines)
 
 
