@@ -64,12 +64,18 @@ def _artifact_slug(name: str) -> str:
 
 
 def _env_adapter(ctx, env_name: str, timeout: int = 300):
-    """verifier/baseline runner over ctx.run_cmd for a target env."""
+    """verifier/baseline runner over ctx.run_cmd for a target env.
+
+    Outputs come back unscrubbed so traceback paths map to modules;
+    stage_verify re-scrubs before anything is stored.
+    """
 
     def run(cmd, cwd):
         res = ctx.run_cmd(cmd, cwd=cwd, env_name=env_name, timeout=timeout)
-        return SimpleNamespace(returncode=res.returncode, stdout=res.stdout,
-                               stderr=res.stderr, missing=res.missing)
+        return SimpleNamespace(
+            returncode=res.returncode,
+            stdout=ctx.scrubber.untext(res.stdout),
+            stderr=ctx.scrubber.untext(res.stderr), missing=res.missing)
 
     return run
 
@@ -79,8 +85,10 @@ def _tool_adapter(ctx, timeout: int = 300):
 
     def run(cmd, cwd):
         res = ctx.run_cmd(cmd, cwd=cwd, env_name=None, timeout=timeout)
-        return SimpleNamespace(returncode=res.returncode, stdout=res.stdout,
-                               stderr=res.stderr, missing=res.missing)
+        return SimpleNamespace(
+            returncode=res.returncode,
+            stdout=ctx.scrubber.untext(res.stdout),
+            stderr=ctx.scrubber.untext(res.stderr), missing=res.missing)
 
     return run
 
@@ -225,6 +233,11 @@ def stage_verify(ctx) -> None:
         probes.append((f"before ({scen.before_env})", run_import_probe(
             before_py, scen.target, scen.package,
             run=_env_adapter(ctx, scen.before_env))))
+    # Probes parsed unscrubbed text (module mapping needs real paths);
+    # re-scrub before storing so error tails stay canonical. Live and
+    # replay land on identical bytes: scrub(unscrub(recorded)) == recorded.
+    for _, probe in probes:
+        probe.stderr = ctx.scrubber.text(probe.stderr)
     for name, probe in probes:
         ctx.save_artifact(
             f"verify/{_artifact_slug(name)}.log",

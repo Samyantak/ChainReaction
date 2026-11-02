@@ -104,6 +104,21 @@ class Scrubber:
                 value = _replace_path_token(value, needle, repl)
         return value.replace("\r\n", "\n").replace("\r", "\n")
 
+    def untext(self, value: str) -> str:
+        """Restore live absolute paths from placeholders.
+
+        Lets stages parse recorded text that names files (tracebacks)
+        identically on every machine: placeholders map back to the
+        local paths. Key redaction is one-way and stays redacted.
+        """
+        if not isinstance(value, str) or not value:
+            return value
+        for needle, repl in sorted(self.replacements,
+                                   key=lambda p: len(p[1]), reverse=True):
+            if repl and repl != KEY_PLACEHOLDER and repl in value:
+                value = value.replace(repl, needle)
+        return value
+
     def obj(self, node):
         if isinstance(node, str):
             return self.text(node)

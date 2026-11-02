@@ -134,6 +134,27 @@ def test_replay_miss_names_hash_and_command(tmp_runs):
                        env_name=None)
 
 
+def test_probe_adapter_parses_modules_through_scrub(tmp_runs, tmp_path):
+    from chainreaction.verifier import run_snippet_probe
+
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "svc.py").write_text(
+        "def boom():\n    raise ValueError('nope')\n", encoding="utf-8")
+    ctx = RunContext(run_id="u1", manifest=_live_manifest("u1"),
+                     mode="live")
+    run = stages_mod._env_adapter(ctx, "fake-env", timeout=60)
+    res = run_snippet_probe(sys.executable, str(tmp_path),
+                            "from pkg.svc import boom\nboom()\n",
+                            package="pkg", run=run)
+    # Traceback paths are recorded scrubbed, but module mapping must
+    # still work (it parses the unscrubbed text).
+    assert res.modules == ["pkg.svc"]
+    rec = store.read_jsonl(ctx.dir / store.CMDS)[0]
+    assert "<home>" in rec["stderr"] or "<root>" in rec["stderr"]
+
+
 def test_replay_warns_on_unused_recordings(tmp_runs):
     def fake(system, user, max_tokens, response_format):
         return llm_mod.ChatResult("r", "fake-model", None, "stop",
@@ -510,3 +531,14 @@ def test_preset_replay_matches_committed(monkeypatch, tmp_path):
     replay_report = (store.run_dir(replay) / "artifacts"
                      / "report.json").read_bytes()
     assert live_report == replay_report
+    # Non-vacuous layers: the recorded break maps to the documented
+    # layer-1 chain (an empty `actual` with recall 1.0 is the tell).
+    report = json.loads(replay_report)
+    assert report["layers"][0]["actual"] == [
+        "nibabel",
+        "nibabel.analyze",
+        "nibabel.arrayproxy",
+        "nibabel.volumeutils",
+        "nibabel.casting",
+    ]
+    assert report["spine_match"] is True
