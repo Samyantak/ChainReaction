@@ -59,6 +59,30 @@ Probes, the pipeline, and the fix-loop demo all resolve these via
 pytest
 ```
 
+## Runs: live, replay, stream (M1)
+
+Each analysis is a background run with an event stream and an
+offline replay. `runs/presets/` holds committed recordings (judges
+replay these with no key and no network); all other runs are local.
+
+```
+uvicorn chainreaction.web:app --port 8000
+```
+
+- `POST /api/runs` `{preset, mode?, replay_from?, decision?, guide_url?}`
+- `GET /api/runs/{id}/events` — Server-Sent Events (auto-resumes)
+- `POST /api/runs/{id}/cancel`, `GET /api/runs/{id}/artifacts/{name}`
+- Bare stream view: `/stream.html?run=<id>` (after `npm run build`)
+
+Record (or re-record) a preset — needs the key, the target, and envs:
+
+```
+python scripts/record_preset.py nibabel-numpy2
+```
+
+Replay needs only the target source at the recorded commit; test
+commands come back from the recording, so no env builds are needed.
+
 ## UI skeleton (React + FastAPI)
 
 Backend (from the repo root, `.venv` active):

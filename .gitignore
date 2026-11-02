@@ -20,6 +20,11 @@ targets/
 # Generated reports
 reports/
 
+# Run store: live runs are machine-local; preset recordings are committed
+runs/*
+!runs/presets/
+!runs/presets/**
+
 # LLM prompt-hash cache (regenerable, machine-local)
 .llm_cache/
 

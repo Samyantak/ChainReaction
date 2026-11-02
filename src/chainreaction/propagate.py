@@ -254,7 +254,9 @@ def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
 
 def matches_symbol(target: str, broken: set[str]) -> str | None:
     """Broken symbol matched by an edge target (exact or parent prefix)."""
-    for sym in broken:
+    # Sorted: set order varies across processes (PYTHONHASHSEED), and the
+    # winner must be identical on live and replay runs.
+    for sym in sorted(broken):
         if target == sym or target.startswith(sym + "."):
             return sym
     return None

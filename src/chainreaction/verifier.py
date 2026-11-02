@@ -60,9 +60,16 @@ def _run(python: str, cwd: str | Path, code: str, timeout: int = 300):
 
 
 def run_import_probe(
-    python: str, cwd: str | Path, package: str, preamble: str = ""
+    python: str, cwd: str | Path, package: str, preamble: str = "",
+    run=None, timeout: int = 300,
 ) -> ProbeResult:
-    """Run `import <package>` in a subprocess; capture numpy version + traceback."""
+    """Run `import <package>` in a subprocess; capture numpy version + traceback.
+
+    run(cmd, cwd) injects the subprocess layer (the run store passes a
+    ctx.run_cmd adapter so replays reuse the recording); it must return
+    an object with .returncode/.stdout/.stderr. timeout only applies to
+    the default runner; injected runners own their timeout.
+    """
     code = (
         "try:\n"
         "    import numpy\n"
@@ -72,7 +79,8 @@ def run_import_probe(
         f"{preamble}\n"
         f"import {package}\n"
     )
-    proc = _run(python, cwd, code)
+    proc = (_run(python, cwd, code, timeout) if run is None
+            else run([python, "-c", code], cwd))
     numpy_version = None
     for line in proc.stdout.splitlines():
         if line.startswith("NUMPY="):
@@ -89,9 +97,14 @@ def run_import_probe(
 
 
 def run_snippet_probe(python: str, cwd: str | Path, code: str,
-                      package: str = "") -> ProbeResult:
-    """Run an arbitrary decision snippet; map its traceback to modules."""
-    proc = _run(python, cwd, code)
+                      package: str = "", run=None,
+                      timeout: int = 300) -> ProbeResult:
+    """Run an arbitrary decision snippet; map its traceback to modules.
+
+    run(cmd, cwd) injects the subprocess layer (see run_import_probe).
+    """
+    proc = (_run(python, cwd, code, timeout) if run is None
+            else run([python, "-c", code], cwd))
     frames = parse_traceback(proc.stderr)
     return ProbeResult(
         ok=proc.returncode == 0,

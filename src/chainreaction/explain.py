@@ -418,8 +418,13 @@ Refer to modules by exact name; do not invent modules, quotes, or
 numbers beyond the report. Keep it under 300 words."""
 
 
-def generate_narrative(report: Report) -> str:
-    """Summarize a Report with Muse Spark (needs MODEL_API_KEY)."""
+def generate_narrative(report: Report, chat_fn=None) -> str:
+    """Summarize a Report with Muse Spark (needs MODEL_API_KEY).
+
+    chat_fn defaults to llm.chat; the run store injects ctx.llm so the
+    call is recorded and replayable.
+    """
+    chat_fn = chat_fn or chat
     facts = json.dumps({
         "decision": report.decision,
         "target": report.target,
@@ -439,5 +444,5 @@ def generate_narrative(report: Report) -> str:
         "layers": [{"name": l.name, "ok": l.ok, "recall": l.recall,
                     "missing": l.missing} for l in report.layers],
     }, indent=2, ensure_ascii=False)
-    return chat(NARRATE_SYSTEM_PROMPT, f"Report JSON:\n{facts}\n",
-                max_tokens=8000)
+    return chat_fn(NARRATE_SYSTEM_PROMPT, f"Report JSON:\n{facts}\n",
+                   max_tokens=8000)

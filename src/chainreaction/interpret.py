@@ -180,11 +180,15 @@ def html_to_text(page: str) -> str:
     return " ".join(" ".join(parser.chunks).split())
 
 
-def fetch_text(url: str, timeout: int = 60) -> str:
-    """Fetch a migration guide / changelog as clean text (raises on failure)."""
+def fetch_page(url: str, timeout: int = 60) -> tuple[int | None, bytes]:
+    """Fetch a URL; returns (HTTP status, raw body). Raises on failure."""
     req = urllib.request.Request(url, headers={"User-Agent": "ChainReaction/0.1"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        raw = resp.read()
+        return resp.status, resp.read()
+
+
+def page_to_text(raw: bytes) -> str:
+    """Decode a fetched page to clean quotable text."""
     try:
         page = raw.decode("utf-8")
     except UnicodeDecodeError:
@@ -192,16 +196,25 @@ def fetch_text(url: str, timeout: int = 60) -> str:
     return html_to_text(page)
 
 
+def fetch_text(url: str, timeout: int = 60) -> str:
+    """Fetch a migration guide / changelog as clean text (raises on failure)."""
+    _, raw = fetch_page(url, timeout)
+    return page_to_text(raw)
+
+
 def to_json(changeset: ChangeSet) -> str:
     return json.dumps(asdict(changeset), indent=2)
 
 
-def interpret(decision: str, guide_text: str, source_url: str = "") -> ChangeSet:
+def interpret(decision: str, guide_text: str, source_url: str = "",
+              chat_fn=None) -> ChangeSet:
     """Generate the change set with Muse Spark; verify quotes vs the guide.
 
     Items whose quotes don't string-match are dropped. Raises
-    RuntimeError when MODEL_API_KEY is missing.
+    RuntimeError when MODEL_API_KEY is missing. chat_fn defaults to
+    llm.chat; the run store injects ctx.llm so calls are recorded.
     """
+    chat_fn = chat_fn or chat
     user = (
         f"Decision: {decision}\n\n"
         "Migration guide / changelog text (the ONLY quotable source — "
@@ -210,7 +223,7 @@ def interpret(decision: str, guide_text: str, source_url: str = "") -> ChangeSet
         "Emit the change set as a single JSON object matching this schema:\n"
         f"{json.dumps(CHANGE_SET_JSON_SCHEMA['schema'])}"
     )
-    data = extract_json(chat(
+    data = extract_json(chat_fn(
         INTERPRET_SYSTEM_PROMPT, user, max_tokens=12000,
         response_format={"type": "json_schema",
                          "json_schema": CHANGE_SET_JSON_SCHEMA}))

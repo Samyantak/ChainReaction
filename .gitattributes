@@ -1,0 +1,3 @@
+# Preset recordings must stay LF-only on every OS: a judge on a Mac
+# replays a preset recorded on Windows byte-identically.
+runs/presets/** text eol=lf

@@ -57,20 +57,33 @@ def _ruff_exe() -> str | None:
     return str(cand) if cand.exists() else None
 
 
-def ruff_npy201(target: str | Path) -> list[Hit] | None:
-    """Run `ruff check --select NPY201`; None when ruff is not installed."""
-    ruff = _ruff_exe()
-    if ruff is None:
-        return None
-    proc = subprocess.run(
-        [ruff, "check", "--select", "NPY201", "--output-format", "concise",
-         str(target)],
-        capture_output=True,
-        text=True,
-        timeout=300,
-    )
+def ruff_npy201(target: str | Path, run=None) -> list[Hit] | None:
+    """Run `ruff check --select NPY201`; None when ruff is not installed.
+
+    run(cmd, cwd) injects the subprocess layer (the run store passes a
+    ctx.run_cmd adapter so replays reuse the recording); it must return
+    an object with .stdout and .missing (set when never executed).
+    """
+    args = ["check", "--select", "NPY201", "--output-format", "concise",
+            str(target)]
+    if run is None:
+        ruff = _ruff_exe()
+        if ruff is None:
+            return None
+        proc = subprocess.run(
+            [ruff, *args],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        out = proc.stdout
+    else:
+        res = run(["ruff", *args], ".")
+        if getattr(res, "missing", None):
+            return None
+        out = res.stdout
     hits: list[Hit] = []
-    for line in proc.stdout.splitlines():
+    for line in out.splitlines():
         m = re.match(r"^(.+?):(\d+):\d+: (NPY201.*)$", line)
         if m:
             hits.append(Hit(m.group(1), int(m.group(2)), "NPY201", m.group(3)))
