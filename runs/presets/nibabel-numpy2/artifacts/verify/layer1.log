@@ -1,0 +1,24 @@
+# probe: layer1
+# ok: False
+# numpy: 2.0.2
+# modules: nibabel -> nibabel.analyze -> nibabel.arrayproxy -> nibabel.volumeutils -> nibabel.casting
+## stderr
+Traceback (most recent call last):
+  File "<string>", line 7, in <module>
+  File "<root>/targets/nibabel/nibabel/__init__.py", line 41, in <module>
+    from . import analyze as ana
+  File "<root>/targets/nibabel/nibabel/analyze.py", line 88, in <module>
+    from .arrayproxy import ArrayProxy
+  File "<root>/targets/nibabel/nibabel/arrayproxy.py", line 39, in <module>
+    from .volumeutils import apply_read_scaling, array_from_file
+  File "<root>/targets/nibabel/nibabel/volumeutils.py", line 23, in <module>
+    from .casting import OK_FLOATS, shared_range
+  File "<root>/targets/nibabel/nibabel/casting.py", line 723, in <module>
+    OK_FLOATS = ok_floats()
+                ^^^^^^^^^^^
+  File "<root>/targets/nibabel/nibabel/casting.py", line 717, in ok_floats
+    floats = np.sctypes['float'][:]
+             ^^^^^^^^^^
+  File "<env:numpy2>/Lib/site-packages/numpy/__init__.py", line 411, in __getattr__
+    raise AttributeError(
+AttributeError: `np.sctypes` was removed in the NumPy 2.0 release. Access dtypes explicitly instead.. Did you mean: 'dtypes'?

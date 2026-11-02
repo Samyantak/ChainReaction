@@ -1,0 +1,133 @@
+{
+  "changeset_source": "muse-spark",
+  "decision": "upgrade numpy to 2.0",
+  "items": [
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "alltrue Use np.all instead.",
+      "replacement": "numpy.all",
+      "source": "guide",
+      "symbol": "numpy.alltrue",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "cumproduct Use np.cumprod instead.",
+      "replacement": "numpy.cumprod",
+      "source": "guide",
+      "symbol": "numpy.cumproduct",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "product Use np.prod instead.",
+      "replacement": "numpy.prod",
+      "source": "guide",
+      "symbol": "numpy.product",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "sctypes Access dtypes explicitly instead.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.sctypes",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "mat Use np.asmatrix instead.",
+      "replacement": "numpy.asmatrix",
+      "source": "guide",
+      "symbol": "numpy.mat",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "deprecated",
+      "quote": "in1d Use np.isin instead.",
+      "replacement": "numpy.isin",
+      "source": "guide",
+      "symbol": "numpy.in1d",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "deprecated",
+      "quote": "trapz Use np.trapezoid or a scipy.integrate function instead.",
+      "replacement": "numpy.trapezoid",
+      "source": "guide",
+      "symbol": "numpy.trapz",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "newbyteorder Use arr.view(arr.dtype.newbyteorder(order)) instead.",
+      "replacement": "arr.view(arr.dtype.newbyteorder(order))",
+      "source": "guide",
+      "symbol": "numpy.ndarray.newbyteorder",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "removed",
+      "quote": "ptp Use np.ptp(arr, ...) instead.",
+      "replacement": "numpy.ptp",
+      "source": "guide",
+      "symbol": "numpy.ndarray.ptp",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "changed",
+      "quote": "The np.core namespace is now officially private and has been renamed to np._core .",
+      "replacement": "numpy._core",
+      "source": "guide",
+      "symbol": "numpy.core",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "changed",
+      "quote": "np.lib is now empty and contains only a handful of specialized submodules, classes and functions:",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.lib",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "changed",
+      "quote": "np.float32(3) + 3. now returns a float32 when it previously returned a float64.",
+      "replacement": null,
+      "source": "guide",
+      "symbol": "numpy.float32",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "changed",
+      "quote": "The default integer is now equivalent to np.intp .",
+      "replacement": "numpy.intp",
+      "source": "guide",
+      "symbol": "numpy.intp",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "changed",
+      "quote": "Code using np.array(..., copy=False) can in most cases be changed to np.asarray(...) .",
+      "replacement": "numpy.asarray",
+      "source": "guide",
+      "symbol": "numpy.asarray",
+      "verified": true
+    }
+  ],
+  "source_url": "https://numpy.org/doc/stable/numpy_2_0_migration_guide.html"
+}

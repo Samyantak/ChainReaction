@@ -1,0 +1,25 @@
+# probe: layer2 (peeled)
+# ok: False
+# numpy: 2.0.2
+# modules: nibabel -> nibabel.imagestats -> nibabel.imageclasses -> nibabel.cifti2 -> nibabel.cifti2.cifti2 -> nibabel.nifti1 -> nibabel.quaternions
+## stderr
+Traceback (most recent call last):
+  File "<string>", line 17, in <module>
+  File "<root>/targets/nibabel/nibabel/__init__.py", line 42, in <module>
+    from . import ecat, imagestats, mriutils
+  File "<root>/targets/nibabel/nibabel/imagestats.py", line 12, in <module>
+    from nibabel.imageclasses import spatial_axes_first
+  File "<root>/targets/nibabel/nibabel/imageclasses.py", line 14, in <module>
+    from .cifti2 import Cifti2Image
+  File "<root>/targets/nibabel/nibabel/cifti2/__init__.py", line 20, in <module>
+    from .cifti2 import (
+  File "<root>/targets/nibabel/nibabel/cifti2/cifti2.py", line 31, in <module>
+    from ..nifti1 import Nifti1Extensions
+  File "<root>/targets/nibabel/nibabel/nifti1.py", line 28, in <module>
+    from .quaternions import fillpositive, mat2quat, quat2mat
+  File "<root>/targets/nibabel/nibabel/quaternions.py", line 32, in <module>
+    MAX_FLOAT = np.maximum_sctype(float)
+                ^^^^^^^^^^^^^^^^^
+  File "<env:numpy2>/Lib/site-packages/numpy/__init__.py", line 411, in __getattr__
+    raise AttributeError(
+AttributeError: `np.maximum_sctype` was removed in the NumPy 2.0 release. Use a specific dtype instead. You should avoid relying on any implicit mechanism and select the largest dtype of a kind explicitly in the code.

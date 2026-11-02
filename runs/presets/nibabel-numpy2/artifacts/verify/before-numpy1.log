@@ -1,0 +1,5 @@
+# probe: before (numpy1)
+# ok: True
+# numpy: 1.26.4
+# modules: (none)
+## stderr

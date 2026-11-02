@@ -1,0 +1,21 @@
+{
+  "base_url_host": "api.meta.ai",
+  "chainreaction_git_sha": "935bcf8f5b5742cc9bf244a16313565dee3f56f5",
+  "changeset_source": "muse-spark",
+  "created_at": "2026-11-02T00:22:08.598Z",
+  "current_stage": null,
+  "decision": "upgrade numpy to 2.0",
+  "error": null,
+  "finished_at": "2026-11-02T00:22:31.495Z",
+  "guide_url": "https://numpy.org/doc/stable/numpy_2_0_migration_guide.html",
+  "mode": "live",
+  "model": "muse-spark-1.3",
+  "narrative_source": "muse-spark",
+  "preset": "nibabel-numpy2",
+  "ref": "",
+  "replay_from": null,
+  "repo_url": "",
+  "resolved_commit": "67ea99725d7e40bb6738fc55f8360a609212e72c",
+  "run_id": "981106cd064d4a289f3534386761489c",
+  "status": "done"
+}
