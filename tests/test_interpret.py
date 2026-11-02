@@ -195,29 +195,75 @@ def test_interpret_with_table_completes_missed_rows():
                         "quote": "trapz Use np.trapezoid instead.",
                         "replacement": "numpy.trapezoid"}]}
 
+    calls = []
+
     def fake(system, user, max_tokens=8000, response_format=None):
-        assert "structured tables" in user
+        guided = "structured tables" in user
+        calls.append("guided" if guided else "blind")
         return json.dumps({"items": [{
-            "symbol": "numpy.maximum_sctype", "kind": "renamed",
+            "symbol": "numpy.maximum_sctype",
+            "kind": "renamed" if guided else "removed",
             "quote": "maximum_sctype Use a specific dtype instead.",
-            "replacement": "numpy.dtype"}]})
+            "replacement": "numpy.dtype" if guided else None}]})
 
     cs, stats = interpret_with_table("d", guide, "u", table, chat_fn=fake)
+    assert calls == ["blind", "guided"]
     assert stats["recall"] == 0.5
+    assert stats["blind_hits"] == 1
+    assert stats["blind_recall"] == 0.5
     assert stats["missed"] == ["numpy.mat"]
     assert stats["table_size"] == 2
     assert stats["quote_misses"] == []
     kinds = {i.symbol: i.kind for i in cs.items}
-    assert kinds == {"numpy.maximum_sctype": "renamed",
+    assert kinds == {"numpy.maximum_sctype": "renamed",  # guided wins
                      "numpy.mat": "removed", "numpy.trapz": "deprecated"}
     assert all(i.verified for i in cs.items)
 
+    # Blind-only finds merge in (guided order kept).
+    def fake_extra(system, user, max_tokens=8000, response_format=None):
+        if "structured tables" in user:
+            items = []
+        else:
+            items = [
+                {"symbol": "numpy.mat", "kind": "removed",
+                 "quote": "mat Use np.asmatrix instead.",
+                 "replacement": None}]
+        return json.dumps({"items": items})
+
+    cs, stats = interpret_with_table("d", guide, "u", table,
+                                     chat_fn=fake_extra)
+    assert stats["blind_hits"] == 1
+    assert stats["missed"] == ["numpy.maximum_sctype"]
+    assert {i.symbol for i in cs.items} == {
+        "numpy.maximum_sctype", "numpy.mat", "numpy.trapz"}
+
+    # No table: one call, blind by construction.
+    plain_calls = []
+
     def fake_plain(system, user, max_tokens=8000, response_format=None):
         assert "structured tables" not in user
+        plain_calls.append(user)
         return json.dumps({"items": []})
 
     _, stats = interpret_with_table("d", guide, "u", None, chat_fn=fake_plain)
     assert stats["recall"] is None and stats["table_size"] == 0
+    assert stats["blind_hits"] == 0 and stats["blind_recall"] is None
+    assert len(plain_calls) == 1
+
+
+def test_drop_out_of_package_items_keeps_external_kinds():
+    from chainreaction.interpret import drop_out_of_package_items
+
+    cs = ChangeSet("d", "u", [
+        ChangeItem("MODEL_API_KEY", "missing_param", "q"),
+        ChangeItem("sponsorfit.llm.Provider", "rejected_value", "q"),
+        ChangeItem("muse-voice", "changed", "q"),
+        ChangeItem("numpy.sctypes", "removed", "q"),
+    ])
+    kept, dropped = drop_out_of_package_items(cs, "sponsorfit")
+    assert dropped == ["MODEL_API_KEY"]
+    assert [i.symbol for i in kept.items] == [
+        "sponsorfit.llm.Provider", "muse-voice", "numpy.sctypes"]
 
 
 def test_interpret_no_key_names_the_blocker(monkeypatch):

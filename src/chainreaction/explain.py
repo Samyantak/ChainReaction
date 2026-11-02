@@ -58,9 +58,13 @@ class Report:
     changed_symbols: list[str] = field(default_factory=list)
     # Interpreter recall against the guide's removal table (None when the
     # guide has no structured table): did the model cover every row?
+    # blind_hits/blind_recall score the prose-only pass — the honest
+    # baseline for the hybrid design.
     interpret_recall: float | None = None
     interpret_table_size: int = 0
     interpret_missed: list[str] = field(default_factory=list)
+    interpret_blind_hits: int = 0
+    interpret_blind_recall: float | None = None
 
 
 _MODULE_RE = re.compile(r"\b([A-Za-z_]\w*(?:\.\w+)+)\b")
@@ -107,6 +111,7 @@ def _report_numbers(report: Report) -> set[str]:
         str(len(report.pr_files)),
         str(len(report.file_missing)),
         str(len(report.pr_files) - len(report.file_missing)),  # flagged
+        str(_file_score_bits(report)[2]),  # breaking-PR-file total
         str(len(report.file_behavior)),
         str(len(report.layers)),
     }
@@ -114,6 +119,9 @@ def _report_numbers(report: Report) -> set[str]:
         nums.add(str(report.ruff_hits))
     if report.interpret_table_size:
         nums.add(str(report.interpret_table_size))
+        nums.add(str(report.interpret_blind_hits))
+    if report.interpret_blind_recall is not None:
+        nums.update(_float_spellings(report.interpret_blind_recall))
     for layer in report.layers:
         nums.add(str(len(layer.actual)))
         nums.add(str(len(layer.missing)))
@@ -325,6 +333,20 @@ def claim_checks(g: nx.DiGraph, report: Report) -> list[ClaimCheck]:
     return checks
 
 
+def _file_score_bits(report: Report):
+    """(flagged, total, breaking_total, missed) for ground-truth lines.
+
+    Behavior-change files are flagged separately, never predicted, so
+    recall reads both ways: overall (flagged/total) and breaking-only
+    (flagged/breaking_total). Shared by the markdown scoreboard and the
+    narrative brief so the two never disagree.
+    """
+    behavior = set(report.file_behavior)
+    missed = [m for m in report.file_missing if m not in behavior]
+    flagged = len(report.pr_files) - len(report.file_missing)
+    return flagged, len(report.pr_files), flagged + len(missed), missed
+
+
 def render_markdown(report: Report) -> str:
     numpy_label = report.numpy_version or (
         "n/a (decision probe)" if report.probe_kind == "decision" else "unknown")
@@ -361,9 +383,11 @@ def render_markdown(report: Report) -> str:
         ]),
         *([] if report.interpret_recall is None else [
             "",
-            f"Removal-table recall: {report.interpret_recall:.2f} "
-            f"({report.interpret_table_size - len(report.interpret_missed)}"
-            f"/{report.interpret_table_size})"
+            f"Removal-table recall: Muse Spark alone "
+            f"{report.interpret_blind_hits}/{report.interpret_table_size} "
+            f"→ with deterministic table extraction "
+            f"{report.interpret_table_size - len(report.interpret_missed)}"
+            f"/{report.interpret_table_size}"
             + (" (complete)" if not report.interpret_missed else
                " (missed: "
                + ", ".join(f"`{m}`" for m in report.interpret_missed) + ")"),
@@ -384,16 +408,16 @@ def render_markdown(report: Report) -> str:
         "",
     ]
     if report.pr_url:
-        flagged = len(report.pr_files) - len(report.file_missing)
-        behavior = set(report.file_behavior)
-        missed = [m for m in report.file_missing if m not in behavior]
+        flagged, total, breaking, missed = _file_score_bits(report)
+        both = (f"; {flagged}/{breaking} of the breaking changes"
+                if report.file_behavior else "")
         lines += [
             "## Ground truth (PR)",
             "",
             f"URL: {report.pr_url}",
             f"Files needing edits: precision {report.file_precision:.2f}, "
             f"recall {report.file_recall:.2f} "
-            f"({flagged}/{len(report.pr_files)} PR files flagged)",
+            f"({flagged}/{total} PR files flagged{both})",
             "Missed: "
             + (", ".join(f"`{m}`" for m in missed) or "none"),
             "Behavior changes (flagged, not predicted): "
@@ -495,11 +519,19 @@ def narrative_brief(report: Report) -> str:
             f"{u} calls {v} ({path}:{line})"
             for u, v, path, line in report.spine_evidence) + ".")
     if report.pr_url:
-        missed = ", ".join(report.file_missing) or "none"
+        flagged, total, breaking, missed = _file_score_bits(report)
+        both = (f" ({flagged}/{total} overall; {flagged}/{breaking} of "
+                "the breaking changes)" if report.file_behavior
+                else f" ({flagged}/{total})")
         lines.append(
             f"Ground-truth PR {report.pr_url}: file precision "
-            f"{report.file_precision:.2f}, recall {report.file_recall:.2f}; "
-            f"missed files: {missed}.")
+            f"{report.file_precision:.2f}, recall "
+            f"{report.file_recall:.2f}{both}; "
+            f"missed files: {', '.join(missed) or 'none'}.")
+        if report.file_behavior:
+            lines.append(
+                "Behavior-change files (flagged separately, not scored): "
+                f"{', '.join(report.file_behavior)}.")
     lines.append("Verification layers: " + "; ".join(
         f"{layer.name}: import "
         f"{'works' if layer.ok else 'fails'}, "

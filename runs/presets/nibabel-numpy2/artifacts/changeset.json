@@ -1,6 +1,9 @@
 {
   "changeset_source": "muse-spark",
   "decision": "upgrade numpy to 2.0",
+  "dropped_symbols": [],
+  "interpret_blind_hits": 6,
+  "interpret_blind_recall": 0.0967741935483871,
   "interpret_missed": [],
   "interpret_recall": 1.0,
   "interpret_table_size": 62,
@@ -180,7 +183,7 @@
       "detail": null,
       "kind": "removed",
       "quote": "find_common_type Use numpy.promote_types or numpy.result_type instead.",
-      "replacement": "numpy.promote_types",
+      "replacement": "numpy.result_type",
       "source": "guide",
       "symbol": "numpy.find_common_type",
       "verified": true
@@ -197,7 +200,7 @@
     {
       "detail": null,
       "kind": "removed",
-      "quote": "get_array_wrap",
+      "quote": "get_array_wrap float_ Use np.float64 instead.",
       "replacement": null,
       "source": "guide",
       "symbol": "numpy.get_array_wrap",
@@ -315,7 +318,7 @@
       "detail": null,
       "kind": "removed",
       "quote": "NINF Use -np.inf instead.",
-      "replacement": "numpy.inf",
+      "replacement": null,
       "source": "guide",
       "symbol": "numpy.NINF",
       "verified": true
@@ -423,7 +426,7 @@
       "detail": null,
       "kind": "removed",
       "quote": "safe_eval Use ast.literal_eval instead.",
-      "replacement": null,
+      "replacement": "ast.literal_eval",
       "source": "guide",
       "symbol": "numpy.safe_eval",
       "verified": true
@@ -504,7 +507,7 @@
       "detail": null,
       "kind": "removed",
       "quote": "source Use inspect.getsource instead.",
-      "replacement": null,
+      "replacement": "inspect.getsource",
       "source": "guide",
       "symbol": "numpy.source",
       "verified": true
@@ -588,6 +591,15 @@
       "replacement": "numpy.trapezoid",
       "source": "guide",
       "symbol": "numpy.trapz",
+      "verified": true
+    },
+    {
+      "detail": null,
+      "kind": "renamed",
+      "quote": "has been renamed to np._core .",
+      "replacement": "numpy._core",
+      "source": "guide",
+      "symbol": "numpy.core",
       "verified": true
     }
   ],

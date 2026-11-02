@@ -4,13 +4,14 @@ Target: `targets/sponsorfit` (pre-existing, analyzed by ChainReaction) | numpy: 
 
 ## Change set
 
-- `sponsorfit.llm.Provider` (rejected_value: "meta" in Provider -> Literal["anthropic","openai","ollama"])
-- `sponsorfit.llm.MeteredLLMClient._call_openai` (missing_param: base_url=https://api.meta.ai/v1 -> openai.OpenAI() with no base_url)
-- `sponsorfit.pricing.PRICING` (missing_key: PRICING["meta"]["muse-spark-1.3"] -> KeyError: no meta provider table; derived from probe)
+
+Behavior-change flags (excluded from scores):
+
+- `meta.muse_voice.transcribe`
 
 ## Prediction
 
-HARD: 0 modules | AT_RISK: 5 nodes
+HARD: 0 modules | AT_RISK: 0 nodes
 
 Predicted layer-1 chain:
 
@@ -18,9 +19,10 @@ Chain vs layer-1 actual: DIFFERS
 
 ## Verification
 
-### decision (recall 1.00)
+### decision (recall 0.00)
 
 Actual: `sponsorfit.llm`
+Missed: `sponsorfit.llm`
 ```
   File "<string>", line 8, in <module>
   File "<root>/targets/sponsorfit/src/sponsorfit/llm.py", line 78, in call
@@ -35,12 +37,12 @@ ValueError: unknown provider: meta
 
 ## Narrative
 
-You are considering switching to the Meta Model API for targets/sponsorfit. The review found no symbols flagged as broken, with zero modules currently failing, though five more are noted as at risk.
+You are considering switching the sponsorfit package to the Meta Model API. The scan found no removed functions and no modules failing, with nothing else marked at risk. The only change noted was a behavior difference in Muse voice transcription.
 
-There is no verified chain of damage to report. The worst path examined came back clean with no modules involved, and it differs from the observed failure.
+Because nothing failed, there is no verified chain of damage to report. That empty result does not match the failure you actually saw, so it does not explain what happened.
 
-Confidence in this result is limited. The check that tries to import the proposed change fails, so the clean finding cannot be fully confirmed, even though testing history shows recall at 1.00.
+Confidence in this result is very low. The check of the proposed switch breaks during import, and it missed the known problem area in sponsorfit.llm, catching none of what it should have caught.
 
-Fix the import problem first to get a clear signal, then keep close watch on those five at-risk areas in targets/sponsorfit before proceeding with the switch.
+Fix verification first. Get the import working and make sure sponsorfit.llm is actually exercised before trusting the switch, and manually test the transcription behavior as the most likely source of trouble.
 
 Claim check: ✓ clean

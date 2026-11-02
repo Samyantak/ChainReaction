@@ -1,13 +1,9 @@
 {
-  "at_risk": [
-    "sponsorfit.corpus.extract.extract_sponsors",
-    "sponsorfit.llm",
-    "sponsorfit.llm.MeteredLLMClient._call_openai",
-    "sponsorfit.llm.MeteredLLMClient.call",
-    "sponsorfit.pricing"
-  ],
+  "at_risk": [],
   "change_symbols": [],
-  "changed_symbols": [],
+  "changed_symbols": [
+    "meta.muse_voice.transcribe"
+  ],
   "deprecated_symbols": [],
   "hard": [],
   "spine": [],

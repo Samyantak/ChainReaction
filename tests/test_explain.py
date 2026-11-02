@@ -249,13 +249,58 @@ def test_build_report_separates_warnings_and_flags():
 
 def test_build_report_carries_interpret_stats():
     report = _tiny_report({"recall": 0.5, "missed": ["numpy.mat"],
-                           "table_size": 2})
+                           "table_size": 2, "blind_hits": 1,
+                           "blind_recall": 0.5})
     assert report.interpret_recall == 0.5
     assert report.interpret_table_size == 2
     assert report.interpret_missed == ["numpy.mat"]
+    assert report.interpret_blind_hits == 1
+    assert report.interpret_blind_recall == 0.5
     md = render_markdown(report)
-    assert "Removal-table recall: 0.50 (1/2)" in md
+    assert ("Removal-table recall: Muse Spark alone 1/2 → with "
+            "deterministic table extraction 1/2" in md)
     assert "numpy.mat" in md
+
+
+def _pr_report(**over):
+    from dataclasses import replace
+
+    base = Report(
+        decision="upgrade numpy to 2.0", target="t", package="nibabel",
+        numpy_version="2.0.2", change_symbols=["numpy.sctypes"],
+        hard=["nibabel"], at_risk=[], spine=["nibabel"],
+        pr_url="https://example.invalid/pr/1",
+        pr_files=[f"f{i}.py" for i in range(8)],
+        file_precision=1.0, file_recall=0.625,
+        file_missing=["nibabel/conftest.py", "nibabel/freesurfer/io.py",
+                      "nibabel/spatialimages.py"],
+        file_behavior=["nibabel/conftest.py", "nibabel/freesurfer/io.py",
+                       "nibabel/spatialimages.py"],
+        layers=[LayerResult("l1", [], [], 1.0, "", True)],
+    )
+    return replace(base, **over)
+
+
+def test_brief_and_scoreboard_read_recall_both_ways():
+    report = _pr_report()
+    brief = explain.narrative_brief(report)
+    assert "(5/8 overall; 5/5 of the breaking changes)" in brief
+    assert "missed files: none" in brief
+    assert ("Behavior-change files (flagged separately, not scored): "
+            "nibabel/conftest.py, nibabel/freesurfer/io.py, "
+            "nibabel/spatialimages.py.") in brief
+    md = render_markdown(report)
+    assert "(5/8 PR files flagged; 5/5 of the breaking changes)" in md
+    assert "Missed: none" in md
+    # A narrative citing the breaking total passes the claim check.
+    report.narrative = ("Five of 8 PR files flagged, and all 5 breaking "
+                        "ones covered.")
+    assert check_narrative(report) == []
+    # Mixed case: two true misses plus one behavior file.
+    mixed = _pr_report(file_behavior=["nibabel/conftest.py"])
+    brief = explain.narrative_brief(mixed)
+    assert "(5/8 overall; 5/7 of the breaking changes)" in brief
+    assert "missed files: nibabel/freesurfer/io.py" in brief
 
 
 def test_render_markdown_shows_narrative_claim_check():

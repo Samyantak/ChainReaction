@@ -178,6 +178,7 @@
     "numpy.compare_chararrays",
     "numpy.compat",
     "numpy.complex_",
+    "numpy.core",
     "numpy.cumproduct",
     "numpy.deprecate",
     "numpy.deprecate_with_doc",

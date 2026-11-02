@@ -182,6 +182,27 @@ def config_items(changeset: ChangeSet, verified_only: bool = True
     ]
 
 
+def drop_out_of_package_items(changeset: ChangeSet, package: str
+                              ) -> tuple[ChangeSet, list[str]]:
+    """Drop config items naming symbols outside our package.
+
+    Model-boundary sanitizer: config kinds resolve to graph nodes
+    (closed world), so a config symbol outside the package — an env
+    var, an SDK class, a model ID — can never resolve and would fail
+    propagation. Returns (kept ChangeSet, sorted dropped symbols).
+    Every other kind names external symbols and is untouched.
+    """
+    kept, dropped = [], []
+    for item in changeset.items:
+        if (item.kind in CONFIG_KINDS and item.symbol != package
+                and not item.symbol.startswith(package + ".")):
+            dropped.append(item.symbol)
+        else:
+            kept.append(item)
+    return (ChangeSet(changeset.decision, changeset.source_url, kept),
+            sorted(set(dropped)))
+
+
 class _TextExtractor(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
@@ -382,23 +403,37 @@ def interpret(decision: str, guide_text: str, source_url: str = "",
 
 def interpret_with_table(decision: str, guide_text: str, source_url: str = "",
                          removal_table=None, chat_fn=None):
-    """Model change set merged with deterministic guide-table rows.
+    """Blind model pass merged with guided pass + deterministic table rows.
 
-    Returns (ChangeSet, stats) with recall (fraction of the removal
-    table the model covered, None without a table), missed (table
-    symbols the model skipped, added deterministically), table_size,
-    and quote_misses (deterministic quotes absent from the cleaned
-    text — an extraction drift alarm). Model classification wins on
-    overlap; missed rows are added as verified items with exact row
-    quotes.
+    With a structured table the model runs twice: once blind (prose
+    only — the honest baseline) and once with the table rows to
+    confirm. Returns (ChangeSet, stats) with blind_hits / blind_recall
+    (blind coverage of the removal table), recall (guided coverage,
+    None without a table), missed (table symbols both passes skipped,
+    added deterministically), table_size, and quote_misses
+    (deterministic quotes absent from the cleaned text — an extraction
+    drift alarm). The guided pass wins kind conflicts on overlap;
+    missed rows are added as verified items with exact row quotes.
+    Without a table the single call is blind by construction.
     """
-    changeset = interpret(decision, guide_text, source_url, chat_fn,
-                          removal_table)
     table = removal_table or {"removed": [], "deprecated": []}
-    model_symbols = {i.symbol for i in changeset.items}
     rows = ([dict(r, kind="removed") for r in table.get("removed", [])]
             + [dict(r, kind="deprecated")
                for r in table.get("deprecated", [])])
+    removed = {r["symbol"] for r in table.get("removed", [])}
+    if rows:
+        blind_items = interpret(decision, guide_text, source_url,
+                                chat_fn, None).items
+        guided_items = interpret(decision, guide_text, source_url,
+                                 chat_fn, removal_table).items
+    else:
+        blind_items = guided_items = interpret(
+            decision, guide_text, source_url, chat_fn, None).items
+    guided_symbols = {i.symbol for i in guided_items}
+    blind_symbols = {i.symbol for i in blind_items}
+    model_items = guided_items + [i for i in blind_items
+                                  if i.symbol not in guided_symbols]
+    model_symbols = {i.symbol for i in model_items}
     added, quote_misses = [], []
     for row in rows:
         if row["symbol"] in model_symbols:
@@ -408,11 +443,14 @@ def interpret_with_table(decision: str, guide_text: str, source_url: str = "",
         added.append(ChangeItem(
             symbol=row["symbol"], kind=row["kind"], quote=row["quote"],
             replacement=row.get("replacement"), verified=True))
-    removed = {r["symbol"] for r in table.get("removed", [])}
-    recall = (len(model_symbols & removed) / len(removed)) if removed else None
+    recall = ((len(guided_symbols & removed) / len(removed))
+              if removed else None)
+    blind_hits = len(blind_symbols & removed)
     stats = {"recall": recall,
              "missed": sorted(removed - model_symbols),
              "table_size": len(removed),
-             "quote_misses": quote_misses}
-    return ChangeSet(changeset.decision, changeset.source_url,
-                     changeset.items + added), stats
+             "quote_misses": quote_misses,
+             "blind_hits": blind_hits,
+             "blind_recall": ((blind_hits / len(removed))
+                              if removed else None)}
+    return ChangeSet(decision, source_url, model_items + added), stats

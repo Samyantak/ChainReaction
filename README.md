@@ -26,16 +26,21 @@ a cited changelog span, or a test result.
 
 ```
 python -m venv .venv
-.venv\Scripts\activate
+.venv\Scripts\activate        # Windows (PowerShell)
+source .venv/bin/activate     # Linux / Mac (bash)
 pip install -e .[dev]
 ```
 
 ## Meta API hello-world
 
 ```
-$env:MODEL_API_KEY = "<key>"
+$env:MODEL_API_KEY = "<key>"      # Windows (PowerShell)
+export MODEL_API_KEY="<key>"      # Linux / Mac (bash)
 python scripts/meta_hello.py
 ```
+
+See `.env.example` for every variable (only the key is required, and
+only for live model calls — replay needs neither a key nor network).
 
 ## Target environments (before/after)
 
@@ -77,10 +82,12 @@ uvicorn chainreaction.web:app --port 8000
 Record (or re-record) a preset — needs the key, the target, and envs:
 
 ```
+python scripts/fetch_targets.py               # clone targets at their pins
 python scripts/record_preset.py nibabel-numpy2
 ```
 
-Replay needs only the target source at the recorded commit; test
+Replay needs only the target source at the recorded commit — fetch it
+with `scripts/fetch_targets.py`, which verifies the pin — and test
 commands come back from the recording, so no env builds are needed.
 
 ## UI skeleton (React + FastAPI)

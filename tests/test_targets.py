@@ -113,26 +113,40 @@ def test_fetch_script_rejects_wrong_commit(tmp_path, monkeypatch):
         fetch_targets.ensure_target(scenarios.get("nibabel-numpy2"), run)
 
 
-def test_pinned_scenario_uses_stub_despite_key(monkeypatch):
+def test_live_interpret_drops_out_of_package_symbols(monkeypatch):
+    import json as json_mod
+
+    from chainreaction.interpret import FetchedText
+
     monkeypatch.setattr("chainreaction.llm.has_key", lambda: True)
     scen = scenarios.get("sponsorfit-meta")
-    assert scen.live_interpret is False
     manifest = {"preset": scen.id}
-    saved = {}
-
-    def boom(*a, **k):
-        raise AssertionError("model must not be called for a pinned set")
-
-    ctx = SimpleNamespace(manifest=manifest, mode="live",
-                          state={"scenario": scen}, llm=boom, fetch=boom,
-                          emit=lambda *a, **k: None,
-                          set_manifest=manifest.update,
-                          save_artifact=lambda n, o: saved.update({n: o}))
+    saved, events = {}, []
+    guide = ("Set the base URL to https://api.meta.ai/v1 and export "
+             "MODEL_API_KEY before calling.")
+    reply = json_mod.dumps({"items": [
+        {"symbol": "MODEL_API_KEY", "kind": "missing_param",
+         "quote": "export MODEL_API_KEY before calling.",
+         "replacement": None,
+         "detail": {"expected": "x", "actual": "y", "note": None}},
+        {"symbol": "sponsorfit.llm.Provider", "kind": "rejected_value",
+         "quote": "Set the base URL to https://api.meta.ai/v1",
+         "replacement": None,
+         "detail": {"expected": "x", "actual": "y", "note": None}},
+    ]})
+    ctx = SimpleNamespace(
+        manifest=manifest, mode="live", state={"scenario": scen},
+        llm=lambda *a, **k: reply, fetch=lambda url: FetchedText(guide),
+        emit=lambda kind, payload: events.append(payload.get("message", "")),
+        set_manifest=manifest.update,
+        save_artifact=lambda n, o: saved.update({n: o}))
     stages_mod.stage_interpret(ctx)
-    assert manifest["changeset_source"] == "hand-recorded"
+    assert manifest["changeset_source"] == "muse-spark"
     assert [i["symbol"] for i in saved["changeset.json"]["items"]] == [
-        i.symbol for i in scen.stub_items]
-    assert scenarios.get("nibabel-numpy2").live_interpret is True
+        "sponsorfit.llm.Provider"]
+    assert saved["changeset.json"]["dropped_symbols"] == ["MODEL_API_KEY"]
+    assert any("dropped 1 model symbols" in e and "MODEL_API_KEY" in e
+               for e in events)
 
 
 def test_record_preset_parses_fresh_flag():

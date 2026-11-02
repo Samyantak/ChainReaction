@@ -115,6 +115,8 @@ def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
         interpret_recall=interpret_stats.get("recall"),
         interpret_table_size=interpret_stats.get("table_size", 0),
         interpret_missed=list(interpret_stats.get("missed", [])),
+        interpret_blind_hits=interpret_stats.get("blind_hits", 0),
+        interpret_blind_recall=interpret_stats.get("blind_recall"),
         change_items=[i for i in changeset.items
                       if i.kind in CONFIG_KINDS],
         hard=sorted(hard), at_risk=sorted(risky),

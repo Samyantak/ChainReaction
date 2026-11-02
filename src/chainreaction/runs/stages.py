@@ -35,6 +35,7 @@ from chainreaction.interpret import (
     changed_symbols,
     config_items,
     deprecated_symbols,
+    drop_out_of_package_items,
     interpret,
     interpret_with_table,
 )
@@ -179,18 +180,22 @@ def stage_interpret(ctx) -> None:
     if ctx.mode == "replay":
         use_model = ctx.manifest.get("changeset_source") == "muse-spark"
     else:
-        use_model = llm_mod.has_key() and scen.live_interpret
+        use_model = llm_mod.has_key()
+    dropped: list[str] = []
     if use_model:
         guide_text = ctx.fetch(guide_url)
         changeset, stats = interpret_with_table(
             decision, guide_text, guide_url,
             guide_text.removal_table, chat_fn=ctx.llm)
+        changeset, dropped = drop_out_of_package_items(changeset,
+                                                       scen.package)
         ctx.set_manifest(changeset_source="muse-spark")
         ctx.state["interpret_stats"] = stats
         symbols = sorted(i.symbol for i in changeset.items)
-        recall = (f"; removal-table recall {stats['recall']:.2f} "
-                  f"({stats['table_size'] - len(stats['missed'])}"
-                  f"/{stats['table_size']})"
+        recall = (f"; Muse Spark alone: {stats['blind_hits']}"
+                  f"/{stats['table_size']} → with table extraction: "
+                  f"{stats['table_size'] - len(stats['missed'])}"
+                  f"/{stats['table_size']}"
                   if stats["recall"] is not None else "")
         ctx.emit("log", {"message":
                          f"interpret: {len(changeset.items)} items "
@@ -200,18 +205,20 @@ def stage_interpret(ctx) -> None:
             ctx.emit("log", {"message":
                              "warning: table quotes absent from cleaned "
                              f"text: {', '.join(stats['quote_misses'])}"})
+        if dropped:
+            ctx.emit("log", {"message":
+                             f"warning: dropped {len(dropped)} model "
+                             f"symbols outside package {scen.package}: "
+                             f"{', '.join(dropped)}"})
     else:
         changeset = _stub_changeset(decision, guide_url, scen)
         ctx.set_manifest(changeset_source="hand-recorded")
         ctx.state["interpret_stats"] = {"recall": None, "missed": [],
-                                        "table_size": 0, "quote_misses": []}
-        if ctx.mode == "live" and not scen.live_interpret:
-            reason = (f"scenario {scen.id} pins the hand-recorded set "
-                      "(code-grounded; live interpreter is guide-only)")
-        else:
-            reason = ("no MODEL_API_KEY; hand-recorded change set "
-                      "(see manifest changeset_source)")
-        ctx.emit("log", {"message": f"interpret: {reason}"})
+                                        "table_size": 0, "quote_misses": [],
+                                        "blind_hits": 0, "blind_recall": None}
+        ctx.emit("log", {"message":
+                         "interpret: no MODEL_API_KEY; hand-recorded "
+                         "change set (see manifest changeset_source)"})
     symbols = change_symbols(changeset)
     ctx.state["changeset"] = changeset
     ctx.state["symbols"] = symbols
@@ -225,6 +232,9 @@ def stage_interpret(ctx) -> None:
         "interpret_recall": stats["recall"],
         "interpret_table_size": stats["table_size"],
         "interpret_missed": stats["missed"],
+        "interpret_blind_hits": stats["blind_hits"],
+        "interpret_blind_recall": stats["blind_recall"],
+        "dropped_symbols": dropped,
         "items": [asdict(i) for i in changeset.items],
     })
 
