@@ -45,6 +45,10 @@ NOT_IN_M1 = "not in M1"
 
 
 def _git_commit(cwd: Path) -> str | None:
+    # Only the target's OWN history counts: without this guard git walks
+    # up to the ChainReaction repo and the run records the wrong SHA.
+    if not (cwd / ".git").exists():
+        return None
     try:
         proc = subprocess.run(
             ["git", "-C", str(cwd), "rev-parse", "HEAD"],

@@ -1,6 +1,10 @@
 # Target snapshots (pre-existing inputs, not part of this build)
 
-Snapshots live under `targets/` (gitignored). Pins:
+Snapshots live under `targets/` (gitignored). Each target must be a real
+checkout: the setup stage records its commit and replay refuses a
+mismatch. Fetch with e.g.
+`git clone https://github.com/nipy/nibabel.git targets/nibabel` then
+`git checkout <pin>` (detached). Pins:
 
 - **nibabel** @ `67ea9972` — per architecture doc eval section.
   - Layer 1 (verified live, numpy 2.5.4): `nibabel/casting.py:717` reads

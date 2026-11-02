@@ -46,6 +46,9 @@ def main() -> int:
         return 1
     print(f"live done: changeset={manifest.get('changeset_source')} "
           f"narrative={manifest.get('narrative_source')}")
+    if not manifest.get("resolved_commit"):
+        print("WARNING: target has no git provenance; replay cannot "
+              "verify the commit")
     dest = store.preset_dir(preset)
     if dest.exists():
         shutil.rmtree(dest)
