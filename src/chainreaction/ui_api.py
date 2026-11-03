@@ -507,7 +507,8 @@ def ui_graph(run_id: str, full: bool = False) -> dict:
     at_risk = set(prediction.get("at_risk") or [])
     spine = list(prediction.get("spine") or [])
     impacted = {n for n in hard | at_risk | set(spine)
-                if graph.nodes.get(n, {}).get("kind") == "module"}
+                if graph.nodes.get(n, {}).get("kind")
+                in ("module", "function", "class")}
     modules = {
         n: {"status": "HARD" if n in hard else "AT_RISK",
             "file": graph.nodes[n].get("file")}

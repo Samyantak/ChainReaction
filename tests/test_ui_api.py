@@ -526,6 +526,54 @@ def test_graph_endpoint_clusters_and_full(tmp_path, monkeypatch):
         assert full["clusters"] == []
 
 
+def test_graph_endpoint_function_nodes(tmp_path, monkeypatch):
+    """Function-level AT_RISK hits render instead of an empty canvas.
+
+    Regression for aiohttp-jinja2 ("showing 0 of 2"): the prediction
+    names functions, so the graph must include function nodes, not
+    just modules.
+    """
+    import json
+    import shutil
+
+    from chainreaction import ui_api
+    from chainreaction.runs.scrub import ROOT
+
+    ui_api.cached_repo_graph.cache_clear()
+    target = ROOT / "workspaces" / "_test_graph_fn"
+    if target.exists():
+        shutil.rmtree(target)
+    pkg = target / "mypkg"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("")
+    (pkg / "helpers.py").write_text(
+        "def static_url():\n    return 1\n\n"
+        "def url_for():\n    return 2\n")
+    runs = tmp_path / "runs"
+    art = runs / "presets" / "gx" / "artifacts"
+    art.mkdir(parents=True)
+    (runs / "presets" / "gx" / "manifest.json").write_text(
+        json.dumps({"status": "done", "decision": "do X"}))
+    (art / "prediction.json").write_text(json.dumps({
+        "hard": [], "at_risk": ["mypkg.helpers.static_url",
+                               "mypkg.helpers.url_for"],
+        "spine": [], "spine_evidence": []}))
+    (art / "report.json").write_text(json.dumps(
+        {"target": "workspaces/_test_graph_fn", "package": "mypkg"}))
+    monkeypatch.setenv("CHAINREACTION_RUNS_DIR", str(runs))
+    try:
+        body = client.get("/api/runs/preset:gx/graph").json()
+        assert body["tiles"] == []
+        assert body["counts"]["at_risk"] == 2
+        assert body["counts"]["shown"] == 2
+        assert {n["id"] for n in body["nodes"]} == {
+            "mypkg.helpers.static_url", "mypkg.helpers.url_for"}
+        assert all(n["status"] == "AT_RISK" for n in body["nodes"])
+    finally:
+        shutil.rmtree(target, ignore_errors=True)
+        ui_api.cached_repo_graph.cache_clear()
+
+
 def test_graph_endpoint_no_prediction_404(tmp_path, monkeypatch):
     import json
 

@@ -369,7 +369,7 @@ export default function GraphView({ runId }) {
       <h2>Prediction graph</h2>
       {data.tiles.length === 0 && (
         <p className="view-empty">
-          No import chain — nothing breaks at import. {data.counts.at_risk} modules at risk below.
+          No import chain — nothing breaks at import. {data.counts.at_risk} items at risk below.
         </p>
       )}
       <DominoTiles

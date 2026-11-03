@@ -1,6 +1,7 @@
 import React from 'react'
 import { useApi, useOptionalJson, useText } from '../api'
 import { Chip, DimensionRule, Sheet, Status } from '../components'
+import { describeMatch, describeVersions } from '../verifyUtils'
 import '../verify.css'
 
 /* Mirror of stages._artifact_slug: probe "layer2 (peeled)" lives at
@@ -189,6 +190,7 @@ function FailureGroups({ scores }) {
 export default function VerifyView({ runId }) {
   const { data: report, error } = useApi(`/api/runs/${runId}/artifacts/report.json`)
   const scores = useOptionalJson(`/api/runs/${runId}/artifacts/scores.json`)
+  const envs = useOptionalJson(`/api/runs/${runId}/artifacts/envs.json`)
 
   if (error) {
     return (
@@ -218,6 +220,8 @@ export default function VerifyView({ runId }) {
   const beforeLayer = layers.find((l) => (l.name || '').toLowerCase().startsWith('before'))
   const afterLayers = layers.filter((l) => l !== beforeLayer)
   const firstAfter = afterLayers[0]
+  const versions = describeVersions(report, envs)
+  const match = describeMatch(report.spine_match, firstAfter)
   const baselineFailed = scores?.baseline_failed
   const excluded = Array.isArray(baselineFailed) ? baselineFailed.length : baselineFailed ?? null
   const warnings = []
@@ -232,7 +236,7 @@ export default function VerifyView({ runId }) {
       <div className="sheet-grid env-grid">
         <EnvSheet
           title="BEFORE"
-          version={report.before_numpy}
+          version={versions.before}
           layer={beforeLayer}
           counts={scores?.baseline_counts}
           excluded={null}
@@ -242,7 +246,7 @@ export default function VerifyView({ runId }) {
         />
         <EnvSheet
           title="AFTER"
-          version={report.numpy_version}
+          version={versions.after}
           layer={firstAfter}
           counts={scores?.after_counts}
           excluded={excluded}
@@ -251,17 +255,23 @@ export default function VerifyView({ runId }) {
           emptyCounts={emptyCounts}
         />
       </div>
-      {!beforeLayer && !report.before_numpy && (
+      {!beforeLayer && !versions.before && (
         <p className="view-empty">No before environment recorded for this run (decision probe).</p>
       )}
 
       <section>
         <h3>
           Predicted vs actual chain{' '}
-          {report.spine_match != null && (
-            <Status tone={report.spine_match ? 'ok' : 'flag'} text={report.spine_match ? 'MATCH' : 'DIFFER'} />
-          )}
+          {match === 'match' && <Status tone="ok" text="MATCH" />}
+          {match === 'differ' && <Status tone="flag" text="DIFFER" />}
+          {match === 'not-compared' && <Status tone="mute" text="NOT COMPARED" />}
         </h3>
+        {match === 'not-compared' && (
+          <p className="view-empty">
+            The after import failed without a captured target chain, so there is nothing to
+            compare the prediction against.
+          </p>
+        )}
         <Sheet>
           <div className="layer-row">
             <span className="layer-label">predicted</span>
