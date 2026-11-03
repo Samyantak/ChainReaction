@@ -202,6 +202,48 @@ def test_detect_test_command_and_extras(tmp_path):
     assert reqs == ["requirements-test.txt"]
 
 
+def test_detect_test_extras_tox_and_requirements_dir(tmp_path):
+    from chainreaction.generic import _install_args, _tox_test_deps
+
+    (tmp_path / "requirements").mkdir()
+    (tmp_path / "requirements" / "tests.txt").write_text(
+        "pytest==7.4.0\n", encoding="utf-8")
+    (tmp_path / "requirements" / "tests.in").write_text(
+        "pytest\n", encoding="utf-8")
+    (tmp_path / "tox.ini").write_text(
+        "[testenv]\ndeps =\n"
+        "    -r requirements/tests.txt\n"
+        "    pytest-asyncio\n"
+        "    min: -r requirements/tests-min.txt\n"
+        "    -e .\n",
+        encoding="utf-8")
+    extras, reqs = detect_test_extras(tmp_path)
+    assert extras == []
+    # Compiled .txt wins over .in; factor lines and -e never surface.
+    assert reqs == ["requirements/tests.txt"]
+    specs, refs = _tox_test_deps(tmp_path)
+    assert specs == ["pytest-asyncio"]
+    assert refs == ["requirements/tests.txt"]
+    _pkg(tmp_path, "demo")
+    info = detect_project(tmp_path)
+    assert info.test_specs == ["pytest-asyncio"]
+    assert "pytest-asyncio" in _install_args(info)
+    # Missing -r targets drop silently.
+    (tmp_path / "tox.ini").write_text(
+        "[testenv]\ndeps = -r requirements/gone.txt\n", encoding="utf-8")
+    assert detect_test_extras(tmp_path)[1] == ["requirements/tests.txt"]
+
+
+def test_addopts_cov_keeps_pytest_cov_in_after_env():
+    from chainreaction.generic import (
+        ProjectInfo, TEST_TOOLING, after_tooling)
+
+    info = ProjectInfo(package="demo", pytest_addopts="--cov=demo")
+    assert after_tooling(info) == TEST_TOOLING
+    plain = ProjectInfo(package="demo")
+    assert after_tooling(plain) == ["pytest"]
+
+
 def test_detect_project_end_to_end(tmp_path):
     _pkg(tmp_path, "full")
     (tmp_path / "pyproject.toml").write_text(
@@ -758,6 +800,158 @@ def test_build_envs_pins_before_line_on_from_version(tmp_path, monkeypatch):
     assert any("numpy==1.26.*" in c for c in before_cmds)
     assert not any("numpy==1.26.*" in c for c in after_cmds)
     assert record["decision"]["from_version"] == "1.26"
+
+
+def test_install_requires_specs_sources(tmp_path):
+    from chainreaction.generic import install_requires_specs
+
+    assert install_requires_specs(tmp_path) is None
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\ndependencies = ["a>=1"]\n', encoding="utf-8")
+    assert install_requires_specs(tmp_path) == ["a>=1"]
+    (tmp_path / "setup.cfg").write_text(
+        "[options]\ninstall_requires =\n    b\n    c  # pinned\n",
+        encoding="utf-8")
+    # pyproject wins while present.
+    assert install_requires_specs(tmp_path) == ["a>=1"]
+    (tmp_path / "pyproject.toml").unlink()
+    assert install_requires_specs(tmp_path) == ["b", "c"]
+    (tmp_path / "setup.cfg").unlink()
+    (tmp_path / "setup.py").write_text(
+        "setup(name='x', install_requires=['d'])\n", encoding="utf-8")
+    assert install_requires_specs(tmp_path) == ["d"]
+
+
+def _dep_only_ctx(tmp_path, monkeypatch):
+    import chainreaction.generic as generic_mod
+    from chainreaction.generic import ProjectInfo
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(generic_mod, "ROOT", tmp_path)
+    ws_rel = "workspaces/w"
+    (tmp_path / ws_rel).mkdir(parents=True)
+    (tmp_path / ws_rel / "setup.py").write_text(
+        "setup(name='w', install_requires=['dep>=2'])\n", encoding="utf-8")
+    seen = []
+
+    def run_cmd(cmd, cwd=".", env_name=None, timeout=900, tool=None):
+        if cmd[:3] == ["uv", "pip", "install"]:
+            seen.append(list(cmd))
+            if "." in cmd:
+                return SimpleNamespace(returncode=1, stdout="", stderr="boom",
+                                       missing=None, timed_out=False)
+        return SimpleNamespace(returncode=0, stdout="", stderr="",
+                               missing=None, timed_out=False)
+
+    ctx, _ = _generic_ctx({"preset": None, "mode": "live"}, run_cmd)
+    info = ProjectInfo(package="demopkg", python_version="3.11",
+                       test_command=["pytest", "-q"], has_suite=True)
+    return ctx, info, seen, ws_rel
+
+
+def test_best_effort_falls_back_to_dependencies_only(tmp_path, monkeypatch):
+    import chainreaction.generic as generic_mod
+
+    ctx, info, seen, ws_rel = _dep_only_ctx(tmp_path, monkeypatch)
+    ok, skipped = generic_mod._install_best_effort(
+        ctx, ws_rel, "w/before", info, [], ["."], [])
+    assert (ok, info.editable) == (True, False)
+    assert any("dep>=2" in c for c in seen)
+    # Without static deps the lead stays fatal.
+    (tmp_path / ws_rel / "setup.py").unlink()
+    info.editable = True
+    ok, _ = generic_mod._install_best_effort(
+        ctx, ws_rel, "w/before", info, [], ["."], [])
+    assert (ok, info.editable) == (False, True)
+
+
+def test_best_effort_dep_only_keeps_anchor(tmp_path, monkeypatch):
+    import chainreaction.generic as generic_mod
+
+    ctx, info, seen, ws_rel = _dep_only_ctx(tmp_path, monkeypatch)
+    ok, _ = generic_mod._install_best_effort(
+        ctx, ws_rel, "w/after", info, [], ["numpy==2.0.2", "."],
+        ["numpy==2.0.2"], before_freeze={},
+        anchor=["numpy==2.0.2"])
+    assert (ok, info.editable) == (True, False)
+    # The decision pin lands on its own, without the repo build.
+    assert any("numpy==2.0.2" in c and "." not in c for c in seen)
+
+
+def test_detect_project_checkout_pythonpath(tmp_path):
+    _pkg(tmp_path, "flat")
+    assert detect_project(tmp_path).pythonpath == ""
+    (tmp_path / "flat").rename(tmp_path / "flat-disabled")
+    _pkg(tmp_path, "deep", src_layout=True)
+    got = detect_project(tmp_path, package_override="deep")
+    assert (got.package, got.pythonpath) == ("deep", "src")
+
+
+def test_build_envs_drops_blocking_floored_pin(tmp_path, monkeypatch):
+    import chainreaction.generic as generic_mod
+    import json as json_mod
+    from types import SimpleNamespace
+
+    before_txt = "numpy==1.26.4\nscipy==1.11.0\n"
+    after_txt = "numpy==2.0.2\nscipy==1.14.0\n"
+    freezes = {"before": [before_txt] * 3, "after": [after_txt] * 4}
+    installs = []
+    uv = _uv_fake(tmp_path, [])
+
+    def fail(stderr):
+        return SimpleNamespace(returncode=1, stdout="", stderr=stderr,
+                               missing=None)
+
+    def run_cmd(cmd, cwd=".", env_name=None, timeout=900, tool=None):
+        if cmd[0] == "git":
+            return SimpleNamespace(returncode=0, stdout="", stderr="",
+                                   missing=None)
+        if cmd[:3] == ["uv", "pip", "install"]:
+            installs.append((env_name, list(cmd)))
+            if "--constraint" in cmd:
+                n = len([i for i in installs if "--constraint" in i[1]])
+                if n == 1:
+                    return fail("Because demopkg depends on scipy==1.11.0, "
+                                "requirements are unsatisfiable")
+                if n == 2:
+                    return fail("Because demopkg depends on scipy>=1.11.0, "
+                                "requirements are unsatisfiable")
+            return SimpleNamespace(returncode=0, stdout="", stderr="",
+                                   missing=None)
+        if len(cmd) > 2 and cmd[1] == "-c" and "importlib.metadata" \
+                in cmd[2]:
+            role = "after" if (env_name or "").endswith("/after") \
+                else "before"
+            return SimpleNamespace(returncode=0,
+                                   stdout=freezes[role].pop(0), stderr="",
+                                   missing=None)
+        hit = uv(cmd, env_name)
+        assert hit is not None, f"unexpected cmd: {cmd}"
+        return hit
+
+    ctx, saved, decision, info = _env_ctx(tmp_path, monkeypatch, run_cmd)
+    messages = []
+    ctx.emit = lambda t, d: messages.append(d["message"])
+    record = generic_mod.build_envs(
+        ctx, key="acme__demo@aaaaaaaaaaaa", ws_rel="workspaces/w",
+        info=info, decision=decision, commit_date="2023-05-01", sha=SHA)
+    assert record["conflict"] is None
+    assert record["dropped_pins"] == ["scipy"]
+    assert record["collateral"]["scipy"] == {"before": "1.11.0",
+                                             "after": "1.14.0"}
+    assert any("drop scipy" in m for m in messages)
+    assert (tmp_path / "workspaces" / "w"
+            / ".chainreaction-after-constraints.txt").read_text(
+                encoding="utf-8") == ""
+    marker = json_mod.loads(
+        (tmp_path / "envs" / "acme__demo@aaaaaaaaaaaa" / "after"
+         / ".chainreaction.json").read_text(encoding="utf-8"))
+    assert marker["dropped_pins"] == ["scipy"]
+    # Reuse carries the recorded drops.
+    again = generic_mod.build_envs(
+        ctx, key="acme__demo@aaaaaaaaaaaa", ws_rel="workspaces/w",
+        info=info, decision=decision, commit_date="2023-05-01", sha=SHA)
+    assert again["dropped_pins"] == ["scipy"]
 
 
 def test_build_envs_conflict_is_a_finding(tmp_path, monkeypatch):

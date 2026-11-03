@@ -94,6 +94,12 @@ class ProjectInfo:
     has_suite: bool = True
     test_extras: list[str] = field(default_factory=list)
     test_requirements: list[str] = field(default_factory=list)
+    # Bare dependency specs outside extras/files (tox.ini deps lines).
+    test_specs: list[str] = field(default_factory=list)
+    # False when the repo itself could not be built: tests run from the
+    # checkout with pythonpath on PYTHONPATH instead of site-packages.
+    editable: bool = True
+    pythonpath: str = ""
     pytest_addopts: str = ""
     pytest_required_plugins: str = ""
 
@@ -243,6 +249,63 @@ def _read_requires_python(root: Path) -> str:
             pass
     parts.append(_setup_py_static(root)[1])
     return ",".join(p.strip() for p in parts if p and p.strip())
+
+
+def _strip_inline_comment(line: str) -> str:
+    """Pip-style comment strip (# preceded by start or whitespace)."""
+    return re.sub(r"(^|\s+)#.*$", "", line).strip()
+
+
+def install_requires_specs(root: str | Path) -> list[str] | None:
+    """install_requires without executing: pyproject, setup.cfg, setup.py.
+
+    None when no source declares any (dependency-only install
+    impossible); [] when a source declares an empty list.
+    """
+    root = Path(root)
+    try:
+        import tomllib
+    except ImportError:  # pragma: no cover
+        tomllib = None  # type: ignore
+    if tomllib is not None:
+        path = root / "pyproject.toml"
+        if path.is_file():
+            try:
+                data = tomllib.loads(path.read_text(encoding="utf-8"))
+            except Exception:
+                data = {}
+            deps = data.get("project", {}).get("dependencies")
+            if isinstance(deps, list) and all(isinstance(d, str)
+                                              for d in deps):
+                return list(deps)
+    cfg = root / "setup.cfg"
+    if cfg.is_file():
+        parser = configparser.ConfigParser(interpolation=None)
+        try:
+            parser.read(cfg, encoding="utf-8")
+            raw = parser.get("options", "install_requires", fallback="")
+        except (OSError, configparser.Error):
+            raw = ""
+        if raw.strip():
+            return [_strip_inline_comment(ln) for ln in raw.splitlines()
+                    if _strip_inline_comment(ln)]
+    reqs, _ = _setup_py_static(root)
+    return reqs
+
+
+def _checkout_pythonpath(root: Path, package: str) -> str:
+    """PYTHONPATH making the checkout importable: src layout needs it.
+
+    Flat layouts import from the pytest cwd already, so "" there.
+    """
+    top = (package or "").split(".")[0]
+    if not top:
+        return ""
+    if (root / top).is_dir():
+        return ""
+    if (root / "src" / top).is_dir():
+        return "src"
+    return ""
 
 
 def _normalize(name: str) -> str:
@@ -414,6 +477,46 @@ def detect_test_command(root: str | Path) -> tuple[list[str], bool]:
     return [], False
 
 
+_TOX_FACTOR_RE = re.compile(r"^[A-Za-z0-9_!.]+\s*:(?![/])")
+
+
+def _tox_test_deps(root: Path) -> tuple[list[str], list[str]]:
+    """(bare specs, -r files) from tox.ini [testenv] deps.
+
+    Factor-conditional lines (`py311: ...`) are skipped (we run plain
+    pytest, not tox envs); -r references resolve against the repo root
+    ({toxinidir} prefix stripped) and only existing files are kept;
+    other unresolvable lines (env substitution, extra flags) drop.
+    """
+    specs: list[str] = []
+    refs: list[str] = []
+    path = root / "tox.ini"
+    if not path.is_file():
+        return specs, refs
+    parser = configparser.ConfigParser(interpolation=None)
+    try:
+        parser.read(path, encoding="utf-8")
+        raw = parser.get("testenv", "deps", fallback="")
+    except (OSError, configparser.Error):
+        return specs, refs
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if _TOX_FACTOR_RE.match(line):
+            continue
+        if line.startswith("-r"):
+            ref = line[2:].strip().split("#", 1)[0].strip()
+            ref = re.sub(r"^\{toxinidir\}/?", "", ref).replace("\\", "/")
+            if ref and "{" not in ref and (root / ref).is_file():
+                refs.append(ref)
+            continue
+        if line.startswith("-") or "{" in line:
+            continue
+        specs.append(line)
+    return specs, refs
+
+
 def detect_test_extras(root: str | Path) -> tuple[list[str], list[str]]:
     """(extras subset, requirements files) for installing test deps."""
     root = Path(root)
@@ -439,7 +542,19 @@ def detect_test_extras(root: str | Path) -> tuple[list[str], list[str]]:
                 "requirements_test*.txt", "requirements_dev*.txt"):
         for hit in sorted(root.glob(pat)):
             req_files.append(hit.name)
-    return extras, req_files
+    _, tox_refs = _tox_test_deps(root)
+    req_files.extend(tox_refs)
+    for stem in ("tests", "test"):
+        txt, versus_in = f"requirements/{stem}.txt", f"requirements/{stem}.in"
+        if (root / txt).is_file():
+            req_files.append(txt)  # compiled pins over loose specs
+        elif (root / versus_in).is_file():
+            req_files.append(versus_in)
+    deduped: list[str] = []
+    for found in req_files:
+        if found not in deduped:
+            deduped.append(found)
+    return extras, deduped
 
 
 def _opt_text(value) -> str:
@@ -532,12 +647,15 @@ def detect_project(root: str | Path, package_override: str = "",
     requires = _read_requires_python(root)
     cmd, has_suite = detect_test_command(root)
     extras, req_files = detect_test_extras(root)
+    test_specs, _ = _tox_test_deps(root)
     addopts, required = _pytest_options(root)
     return ProjectInfo(
         package=package, package_candidates=others,
         python_version=pick_python_version(requires, commit_date),
         requires_python=requires, test_command=cmd, has_suite=has_suite,
         test_extras=extras, test_requirements=req_files,
+        test_specs=test_specs,
+        pythonpath=_checkout_pythonpath(root, package),
         pytest_addopts=addopts, pytest_required_plugins=required)
 
 
@@ -866,7 +984,7 @@ TEST_TOOLING = ["pytest", "coverage>=7", "pytest-cov"]
 # Bump when the after-build procedure changes env contents for identical
 # inputs (relaxation, drops): stale after envs must rebuild, and the
 # spec hash is the only mechanism that notices.
-AFTER_BUILD_REV = "floor1"
+AFTER_BUILD_REV = "drop1"
 
 
 def after_tooling(info: ProjectInfo) -> list:
@@ -1138,6 +1256,7 @@ def _install_args(info: ProjectInfo, tooling: list | None = None) -> list:
         args = ["."]
     for req in info.test_requirements:
         args += ["-r", req]
+    args += list(info.test_specs)
     return args + list(tooling if tooling is not None else TEST_TOOLING)
 
 
@@ -1233,8 +1352,11 @@ def _install_best_effort(ctx, ws_rel: str, env_name: str, info: ProjectInfo,
                          ) -> tuple[bool, list]:
     """Per-unit install; returns (ok, skipped specs).
 
-    The repo itself (lead_args) is fatal: False means the caller should
-    fail (InstallFailed before, dependency-conflict after). Test-only
+    The repo itself (lead_args) is fatal, except a "." lead whose static
+    install_requires is known: then dependencies install without the
+    repo and tests run from the checkout (info.editable False). False
+    means the caller should fail (InstallFailed before,
+    dependency-conflict after). Test-only
     units that cannot build (memray on Windows) are skipped with a
     loud warning and recorded, so one hostile extra cannot sink a run.
     With before_freeze (after envs), each unit installs pinned to its
@@ -1346,9 +1468,37 @@ def _install_best_effort(ctx, ws_rel: str, env_name: str, info: ProjectInfo,
             return
         attempt([spec, *anchor], False, spec)
 
+    def dep_only_retry() -> bool:
+        """Install dependencies without building the repo itself.
+
+        Ancient setuptools cannot build under --exclude-newer; the run
+        continues with tests importing from the checkout (PYTHONPATH).
+        True when the run can continue.
+        """
+        if "." not in lead_args:
+            return False
+        dep_specs = install_requires_specs(ROOT / ws_rel)
+        if dep_specs is None:
+            return False
+        anchor_only = [a for a in lead_args if a != "."]
+        if anchor_only:
+            ok, _ = attempt(anchor_only, False, " ".join(anchor_only))
+            if not ok:
+                skipped.pop()
+                return False
+        ctx.emit("log", {"message":
+                         "warning: repo build failed; installing "
+                         f"{len(dep_specs)} dependencies only "
+                         "(tests run from the checkout)"})
+        for spec in dep_specs:
+            attempt_unit(spec)
+        info.editable = False
+        return True
+
     _, fatal = attempt(lead_args, True, "")
     if fatal:
-        return False, skipped
+        if not dep_only_retry():
+            return False, skipped
     for pkg in tools:
         if before_freeze is None:
             _, fatal = attempt([pkg], pkg == "pytest", pkg)
@@ -1364,6 +1514,8 @@ def _install_best_effort(ctx, ws_rel: str, env_name: str, info: ProjectInfo,
     else:
         for spec in specs:
             attempt_unit(spec)
+    for spec in info.test_specs:
+        attempt_unit(spec)
     for req in info.test_requirements:
         if before_freeze is None:
             ok, _ = attempt(["-r", req], False, f"-r {req}")
@@ -1475,8 +1627,9 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
         provenance["after"] = "reused"
         ctx.emit("log", {"message": f"setup: reusing cached {after_rel}"})
         after_freeze = _freeze(ctx, after_name)
-        after_skipped = (_read_marker(ROOT / after_rel) or {}).get(
-            "skipped", [])
+        after_marker = _read_marker(ROOT / after_rel) or {}
+        after_skipped = after_marker.get("skipped", [])
+        dropped_pins = after_marker.get("dropped_pins", [])
     else:
         _make_venv(ctx, after_rel, info.python_version)
         pins = constraints_for(before_freeze, decision.package,
@@ -1486,6 +1639,7 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
         cname = ".chainreaction-after-constraints.txt"
         final_err = ""
         best_effort_tried = False
+        dropped_pins: list[str] = []
         for _attempt in range(10):
             if ctx.mode == "live":
                 _write_constraints_file(ws_rel, cname, pins)
@@ -1506,6 +1660,21 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
                                  f"setup: after constraints relax "
                                  f"{culprit} to its before floor"})
                 continue
+            if culprit is None and _is_resolver_conflict(res.stderr):
+                # A floored pin still blocks (the decision needs older):
+                # drop it so it floats; the freeze diff records the move
+                # as collateral.
+                blocked = find_conflicting_pin(
+                    res.stderr, [_pin_name(p) for p in pins
+                                 if not _pin_is_exact(p)])
+                if blocked is not None:
+                    pins[:] = [p for p in pins
+                               if _pin_name(p) != blocked]
+                    dropped_pins.append(blocked)
+                    ctx.emit("log", {"message":
+                                     f"setup: after constraints drop "
+                                     f"{blocked} (floated for the decision)"})
+                    continue
             if not best_effort_tried:
                 # No pin named: a build failure, not a resolver conflict.
                 best_effort_tried = True
@@ -1549,7 +1718,8 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
             if ctx.mode == "live":
                 _marker_path(ROOT / after_rel).write_text(
                     json.dumps({"spec_hash": after_spec_hash, "note": None,
-                                "skipped": after_skipped}),
+                                "skipped": after_skipped,
+                                "dropped_pins": dropped_pins}),
                     encoding="utf-8")
     collateral = collateral_diff(before_freeze, after_freeze,
                                  decision.package, info.package)
@@ -1574,6 +1744,7 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
                   if conflict is None else None),
         "collateral": collateral,
         "conflict": conflict,
+        "dropped_pins": dropped_pins,
         "skipped": {"before": before_skipped, "after": after_skipped},
         "decision": {"package": decision.package,
                      "to_version": decision.to_version,

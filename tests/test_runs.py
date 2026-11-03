@@ -156,6 +156,32 @@ def test_probe_adapter_parses_modules_through_scrub(tmp_runs, tmp_path):
         or "<root>" in rec["stderr"]
 
 
+def test_env_adapter_adds_pythonpath_when_not_editable(tmp_runs):
+    from types import SimpleNamespace
+
+    from chainreaction.generic import ProjectInfo
+
+    captured = {}
+
+    def run_cmd(cmd, cwd=".", env_name=None, timeout=900, tool=None,
+                extra_env=None):
+        captured.update(extra_env or {})
+        return SimpleNamespace(returncode=0, stdout="", stderr="",
+                               missing=None, timed_out=False)
+
+    ctx = RunContext(run_id="u1", manifest=_live_manifest("u1"), mode="live")
+    ctx.run_cmd = run_cmd
+    ctx.state["project"] = ProjectInfo(
+        package="demo", editable=False, pythonpath="src")
+    run = stages_mod._env_adapter(ctx, "fake-env", timeout=60)
+    run(["echo", "hi"], cwd=".", extra_env={"COLUMNS": "200"})
+    assert captured == {"COLUMNS": "200", "PYTHONPATH": "src"}
+    captured.clear()
+    ctx.state["project"] = ProjectInfo(package="demo")
+    run(["echo", "hi"], cwd=".")
+    assert captured == {}
+
+
 def test_fetch_returns_table_rows(tmp_runs):
     html = (b"<html><body><h2>Main namespace</h2>"
             b"<p>members that have been removed:</p>"

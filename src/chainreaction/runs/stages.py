@@ -80,6 +80,12 @@ def _env_adapter(ctx, env_name: str, timeout: int = 300):
     """
 
     def run(cmd, cwd, extra_env=None):
+        proj = ctx.state.get("project")
+        if (getattr(proj, "editable", True) is False
+                and getattr(proj, "pythonpath", "")):
+            # The repo never installed: import from the checkout.
+            extra_env = {**(extra_env or {}),
+                         "PYTHONPATH": proj.pythonpath}
         res = ctx.run_cmd(cmd, cwd=cwd, env_name=env_name, timeout=timeout,
                           extra_env=extra_env)
         return SimpleNamespace(
@@ -155,6 +161,11 @@ def _stage_setup_generic(ctx) -> None:
     ctx.state["scenario"] = scen
     build_envs(ctx, key=key, ws_rel=ws_rel, info=info, decision=parsed,
                commit_date=commit_date, sha=sha)
+    # Env build can flip info.editable (dependency-only fallback):
+    # re-save so project.json describes the setup outcome.
+    ctx.save_artifact("project.json", project_record(
+        info, repo_url=repo_url, ref=ref, resolved_commit=sha,
+        commit_date=commit_date, workspace=ws_rel))
     # Workspaces and envs did not exist when the run's scrubber was
     # built: refresh so <ws> placeholders map back for traceback
     # parsing (recorded bytes are unchanged — the regexes agree), pinned
