@@ -244,3 +244,124 @@ def test_artifact_preset_prefix():
     assert body["decision"] == "upgrade numpy to 2.0"
     resp = client.get("/api/runs/preset:nope/artifacts/report.json")
     assert resp.status_code == 404
+
+
+def test_build_tiles_break_to_root():
+    from chainreaction.ui_api import build_tiles
+
+    spine = ["pkg", "pkg.mid", "pkg.leaf"]
+    evidence = [["pkg", "pkg.mid", "pkg/__init__.py", 3],
+                ["pkg.mid", "pkg.leaf", "pkg/mid.py", 9],
+                ["pkg.leaf", "pkg.leaf.f", "pkg/leaf.py", 40],
+                ["pkg.leaf.f", "numpy.sctypes", "pkg/leaf.py", 37]]
+    tiles = build_tiles(spine, evidence)
+    assert [(t["module"], t["role"]) for t in tiles] == [
+        ("pkg.leaf", "decision"), ("pkg.mid", "link"), ("pkg", "root")]
+    assert (tiles[0]["file"], tiles[0]["line"]) == ("pkg/leaf.py", 37)
+    assert tiles[0]["symbol"] == "numpy.sctypes"
+    assert (tiles[1]["file"], tiles[1]["line"]) == ("pkg/__init__.py", 3)
+    assert tiles[2]["file"] is None
+    assert build_tiles([], []) == []
+    single = build_tiles(["pkg.only"], [])
+    assert [(t["module"], t["role"]) for t in single] == [("pkg.only", "decision")]
+
+
+def test_cluster_impacted_budgets_and_groups():
+    from chainreaction.ui_api import cluster_impacted
+
+    modules = {f"m{i:03d}": {"status": "HARD" if i % 3 else "AT_RISK",
+                             "file": f"m{i:03d}.py"}
+               for i in range(200)}
+    modules["pkg"] = {"status": "HARD", "file": "pkg/__init__.py"}
+    edges = [{"source": "pkg", "target": f"m{i:03d}"} for i in range(200)]
+    out = cluster_impacted(modules, edges, ["pkg"], budget=150)
+    assert len(out["nodes"]) == 150
+    assert out["nodes"][0]["id"] == "pkg"
+    total = sum(c["count"] for c in out["clusters"])
+    assert total == 201 - 150
+    # HARD-first ordering hides only AT_RISK here.
+    assert out["clusters"] == [
+        {"id": "cluster:AT_RISK", "status": "AT_RISK", "count": 51,
+         "label": "+51 more AT_RISK"}]
+    small = cluster_impacted(
+        {"a": {"status": "HARD", "file": "a.py"}}, [], ["a"])
+    assert small["clusters"] == [] and len(small["nodes"]) == 1
+
+
+def _graph_fixture(tmp_path, monkeypatch, n_modules):
+    """Tmp preset + synthetic target package with n modules."""
+    import json
+    import shutil
+
+    from chainreaction import ui_api
+    from chainreaction.runs.scrub import ROOT
+
+    ui_api.cached_repo_graph.cache_clear()
+    target = ROOT / "workspaces" / "_test_graph"
+    if target.exists():
+        shutil.rmtree(target)
+    pkg = target / "mypkg"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("from . import mod000\n")
+    for i in range(n_modules):
+        nxt = f"from . import mod{i + 1:03d}\n" if i + 1 < n_modules else ""
+        (pkg / f"mod{i:03d}.py").write_text(f"X = {i}\n{nxt}")
+    runs = tmp_path / "runs"
+    art = runs / "presets" / "gx" / "artifacts"
+    art.mkdir(parents=True)
+    (runs / "presets" / "gx" / "manifest.json").write_text(
+        json.dumps({"status": "done", "decision": "do X"}))
+    hard = ["mypkg"] + [f"mypkg.mod{i:03d}" for i in range(n_modules)]
+    (art / "prediction.json").write_text(json.dumps({
+        "hard": hard, "at_risk": [],
+        "spine": ["mypkg", "mypkg.mod000"],
+        "spine_evidence": [
+            ["mypkg", "mypkg.mod000", "mypkg/__init__.py", 1]]}))
+    (art / "report.json").write_text(json.dumps(
+        {"target": "workspaces/_test_graph", "package": "mypkg"}))
+    monkeypatch.setenv("CHAINREACTION_RUNS_DIR", str(runs))
+    try:
+        yield
+    finally:
+        shutil.rmtree(target, ignore_errors=True)
+        ui_api.cached_repo_graph.cache_clear()
+
+
+def test_graph_endpoint_small(tmp_path, monkeypatch):
+    for _ in _graph_fixture(tmp_path, monkeypatch, 3):
+        body = client.get("/api/runs/preset:gx/graph").json()
+        assert [t["module"] for t in body["tiles"]] == [
+            "mypkg.mod000", "mypkg"]
+        assert body["tiles"][0]["role"] == "decision"
+        assert body["clusters"] == []
+        assert body["counts"]["hard"] == 4
+        assert {n["id"] for n in body["nodes"]} == {
+            "mypkg", "mypkg.mod000", "mypkg.mod001", "mypkg.mod002"}
+        assert any(e["kind"] == "IMPORTS" for e in body["edges"])
+
+
+def test_graph_endpoint_clusters_and_full(tmp_path, monkeypatch):
+    for _ in _graph_fixture(tmp_path, monkeypatch, 160):
+        body = client.get("/api/runs/preset:gx/graph").json()
+        assert len(body["nodes"]) == 150
+        assert body["clusters"] == [
+            {"id": "cluster:HARD", "status": "HARD", "count": 11,
+             "label": "+11 more HARD"}]
+        assert body["truncated"] is True
+        full = client.get("/api/runs/preset:gx/graph",
+                          params={"full": "1"}).json()
+        assert len(full["nodes"]) == 161
+        assert full["clusters"] == []
+
+
+def test_graph_endpoint_no_prediction_404(tmp_path, monkeypatch):
+    import json
+
+    runs = tmp_path / "runs"
+    preset = runs / "presets" / "early"
+    preset.mkdir(parents=True)
+    (preset / "manifest.json").write_text(
+        json.dumps({"status": "running", "decision": "do X"}))
+    monkeypatch.setenv("CHAINREACTION_RUNS_DIR", str(runs))
+    resp = client.get("/api/runs/preset:early/graph")
+    assert resp.status_code == 404

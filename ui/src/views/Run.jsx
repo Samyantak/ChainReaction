@@ -3,6 +3,7 @@ import { RUN_VIEWS } from '../router'
 import { Chip, Sheet, Status, TitleBlock } from '../components'
 import { STAGES, STAGE_VIEW, VIEW_STAGE, stageStates } from '../stages'
 import { useRun } from '../useRun'
+import GraphView from './Graph'
 import '../run.css'
 
 const VIEW_TITLES = {
@@ -267,7 +268,11 @@ export default function Run({ id, view }) {
       )}
       <div className="run-body">
         <StageRail runId={id} states={states} now={now} />
-        <ViewPanel runId={id} view={view} stage={stage} state={states[stage]} events={events} />
+        {view === 'graph' ? (
+          <GraphView runId={id} />
+        ) : (
+          <ViewPanel runId={id} view={view} stage={stage} state={states[stage]} events={events} />
+        )}
       </div>
     </div>
   )

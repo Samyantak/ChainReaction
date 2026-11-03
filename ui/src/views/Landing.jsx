@@ -2,11 +2,11 @@ import React, { useState } from 'react'
 import { postJSON, useApi } from '../api'
 import { navigate } from '../router'
 import { useTheme } from '../theme'
+import { CodeBlock } from '../CodeBlock'
 import {
   Button,
   Chip,
   DimensionRule,
-  RedCircle,
   RedNote,
   Sheet,
   Status,
@@ -166,26 +166,14 @@ function CodeDrawing({ preset }) {
           </svg>
         </div>
       )}
-      <div className="sheet code-sheet">
-        <div className="code-file mono">{brk.path}</div>
-        <div className="code-lines">
-          {(src?.lines ?? []).map((l) => {
-            const isBreak = l.no === brk.line
-            return (
-              <div className={`code-line${isBreak ? ' break' : ''}`} key={l.no}>
-                <span className="code-gutter" aria-hidden="true">
-                  {isBreak ? '●' : ''}
-                </span>
-                <span className="code-num">{l.no}</span>
-                <span className="code-text">
-                  {isBreak ? <RedCircle>{l.text || ' '}</RedCircle> : l.text || ' '}
-                </span>
-              </div>
-            )
-          })}
-          {!src && <div className="code-loading">Loading source…</div>}
-        </div>
-      </div>
+      <CodeBlock
+        runId={`preset:${preset.id}`}
+        path={brk.path}
+        center={brk.line}
+        radius={6}
+        breakLine={brk.line}
+        lines={src?.lines ?? null}
+      />
       <TitleBlock
         cells={[
           ['DECISION', preset.decision],

@@ -337,12 +337,201 @@ def ui_meta_usage() -> dict:
     return {"capabilities": _scan_meta_usage(str(run_store.presets_dir()))}
 
 
-def _source_root(directory: Path, manifest: dict) -> Path:
-    """Target checkout for a run or preset recording.
+GRAPH_SHOWN_BUDGET = 150
+
+
+def build_tiles(spine: list, spine_evidence: list) -> list:
+    """Domino tiles, break side first, package root last.
+
+    The decision (red) tile carries the first-break site; link tiles
+    carry the import site that pulls them in; the root (ink) tile has
+    no single site. Missing sites come back null and the tile shows
+    the module only.
+    """
+    if not spine:
+        return []
+    first = _first_break(spine_evidence or [])
+    to_hop = {}
+    for hop in spine_evidence or []:
+        if (isinstance(hop, (list, tuple)) and len(hop) >= 4
+                and hop[1] not in to_hop):
+            to_hop[hop[1]] = hop
+    tiles = []
+    for module in reversed(spine):
+        if module == spine[-1]:
+            tiles.append({
+                "module": module, "role": "decision",
+                "file": (first or {}).get("path"),
+                "line": (first or {}).get("line"),
+                "symbol": (first or {}).get("symbol"),
+            })
+        elif module == spine[0]:
+            tiles.append({"module": module, "role": "root",
+                          "file": None, "line": None})
+        else:
+            hop = to_hop.get(module)
+            tiles.append({
+                "module": module, "role": "link",
+                "file": hop[2] if hop else None,
+                "line": hop[3] if hop else None,
+            })
+    return tiles
+
+
+def cluster_impacted(modules: dict, edges: list, main: list,
+                     budget: int = GRAPH_SHOWN_BUDGET) -> dict:
+    """Main chain + neighbors up to budget; the rest grouped by status.
+
+    Deterministic: chain order first, then HARD before AT_RISK,
+    alphabetical within. Small graphs pass through unclustered.
+    """
+    main = [m for m in main if m in modules]
+    if len(modules) <= budget:
+        ids = sorted(modules)
+        return {
+            "nodes": [_node(modules, i, i in main) for i in ids],
+            "edges": [e for e in edges
+                      if e["source"] in modules and e["target"] in modules],
+            "clusters": [],
+        }
+    adjacent = {m: False for m in main}
+    for edge in edges:
+        for end in (edge["source"], edge["target"]):
+            if end in modules and end not in adjacent:
+                adjacent[end] = True
+    neighbors = sorted(
+        (m for m in adjacent if m not in main),
+        key=lambda m: (modules[m]["status"] != "HARD", m))
+    shown = list(main) + neighbors[:max(0, budget - len(main))]
+    shown_set = set(shown)
+    hidden = sorted(set(modules) - shown_set)
+    clusters = []
+    for status in ("HARD", "AT_RISK"):
+        count = sum(1 for m in hidden if modules[m]["status"] == status)
+        if count:
+            clusters.append({
+                "id": f"cluster:{status}", "status": status,
+                "count": count, "label": f"+{count} more {status}",
+            })
+    return {
+        "nodes": [_node(modules, i, i in main) for i in shown],
+        "edges": [e for e in edges
+                  if e["source"] in shown_set and e["target"] in shown_set],
+        "clusters": clusters,
+    }
+
+
+def _node(modules: dict, module: str, on_chain: bool) -> dict:
+    info = modules[module]
+    node = {"id": module, "status": info["status"],
+            "file": info.get("file"), "chain": on_chain}
+    if info.get("tests") is not None:
+        node["tests"] = info["tests"]
+        node["tests_more"] = info.get("tests_more", 0)
+    return node
+
+
+@lru_cache(maxsize=8)
+def cached_repo_graph(target: str, package: str, commit: str | None):
+    """AST graph per target checkout (targets are pinned; restart the
+    server to pick up a re-checked-out target)."""
+    from chainreaction.graph.repo import (  # noqa: PLC0415 - lazy, heavy
+        build_graph_from_repo)
+
+    return build_graph_from_repo(ROOT / target, package)
+
+
+def _covering_tests(directory: Path) -> dict:
+    """module -> sorted test ids, from testmap.json when recorded."""
+    testmap_path = directory / run_store.ARTIFACTS / "testmap.json"
+    if not testmap_path.is_file():
+        return {}
+    try:
+        testmap = run_store.read_json(testmap_path)
+    except (ValueError, OSError):
+        return {}
+    by_module: dict[str, set] = {}
+    tests = testmap.get("tests") or {}
+    if not isinstance(tests, dict):
+        return {}
+    for test_id, mods in tests.items():
+        for mod in mods or []:
+            by_module.setdefault(mod, set()).add(test_id)
+    return {mod: sorted(ids) for mod, ids in by_module.items()}
+
+
+@router.get("/api/runs/{run_id}/graph")
+def ui_graph(run_id: str, full: bool = False) -> dict:
+    """Domino tiles + impacted module subgraph for the graph view.
+
+    `run_id` accepts a run id or `preset:<id>`; `full=1` skips
+    clustering (cluster expansion). 404 while the prediction isn't
+    written yet or the target checkout is missing.
+    """
+    try:
+        directory = run_or_preset_dir(run_id)
+    except ValueError:
+        raise HTTPException(404, f"unknown run: {run_id}") from None
+    manifest = run_store.read_json(directory / run_store.MANIFEST)
+    pred_path = directory / run_store.ARTIFACTS / "prediction.json"
+    if not pred_path.is_file():
+        raise HTTPException(404, "prediction not available yet")
+    prediction = run_store.read_json(pred_path)
+    report_path = directory / run_store.ARTIFACTS / "report.json"
+    report = run_store.read_json(report_path) if report_path.is_file() else {}
+    package = report.get("package") or manifest.get("package") or ""
+    if not package:
+        raise HTTPException(404, "prediction not available yet")
+    _source_root(directory, manifest)  # 404 unless checked out
+    target = _target_string(directory, manifest)
+    graph = cached_repo_graph(
+        target, package, manifest.get("resolved_commit"))
+    hard = set(prediction.get("hard") or [])
+    at_risk = set(prediction.get("at_risk") or [])
+    spine = list(prediction.get("spine") or [])
+    impacted = {n for n in hard | at_risk | set(spine)
+                if graph.nodes.get(n, {}).get("kind") == "module"}
+    modules = {
+        n: {"status": "HARD" if n in hard else "AT_RISK",
+            "file": graph.nodes[n].get("file")}
+        for n in impacted
+    }
+    edges = [
+        {"source": u, "target": v, "kind": d.get("kind"),
+         "file": d.get("file"), "line": d.get("line")}
+        for u, v, d in graph.edges(data=True)
+        if u in modules and v in modules
+        and d.get("kind") in ("IMPORTS", "EXECUTES_AT_IMPORT")
+    ]
+    covering = _covering_tests(directory)
+    for module, tests in covering.items():
+        if module in modules:
+            modules[module]["tests"] = tests[:15]
+            modules[module]["tests_more"] = max(0, len(tests) - 15)
+    if full:
+        clustered = cluster_impacted(modules, edges, spine,
+                                     budget=len(modules))
+    else:
+        clustered = cluster_impacted(modules, edges, spine)
+    return {
+        "tiles": build_tiles(spine, prediction.get("spine_evidence") or []),
+        "spine": spine,
+        **clustered,
+        "counts": {"hard": len(hard), "at_risk": len(at_risk),
+                   "shown": len(clustered["nodes"]),
+                   "hidden": sum(c["count"]
+                                 for c in clustered["clusters"])},
+        "truncated": bool(clustered["clusters"]),
+    }
+
+
+def _target_string(directory: Path, manifest: dict) -> str:
+    """Target dir for a run or preset, as a ROOT-relative string.
 
     Prefers the run's own record (report.json target), then the generic
-    workspace, then the pinned preset target. Confined to targets/ and
-    workspaces/; anything else is a 404, never a wider read.
+    workspace, then the pinned preset target. Unresolved on purpose:
+    the checkout may be a symlink/junction (dev worktrees), which must
+    not break the cache key or the graph build.
     """
     target = ""
     report_path = directory / run_store.ARTIFACTS / "report.json"
@@ -362,6 +551,15 @@ def _source_root(directory: Path, manifest: dict) -> Path:
             target = ""
     if not target or ".." in Path(target).parts or Path(target).is_absolute():
         raise HTTPException(404, "target checkout unknown for this run")
+    return target
+
+
+def _source_root(directory: Path, manifest: dict) -> Path:
+    """Resolved target checkout, confined to targets/ and workspaces/.
+
+    Anything else is a 404, never a wider read.
+    """
+    target = _target_string(directory, manifest)
     root = (ROOT / target).resolve()
     allowed = [(ROOT / name).resolve() for name in SOURCE_ROOTS]
     if not any(root == base or base in root.parents for base in allowed):

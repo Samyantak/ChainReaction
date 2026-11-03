@@ -1,0 +1,128 @@
+/* Prediction graph view (M6 §6): domino tiles + Cytoscape subgraph. */
+
+.graph-view { min-width: 0; }
+
+/* ---- Domino tiles ---- */
+.domino-block { margin-bottom: 16px; }
+.domino-row {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 24px 8px 28px;
+}
+.domino {
+  flex: 0 0 168px;
+  display: flex;
+  flex-direction: column;
+  background: var(--sheet);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink);
+  transform-origin: bottom right;
+  transition: transform 220ms ease-out, opacity 200ms ease-out;
+}
+.domino.upright { opacity: 0; }
+.domino.tipped { opacity: 1; transform: rotate(14deg); }
+.domino.no-motion.tipped { transform: none; }
+.domino-top {
+  font-size: 11px;
+  padding: 10px 8px;
+  word-break: break-word;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.domino-divider { border-top: 2px solid var(--ink); }
+.domino-bottom {
+  font-size: 11px;
+  padding: 10px 8px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--ink-muted);
+}
+.domino.role-decision { background: var(--btn-fill); border-color: var(--btn-fill); color: var(--btn-ink); }
+.domino.role-decision .domino-divider { border-top-color: var(--btn-ink); }
+.domino.role-decision .domino-bottom { color: var(--btn-ink); }
+.domino.role-root { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.domino.role-root .domino-divider { border-top-color: var(--paper); }
+.domino.role-root .domino-bottom { color: var(--paper); }
+.domino.selected { outline: 3px solid var(--sky-ink); outline-offset: 3px; }
+
+/* ---- Toolbar / legend ---- */
+.graph-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.legend { display: flex; gap: 12px; }
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.swatch { width: 16px; height: 16px; border: 1.5px solid var(--ink); display: inline-block; }
+.swatch.hard { border-color: var(--red); }
+.swatch.risk { background: var(--sheet); }
+.swatch.chain { background: var(--sky); }
+.filter { font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
+.graph-search {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border: var(--rule) solid var(--ink);
+  background: var(--sheet);
+  color: var(--ink);
+  border-radius: 0;
+}
+.graph-counts { font-size: 12px; color: var(--ink-muted); }
+
+/* ---- Split: canvas + panel ---- */
+.graph-split {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 0;
+  border: var(--rule) solid var(--ink);
+  background: var(--sheet);
+  min-height: 560px;
+}
+.cyto {
+  min-height: 560px;
+  border-right: var(--rule) solid var(--ink);
+  transition: opacity 300ms ease-out;
+}
+.graph-panel {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 640px;
+  min-width: 0;
+}
+.panel-module { font-size: 15px; word-break: break-all; }
+.panel-chain { margin: 12px 0; }
+.panel-chain h4, .panel-tests h4, .panel-change h4 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+  margin: 12px 0 6px;
+}
+.chain-hop { font-size: 12px; padding: 2px 0; word-break: break-all; }
+.chain-site { color: var(--sky-ink); }
+.panel-test { font-size: 11px; padding: 1px 0; word-break: break-all; }
+.panel-quote { font-style: italic; }
+
+@media (max-width: 1100px) {
+  .graph-split { grid-template-columns: 1fr; }
+  .cyto { border-right: none; border-bottom: var(--rule) solid var(--ink); min-height: 420px; }
+  .graph-panel { max-height: none; }
+}

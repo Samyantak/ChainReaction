@@ -77,34 +77,7 @@
   margin: 0 0 4px 12px;
 }
 .code-drawing .leader { width: 40px; height: 32px; flex: none; }
-.code-sheet { padding: 0; }
-.code-file {
-  font-size: 12px;
-  padding: 8px 16px;
-  border-bottom: var(--rule) solid var(--ink);
-  color: var(--sky-ink);
-}
-.code-lines {
-  padding: 12px 0;
-  overflow-x: auto;
-  font-family: "Martian Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 13px;
-  line-height: 1.7;
-}
-.code-line {
-  display: grid;
-  grid-template-columns: 28px 44px 1fr;
-  padding: 0 16px 0 0;
-  white-space: pre;
-  width: max-content;
-  min-width: 100%;
-}
-.code-gutter { text-align: center; color: var(--red); }
-.code-num { text-align: right; padding-right: 12px; color: var(--line-num); user-select: none; }
-.code-text { min-width: 0; }
-.code-line.break .code-text { color: var(--red-ink); font-weight: 700; }
-:root[data-theme="dark"] .code-line.break .code-text { color: var(--red); }
-.code-loading { padding: 0 16px; color: var(--ink-muted); font-family: inherit; }
+/* Code drawing rows live in theme.css (shared with the graph panel). */
 .code-drawing .title-block { border-top: none; }
 
 /* ---- Chain strip ---- */
@@ -199,8 +172,6 @@
   .sheets-grid { grid-template-columns: 1fr; }
   .measurements { grid-template-columns: 1fr; gap: 24px; }
   .band h2, .drawings h2 { font-size: 28px; }
-  .code-lines { font-size: 12px; }
-  .code-line { grid-template-columns: 22px 36px 1fr; }
   .title-block { font-size: 11px; }
   .title-block > .cell { padding: 6px 8px; }
 }
