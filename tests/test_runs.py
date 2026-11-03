@@ -634,3 +634,90 @@ def test_preset_replay_matches_committed(monkeypatch, tmp_path):
         "nibabel.casting",
     ]
     assert report["spine_match"] is True
+
+
+# -- generic verify: after suite runs with the conftest --
+
+def _after_runner(outputs):
+    from types import SimpleNamespace
+
+    calls = []
+
+    def run(cmd, cwd):
+        calls.append(cmd)
+        return SimpleNamespace(stdout=outputs[len(calls) - 1],
+                               timed_out=False)
+
+    return run, calls
+
+
+def test_after_suite_keeps_conftest_when_collection_succeeds():
+    run, calls = _after_runner(["1 failed, 4 passed in 0.2s\n"
+                                "FAILED t.py::x - assert\n"])
+    after, _, escalated = stages_mod._run_after_suite(
+        run, "py", "/t", "ws", None, lambda *a: None)
+    assert escalated is False
+    assert len(calls) == 1
+    assert "--noconftest" not in calls[0]
+    assert "." in calls[0]
+    assert after.total == 5
+
+
+def test_after_suite_escalates_to_noconftest_on_collapse():
+    run, calls = _after_runner(["INTERNALERROR: boom\n",
+                                "2 failed, 3 passed in 0.2s\n"
+                                "FAILED t.py::x - assert\n"
+                                "FAILED t.py::y - assert\n"])
+    after, _, escalated = stages_mod._run_after_suite(
+        run, "py", "/t", "ws", None, lambda *a: None)
+    assert escalated is True
+    assert len(calls) == 2
+    assert "--noconftest" not in calls[0]
+    assert "--noconftest" in calls[1]
+    assert after.total == 5
+
+
+def test_after_suite_warns_when_escalation_collects_nothing():
+    run, _ = _after_runner(["INTERNALERROR: boom\n", "ERROR: bad opt\n"])
+    messages = []
+    after, _, escalated = stages_mod._run_after_suite(
+        run, "py", "/t", "ws", None,
+        lambda *a: messages.append(a[1]["message"]))
+    assert escalated is True
+    assert after.total == 0
+    assert any("even without the conftest" in m for m in messages)
+
+
+def test_after_suite_timeout_raises_without_escalation():
+    from types import SimpleNamespace
+
+    calls = []
+
+    def run(cmd, cwd):
+        calls.append(cmd)
+        return SimpleNamespace(stdout="", timed_out=True)
+
+    with pytest.raises(RuntimeError, match="timed out"):
+        stages_mod._run_after_suite(run, "py", "/t", "ws", None,
+                                    lambda *a: None)
+    assert len(calls) == 1
+
+
+def test_replay_manifest_carries_generic_provenance(tmp_runs):
+    _live_manifest(
+        "src1", status="done",
+        repo_url="https://github.com/x/y", ref="abc",
+        resolved_commit="abc", commit_date="2024-01-01",
+        workspace="workspaces/x__y@abc", package="y",
+        allow_untrusted=True, decision="upgrade d to 2",
+        guide_url="https://example.com/g", guide_method="model",
+        guide_proposal_fetched=True,
+        env_provenance={"before": "built", "after": "built"})
+    replay = worker.create_run(
+        worker.RunRequest(replay_from="src1", mode="replay"))
+    manifest = store.read_json(store.run_dir(replay) / store.MANIFEST)
+    assert manifest["env_provenance"] == {"before": "built",
+                                          "after": "built"}
+    assert manifest["guide_method"] == "model"
+    assert manifest["guide_proposal_fetched"] is True
+    assert manifest["workspace"] == "workspaces/x__y@abc"

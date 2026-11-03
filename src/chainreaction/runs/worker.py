@@ -42,6 +42,8 @@ class RunRequest:
     guide_url: str | None = None
     repo_url: str | None = None
     ref: str | None = None
+    package: str | None = None
+    allow_untrusted: bool = False
 
 
 @dataclass
@@ -100,8 +102,16 @@ def create_run(req: RunRequest) -> str:
             "repo_url": req.repo_url or source.get("repo_url", ""),
             "ref": req.ref or source.get("ref", ""),
             "resolved_commit": source.get("resolved_commit"),
+            "commit_date": source.get("commit_date", ""),
+            "workspace": source.get("workspace", ""),
+            "package": req.package or source.get("package", ""),
+            "allow_untrusted": source.get("allow_untrusted", False),
             "decision": req.decision or source.get("decision", ""),
             "guide_url": req.guide_url or source.get("guide_url", ""),
+            "guide_method": source.get("guide_method", "request"),
+            "guide_proposal_fetched": source.get(
+                "guide_proposal_fetched", False),
+            "env_provenance": source.get("env_provenance", {}),
             "mode": "replay",
             "replay_from": label,
             "model": source.get("model", ""),
@@ -116,21 +126,50 @@ def create_run(req: RunRequest) -> str:
             "error": None,
         }
     else:
-        if not req.preset:
-            raise ValueError("M1 runs need preset (generic repos arrive "
-                             "in M2)")
-        try:
-            scen = scenarios.get(req.preset)
-        except KeyError:
-            raise ValueError(f"unknown preset: {req.preset!r}") from None
+        if req.preset:
+            try:
+                scen = scenarios.get(req.preset)
+            except KeyError:
+                raise ValueError(
+                    f"unknown preset: {req.preset!r}") from None
+            repo_url, ref = req.repo_url or scen.repo_url, req.ref or scen.ref
+            decision = req.decision or scen.decision
+            guide_url = req.guide_url or scen.guide_url
+            package = req.package or ""
+            allow_untrusted = False
+        elif req.repo_url and req.decision:
+            if not req.allow_untrusted:
+                raise ValueError(
+                    "non-preset repos run untrusted code; pass "
+                    "allow_untrusted=true to proceed (the README "
+                    "recommends Docker for unknown repos)")
+            from chainreaction.generic import (
+                CloneFailed,
+                parse_repo_url,
+            )
+            try:
+                parse_repo_url(req.repo_url)
+            except CloneFailed as exc:
+                raise ValueError(str(exc)) from None
+            repo_url, ref = req.repo_url, req.ref or ""
+            decision, guide_url = req.decision, req.guide_url or ""
+            package = req.package or ""
+            allow_untrusted = True
+        else:
+            raise ValueError("live runs need preset or "
+                             "repo_url + decision")
         manifest = {
             "run_id": run_id,
             "preset": req.preset,
-            "repo_url": req.repo_url or scen.repo_url,
-            "ref": req.ref or scen.ref,
+            "repo_url": repo_url,
+            "ref": ref,
             "resolved_commit": None,  # the setup stage resolves it
-            "decision": req.decision or scen.decision,
-            "guide_url": req.guide_url or scen.guide_url,
+            "commit_date": "",
+            "workspace": "",
+            "package": package,
+            "allow_untrusted": allow_untrusted,
+            "decision": decision,
+            "guide_url": guide_url,
             "mode": "live",
             "replay_from": None,
             "model": llm_mod.model_name(),

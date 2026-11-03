@@ -117,6 +117,58 @@ Replay needs only the target source at the recorded commit — fetch it
 with `scripts/fetch_targets.py`, which verifies the pin — and test
 commands come back from the recording, so no env builds are needed.
 
+## Generic runs: any public Python repo (M2)
+
+```
+POST /api/runs
+{"repo_url": "https://github.com/<owner>/<repo>", "ref": "<sha|branch>",
+ "decision": "upgrade <pkg> to <ver>", "guide_url": "<optional>",
+ "package": "<optional override>", "allow_untrusted": true}
+```
+
+The repo is cloned into a cached workspace (`workspaces/`, gitignored),
+before/after environments are built under `envs/<workspace-key>/`
+(`uv` required), and the run flows through the same stages, recordings,
+and replay as presets. Presets stay on their `targets/` path; generic
+runs are recorded the same way:
+
+```
+python scripts/record_generic.py --repo <url> --decision "<decision>" \
+    [--ref R] [--guide URL] [--record-as <preset-id>]
+```
+
+> **Unknown repos run untrusted code.** Non-preset runs require
+> `allow_untrusted: true`. Target code never sees `MODEL_API_KEY`
+> (subprocesses get an allowlisted environment), but prefer Docker for
+> repos you have not reviewed. Presets are the reviewed, guaranteed
+> path.
+
+### How the after environment is built
+
+The before env resolves the world as of the commit date
+(`--exclude-newer`), with the decided package constrained below the
+target version. The after env installs the before freeze as
+constraints plus the decided `pkg==ver`: pins hold everything else,
+and a pin the resolver blames relaxes to a `>=` floor (never
+backward, never removed), so cascades move the minimal sufficient
+set. Anything else that moves is recorded as a collateral upgrade;
+an unresolvable after env is a dependency-conflict finding, not a
+crash. Coverage tooling is dropped from the after env (after suites
+never measure it, and it can crash collection) unless the repo's own
+pytest config needs `--cov`.
+
+### Suites, scoring, replay
+
+Both suites run with the repo's own conftest (the after suite retries
+with `--noconftest` only when collection collapses). Predicted
+failing tests score against actually-new failures; tests already
+failing before the decision never count. A decision on a package the
+repo never imports finishes with a warning and skipped suites. Replay
+serves every command from the recording (no key, no network) but
+needs the source on disk at the recorded commit; artifacts are
+byte-identical. A second run of the same repo + decision reuses the
+cached workspace and envs (setup ~12 s observed).
+
 ## UI skeleton (React + FastAPI)
 
 Backend (from the repo root, `.venv` active):

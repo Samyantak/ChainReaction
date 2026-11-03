@@ -1,0 +1,5 @@
+# probe: after-import
+# ok: True
+# numpy: 2.0.2
+# modules: (none)
+## stderr

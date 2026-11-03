@@ -53,6 +53,35 @@ def test_clean_report_passes_and_renders(tmp_path):
     assert json.loads(render_json(report))["decision"] == report.decision
 
 
+def test_render_markdown_generic_extras(tmp_path):
+    _, report = _setup(tmp_path)
+    extra = {
+        "scores": {
+            "test_precision": 1.0, "test_recall": 0.5,
+            "predicted_failing": ["a.py::t1"],
+            "actual_new": ["a.py::t1", "a.py::t2"],
+            "baseline_counts": {"passed": 4, "failed": 1},
+            "after_counts": {"passed": 3, "failed": 2},
+            "unhealthy_baseline": False,
+        },
+        "collateral": {"scipy": {"before": "1.11", "after": "1.14"}},
+        "conflict": None, "untouched": False, "has_suite": True,
+    }
+    md = render_markdown(report, extra)
+    assert "## Test suites" in md
+    assert "test precision/recall: 1.00/0.50" in md
+    assert "`scipy` 1.11->1.14" in md
+    # Preset output is byte-identical with and without the parameter.
+    assert render_markdown(report) == render_markdown(report, None)
+    conflict_md = render_markdown(report, {**extra, "conflict": {
+        "package": "numpy", "to_version": "2.0.2", "detail": "nope"}})
+    assert "first domino" in conflict_md
+    untouched_md = render_markdown(
+        report, {"scores": {"suites": "skipped-untouched"},
+                 "untouched": True})
+    assert "not imported anywhere" in untouched_md
+
+
 def test_checker_catches_bogus_node_and_evidence(tmp_path):
     g, report = _setup(tmp_path)
     report.hard.append("demo.nope")

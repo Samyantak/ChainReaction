@@ -17,6 +17,10 @@ pip-ephem-*/
 # Target repos (pre-existing inputs, NOT part of this build)
 targets/
 
+# M2 generic path: cached repo checkouts (workspaces/) and before/after
+# envs under envs/<workspace-key>/{before,after} (covered by envs/)
+workspaces/
+
 # Generated reports
 reports/
 

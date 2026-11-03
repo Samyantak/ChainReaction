@@ -23,6 +23,13 @@ HOME_PLACEHOLDER = "<home>"
 TMP_PLACEHOLDER = "<tmp>"
 KEY_PLACEHOLDER = "<redacted-key>"
 
+# M2 generic path: cached repo workspaces and before/after envs share one
+# placeholder per role within a run (recordings are per-run, so no
+# ambiguity); other-machine roots are rewritten one-way (see below).
+WS_PLACEHOLDER = "<ws>"
+BEFORE_PLACEHOLDER = "<env:before>"
+AFTER_PLACEHOLDER = "<env:after>"
+
 # Environment names created by scripts/make_target_envs.py. Recognized
 # even when the envs were never built here (judges replay without them)
 # and even under a different checkout root (symlinks, other machines).
@@ -93,6 +100,54 @@ def _replace_env_token(value: str, name: str) -> str:
     return "".join(out)
 
 
+def _replace_workspace_token(value: str) -> str:
+    """Rewrite any `<abs>/workspaces/<key>/...` span to `<ws>/...`.
+
+    Same one-way foreign-root catch as _replace_env_token: local
+    workspaces are covered by exact pairs in default().
+    """
+    rx = re.compile(r"[^\s\"']*?[\\/]workspaces[\\/][^\\/\s\"']+"
+                    r"(?=[\\/]|$)")
+    out = []
+    i = 0
+    for m in rx.finditer(value):
+        if m.start() < i:
+            continue
+        out.append(value[i:m.start()])
+        k = m.end()
+        while k < len(value) and value[k] not in " \t\n\r\"'":
+            k += 1
+        out.append(WS_PLACEHOLDER + value[m.end():k].replace("\\", "/"))
+        i = k
+    out.append(value[i:])
+    return "".join(out)
+
+
+def _replace_generic_env_token(value: str) -> str:
+    """Rewrite `<abs>/envs/<key>/{before,after}/...` to the role span.
+
+    M2 envs live at envs/<workspace-key>/{before,after}; the role
+    placeholder keeps before/after tracebacks canonical across machines.
+    """
+    rx = re.compile(r"[^\s\"']*?[\\/]envs[\\/][^\\/\s\"']+[\\/](before|after)"
+                    r"(?=[\\/]|$)")
+    out = []
+    i = 0
+    for m in rx.finditer(value):
+        if m.start() < i:
+            continue
+        out.append(value[i:m.start()])
+        k = m.end()
+        while k < len(value) and value[k] not in " \t\n\r\"'":
+            k += 1
+        repl = (BEFORE_PLACEHOLDER if m.group(1) == "before"
+                else AFTER_PLACEHOLDER)
+        out.append(repl + value[m.end():k].replace("\\", "/"))
+        i = k
+    out.append(value[i:])
+    return "".join(out)
+
+
 # Windows `Lib/site-packages` vs Linux/Mac `lib/python3.x/site-packages`
 # (or bare `lib/site-packages`): collapse all so recorded tracebacks are
 # byte-identical across OSes. `/site-packages` sits outside the
@@ -120,6 +175,20 @@ class Scrubber:
             names = []
         for name in names:
             pairs.append((str(envs / name), env_placeholder(name)))
+            # M2 before/after roles win over the keyed pair by length.
+            before, after = envs / name / "before", envs / name / "after"
+            if before.is_dir():
+                pairs.append((str(before), BEFORE_PLACEHOLDER))
+            if after.is_dir():
+                pairs.append((str(after), AFTER_PLACEHOLDER))
+        workspaces = ROOT / "workspaces"
+        try:
+            ws_names = sorted(p.name for p in workspaces.iterdir()
+                              if p.is_dir())
+        except OSError:
+            ws_names = []
+        for name in ws_names:
+            pairs.append((str(workspaces / name), WS_PLACEHOLDER))
         pairs.append((str(ROOT), ROOT_PLACEHOLDER))
         try:
             home = os.path.expanduser("~")
@@ -148,6 +217,8 @@ class Scrubber:
         for needle, repl in self.replacements:
             if needle:
                 value = _replace_path_token(value, needle, repl)
+        value = _replace_generic_env_token(value)
+        value = _replace_workspace_token(value)
         for name in KNOWN_ENVS:
             value = _replace_env_token(value, name)
         value = _SITE_PACKAGES_RX.sub(r"\1/site-packages/", value)

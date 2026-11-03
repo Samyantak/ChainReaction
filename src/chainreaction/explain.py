@@ -435,7 +435,53 @@ def _file_score_bits(report: Report):
     return flagged, len(report.pr_files), flagged + len(missed), missed
 
 
-def render_markdown(report: Report) -> str:
+def _generic_test_lines(extra: dict) -> list[str]:
+    """Test-suite section for generic runs (M2 §7); [] without scores."""
+    scores = (extra or {}).get("scores") or {}
+    if not scores:
+        return []
+    lines = ["## Test suites", ""]
+    if extra.get("untouched"):
+        return lines + ["Decision package is not imported anywhere in "
+                        "this repo: empty prediction, suites skipped.", ""]
+    if not extra.get("has_suite", True):
+        return lines + ["No test suite found: import probes only.", ""]
+    if scores.get("suites") == "skipped-no-coverage":
+        lines += ["Coverage was unavailable: baseline counts only, "
+                  "no test-level scoring.", ""]
+    before = scores.get("baseline_counts") or {}
+    after = scores.get("after_counts") or {}
+    fmt = lambda c: ", ".join(f"{v} {k}" for k, v in sorted(c.items())) \
+        or "none"
+    lines += [f"- before: {fmt(before)}", f"- after: {fmt(after)}"]
+    new = scores.get("actual_new") or []
+    lines.append(f"- new failures ({len(new)}): "
+                 + (", ".join(f"`{t}`" for t in new) or "none"))
+    if scores.get("test_precision") is not None:
+        pred = scores.get("predicted_failing") or []
+        lines += [f"- predicted failing ({len(pred)}): "
+                  + (", ".join(f"`{t}`" for t in pred) or "none"),
+                  f"- test precision/recall: "
+                  f"{scores['test_precision']:.2f}/"
+                  f"{scores['test_recall']:.2f}"]
+    if scores.get("unhealthy_baseline"):
+        lines.append("- baseline is unhealthy (>20% failing before the "
+                     "decision); treat scores with care")
+    collateral = (extra or {}).get("collateral") or {}
+    if collateral:
+        lines.append("- collateral upgrades: " + ", ".join(
+            f"`{n}` {v.get('before')}->{v.get('after')}"
+            for n, v in sorted(collateral.items())))
+    conflict = (extra or {}).get("conflict")
+    if conflict:
+        lines += ["", "## Dependency conflict (first domino)", "",
+                  f"`{conflict['package']}=={conflict['to_version']}` "
+                  "does not resolve against this repo:",
+                  "```", conflict.get("detail", ""), "```"]
+    return lines + [""]
+
+
+def render_markdown(report: Report, extra: dict | None = None) -> str:
     decision = report.probe_kind == "decision"
     target_line = (f"Target: `{report.target}` "
                    "(pre-existing, analyzed by ChainReaction)")
@@ -527,6 +573,7 @@ def render_markdown(report: Report) -> str:
                or "none"),
             "",
         ]
+    lines += _generic_test_lines(extra or {})
     lines += ["## Verification", ""]
     for layer in report.layers:
         clean = "(probe ok)" if decision else "(import ok)"

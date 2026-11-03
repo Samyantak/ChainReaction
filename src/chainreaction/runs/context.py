@@ -33,6 +33,24 @@ from chainreaction.verifier import target_python
 
 ENV_PYTHON = "<env-python>"
 
+# M2 §8: target code never sees MODEL_API_KEY or any other token.
+# run_cmd passes only this allowlist (lookups, home/cache dirs, temp
+# dirs, locale). Everything else — keys, tokens, editor sessions,
+# CI variables — stays outside the subprocess.
+_SANITIZED_ENV_KEYS = (
+    "PATH", "PATHEXT", "OS",
+    "HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH",
+    "TEMP", "TMP", "TMPDIR",
+    "SYSTEMROOT", "COMSPEC", "WINDIR",
+    "LANG", "LC_ALL", "LC_CTYPE", "LANGUAGE", "TZ",
+    "PYTHONUTF8", "PYTHONIOENCODING",
+)
+
+
+def sanitized_env() -> dict:
+    """Allowlisted environment for every run_cmd subprocess."""
+    return {k: v for k, v in os.environ.items() if k in _SANITIZED_ENV_KEYS}
+
 
 class ReplayMiss(Exception):
     """A gateway call has no matching recording; replay stops here."""
@@ -240,12 +258,17 @@ class RunContext:
         # Portable across machines: the env interpreter (an absolute,
         # OS-specific path) matches by role, PATH tools match by logical
         # name (<tool:ruff>), and relative args match with forward slashes.
+        # M2: env paths in ANY arg position (uv --python <abs>) match by
+        # role too — live records <env:before>/..., replay passes
+        # <env-python:...>. Preset commands carry no such parts, so their
+        # keys are unchanged.
         parts = [self.scrubber.text(part).replace("\\", "/") for part in cmd]
         if tool is not None:
             parts[0] = f"<tool:{tool}>"
         elif env_name is not None:
             parts[0] = ENV_PYTHON
-        return tuple(parts)
+        return tuple(ENV_PYTHON if (i and part.startswith("<env")) else part
+                     for i, part in enumerate(parts))
 
     def _exec_cwd(self, cwd) -> Path:
         if os.path.isabs(str(cwd)):
@@ -257,10 +280,12 @@ class RunContext:
             return self._env_versions[env_name]
         versions: dict = {}
         try:
+            from chainreaction.generic import FREEZE_CODE
+
             exe = target_python(env_name)
             proc = subprocess.run(
-                [exe, "-m", "pip", "freeze"], capture_output=True, text=True,
-                timeout=60, cwd=str(ROOT))
+                [exe, "-c", FREEZE_CODE], capture_output=True, text=True,
+                timeout=60, cwd=str(ROOT), env=sanitized_env())
             for line in proc.stdout.splitlines():
                 if "==" in line:
                     name, _, ver = line.partition("==")
@@ -271,12 +296,16 @@ class RunContext:
         return versions
 
     def run_cmd(self, cmd, cwd=".", env_name=None, timeout=300,
-                tool: str | None = None) -> CmdResult:
+                tool: str | None = None, extra_env: dict | None = None
+                ) -> CmdResult:
         """Recorded subprocess; in replay returns the recorded result.
 
         tool= names a PATH tool ("ruff"): live resolves it to a real
         executable but records under <tool:name>; replay matches the
-        logical name and never looks the executable up.
+        logical name and never looks the executable up. extra_env=
+        adds caller-controlled variables (e.g. COVERAGE_FILE) atop the
+        sanitized allowlist; it is recorded scrubbed and ignored for
+        replay matching.
         """
         cmd = [str(part) for part in cmd]
         cwd_rel = self._cwd_key(cwd)
@@ -317,10 +346,15 @@ class RunContext:
                                  f"<tool:{tool}>", {})
             cmd = [exe, *cmd[1:]]
         try:
+            merged = sanitized_env()
+            if extra_env:
+                merged.update({str(k): str(v)
+                               for k, v in extra_env.items()})
             proc = subprocess.Popen(
                 cmd, cwd=str(self._exec_cwd(cwd)),
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 text=True, encoding="utf-8", errors="replace",
+                env=merged,
                 start_new_session=(os.name != "nt"))
         except FileNotFoundError:
             duration_ms = int((time.perf_counter() - t0) * 1000)
@@ -349,6 +383,8 @@ class RunContext:
             "returncode": proc.returncode, "stdout": out, "stderr": err,
             "duration_ms": duration_ms, "timed_out": timed_out,
             "missing": None, "started_at": started,
+            "extra_env": ({str(k): str(v) for k, v in extra_env.items()}
+                          if extra_env else {}),
         })
         self.emit("cmd", {"cmd": list(key_cmd), "cwd": cwd_rel,
                            "env_name": env_name,
@@ -400,8 +436,13 @@ class RunContext:
             status, raw = fetch_page(url, timeout)
         duration_ms = int((time.perf_counter() - t0) * 1000)
         page = decode_page(raw)
-        text = html_to_text(page)
-        table = self.scrubber.obj(extract_guide_tables(page))
+        if page.lstrip().startswith("{"):
+            # JSON APIs (PyPI): keep the body parseable, no HTML cleaning.
+            text = page.replace("\r\n", "\n").replace("\r", "\n")
+            table = {"removed": [], "deprecated": []}
+        else:
+            text = html_to_text(page)
+            table = self.scrubber.obj(extract_guide_tables(page))
         store_mod.append_jsonl(self.dir / store_mod.FETCHES, {
             "url": url, "status": status,
             "content_sha256": hashlib.sha256(raw).hexdigest(),

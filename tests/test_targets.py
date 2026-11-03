@@ -155,6 +155,37 @@ def test_live_interpret_drops_out_of_package_symbols(monkeypatch):
                for e in events)
 
 
+def test_fetch_workspace_clones_and_verifies(tmp_path, monkeypatch):
+    import json as json_mod
+
+    sha = "d" * 40
+    preset = tmp_path / "runs" / "presets" / "demo-generic"
+    preset.mkdir(parents=True)
+    (preset / "manifest.json").write_text(json_mod.dumps({
+        "preset": None, "repo_url": "https://github.com/acme/demo",
+        "resolved_commit": sha}), encoding="utf-8")
+    monkeypatch.setattr(fetch_targets, "ROOT", tmp_path)
+    assert fetch_targets._generic_pin("demo-generic") == (
+        "https://github.com/acme/demo", sha)
+    assert fetch_targets._generic_pin("missing") is None
+    calls = []
+
+    def run(cmd, cwd):
+        calls.append(cmd)
+        if cmd[1] == "clone":
+            (tmp_path / cmd[-1]).mkdir(parents=True)
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        if "rev-parse" in cmd:
+            return SimpleNamespace(returncode=0, stdout=sha + "\n",
+                                   stderr="")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    assert fetch_targets.ensure_workspace(
+        "https://github.com/acme/demo", sha, run) == sha
+    assert calls[0][:3] == ["git", "clone", "--filter=blob:none"]
+    assert calls[0][-1] == f"workspaces/acme__demo@{sha[:12]}"
+
+
 def test_record_preset_parses_fresh_flag():
     assert record_preset.parse_args(["prog", "x"]) == ("x", False)
     assert record_preset.parse_args(["prog", "x", "--fresh"]) == ("x", True)

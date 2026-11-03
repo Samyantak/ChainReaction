@@ -97,6 +97,8 @@ class CreateRunBody(BaseModel):
     preset: str | None = None
     mode: str = "live"
     replay_from: str | None = None
+    package: str | None = None
+    allow_untrusted: bool = False
 
 
 def _manifest_or_404(run_id: str) -> dict:
@@ -116,7 +118,8 @@ def create_run(body: CreateRunBody) -> dict:
             preset=body.preset, mode=body.mode,
             replay_from=body.replay_from, decision=body.decision,
             guide_url=body.guide_url, repo_url=body.repo_url,
-            ref=body.ref))
+            ref=body.ref, package=body.package,
+            allow_untrusted=body.allow_untrusted))
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from None
     run_worker.submit_run(run_id)
