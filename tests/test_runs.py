@@ -706,6 +706,36 @@ def test_api_validation(tmp_runs, monkeypatch):
         in (400, 404)
 
 
+def test_api_delete_run(tmp_runs):
+    import json
+
+    from chainreaction.runs import store as run_store
+
+    client = _client()
+    runs = tmp_runs
+    (runs / "gone").mkdir(parents=True)
+    (runs / "gone" / "manifest.json").write_text(json.dumps(
+        {"run_id": "gone", "status": "done", "decision": "do X"}))
+    (runs / "busy").mkdir(parents=True)
+    (runs / "busy" / "manifest.json").write_text(json.dumps(
+        {"run_id": "busy", "status": "running", "decision": "do Y"}))
+    (runs / "presets" / "keep").mkdir(parents=True)
+    (runs / "presets" / "keep" / "manifest.json").write_text(json.dumps(
+        {"status": "done", "decision": "preset"}))
+
+    assert client.delete("/api/runs/nope").status_code == 404
+    assert client.delete("/api/runs/presets").status_code == 400
+    assert (runs / "presets").is_dir()
+    assert client.delete("/api/runs/busy").status_code == 409
+    assert (runs / "busy").is_dir()
+
+    resp = client.delete("/api/runs/gone")
+    assert resp.status_code == 200
+    assert resp.json() == {"id": "gone", "deleted": True}
+    assert not (runs / "gone").exists()
+    assert [r["id"] for r in client.get("/api/runs").json()] == ["busy"]
+
+
 def test_api_run_and_artifact_roundtrip(tmp_runs, monkeypatch):
     _patch_fakes(monkeypatch)
     client = _client()

@@ -1,0 +1,33 @@
+/* Setup view: clone, detection, envs, baseline, log. */
+
+.setup-view section { margin-bottom: 24px; }
+.setup-view h3 { margin: 0 0 8px; }
+
+.setup-kv {
+  display: flex;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 14px;
+}
+.setup-key {
+  flex: 0 0 130px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-top: 2px;
+}
+.setup-val { min-width: 0; overflow-wrap: anywhere; }
+
+.env-grid { grid-template-columns: repeat(2, 1fr); }
+.env-card .env-pinned { font-size: 20px; font-weight: 700; margin: 4px 0 8px; }
+.env-note { font-size: 13px; color: var(--ink-muted); margin: 8px 0 0; }
+.setup-built { font-size: 12px; color: var(--ink-muted); }
+
+.collateral-row { font-size: 13px; padding: 2px 0; }
+.baseline-counts { font-size: 14px; padding: 2px 0; }
+
+@media (max-width: 720px) {
+  .env-grid { grid-template-columns: 1fr; }
+  .setup-key { flex-basis: 96px; }
+}

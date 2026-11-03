@@ -5,6 +5,8 @@ import { useTheme } from './theme'
 import { Sheet } from './components'
 import Landing from './views/Landing'
 import Run from './views/Run'
+import NewView from './views/New'
+import HistoryView from './views/History'
 
 function KeyPill() {
   const status = useStatus()
@@ -69,13 +71,13 @@ export default function App() {
       view = <Stub title={`Feature: ${route.params.id}`} step="9 (feature pages)" />
       break
     case 'new':
-      view = <Stub title="New analysis" step="7" />
+      view = <NewView />
       break
     case 'run':
       view = <Run id={route.params.id} view={route.params.view} />
       break
     case 'history':
-      view = <Stub title="History" step="7" />
+      view = <HistoryView />
       break
     default:
       view = <Stub title="Not found" step="—" />

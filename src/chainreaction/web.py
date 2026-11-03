@@ -133,9 +133,40 @@ def list_runs() -> list[dict]:
         {"id": m.get("run_id"), "decision": m.get("decision"),
          "repo": m.get("repo_url") or m.get("preset"),
          "status": m.get("status"), "created_at": m.get("created_at"),
-         "mode": m.get("mode")}
+         "finished_at": m.get("finished_at"), "mode": m.get("mode")}
         for m in run_store.list_runs()
     ]
+
+
+@app.delete("/api/runs/{run_id}")
+def delete_run(run_id: str) -> dict:
+    """Delete a local run directory (presets are not deletable).
+
+    Refuses active runs (cancel first) and anything outside runs/.
+    """
+    import shutil
+
+    if run_id == "presets":
+        raise HTTPException(400, "preset recordings cannot be deleted")
+    try:
+        directory = run_store.run_dir(run_id)
+    except ValueError:
+        raise HTTPException(404, f"unknown run: {run_id}") from None
+    manifest_path = directory / run_store.MANIFEST
+    if not manifest_path.is_file():
+        raise HTTPException(404, f"unknown run: {run_id}")
+    try:
+        manifest = run_store.read_json(manifest_path)
+    except (ValueError, OSError):
+        raise HTTPException(404, f"unknown run: {run_id}") from None
+    if manifest.get("status") in run_store.ACTIVE:
+        raise HTTPException(409, "cancel the run before deleting it")
+    resolved = directory.resolve()
+    runs_root = run_store.runs_dir().resolve()
+    if resolved == runs_root or runs_root not in resolved.parents:
+        raise HTTPException(400, f"invalid run id: {run_id!r}")
+    shutil.rmtree(resolved, ignore_errors=True)
+    return {"id": run_id, "deleted": True}
 
 
 @app.get("/api/runs/{run_id}")

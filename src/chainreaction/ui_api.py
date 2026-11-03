@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import Response
+from pydantic import BaseModel
 
 from chainreaction import __version__, llm as llm_mod
 from chainreaction.runs import store as run_store
@@ -208,6 +209,27 @@ def _parse_decision(decision: str) -> dict | None:
     if parsed is None:
         return None
     return {"package": parsed.package, "version": parsed.to_version}
+
+
+class ParseDecisionBody(BaseModel):
+    decision: str = ""
+
+
+@router.post("/api/parse-decision")
+def ui_parse_decision(body: ParseDecisionBody) -> dict:
+    """Dry-run the decision grammar for the New-analysis preview.
+
+    Returns the parsed package/from/to versions, or nulls when the
+    text matches no pattern (a free-form or vendor decision, which the
+    model interprets at run time). Never needs a key.
+    """
+    from chainreaction.generic import parse_decision  # noqa: PLC0415 - lazy
+
+    parsed = parse_decision(body.decision or "")
+    if parsed is None:
+        return {"package": None, "from_version": "", "to_version": None}
+    return {"package": parsed.package, "from_version": parsed.from_version,
+            "to_version": parsed.to_version}
 
 
 def _pr_behavior(preset_id: str, report: dict | None) -> set:

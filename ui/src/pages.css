@@ -1,0 +1,74 @@
+/* New analysis + History pages. */
+
+.new-page section,
+.history-page section { margin-bottom: 32px; }
+.new-page h3,
+.history-page h3 { margin: 0 0 12px; }
+
+.preset-grid { grid-template-columns: repeat(3, 1fr); }
+.preset-card h3 { margin: 4px 0; }
+.preset-decision { font-size: 12px; color: var(--sky-ink); margin: 0 0 8px; }
+.preset-stats { font-size: 13px; color: var(--ink-muted); margin: 0 0 12px; }
+.preset-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.replay-note { margin-top: 12px; }
+
+.custom-form { max-width: 640px; }
+.custom-form h3 { margin-top: 0; }
+.replay-only { margin: 0 0 12px; }
+
+.field { display: block; margin-bottom: 14px; }
+.field-label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+  margin-bottom: 4px;
+}
+.field input[type='text'],
+.field input[type='url'] {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  border: var(--rule) solid var(--ink);
+  border-radius: 0;
+  background: var(--sheet);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.field input:disabled { opacity: 0.6; }
+.field-error { display: block; font-size: 13px; color: var(--red-ink); margin-top: 4px; }
+.field-preview { display: block; font-size: 13px; color: var(--sky-ink); margin-top: 4px; }
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 45%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+.modal-sheet { max-width: 520px; }
+.modal-sheet h3 { margin-top: 0; }
+.modal-check { display: block; margin: 12px 0; font-size: 14px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.run-list { display: flex; flex-direction: column; }
+.run-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.run-main { flex: 1 1 320px; min-width: 0; }
+.run-decision { font-weight: 600; overflow-wrap: anywhere; }
+.run-meta { font-size: 12px; color: var(--ink-muted); margin-top: 2px; }
+.run-actions { display: flex; gap: 8px; margin-left: auto; }
+
+@media (max-width: 900px) {
+  .preset-grid { grid-template-columns: 1fr; }
+}

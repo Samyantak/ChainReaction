@@ -300,6 +300,26 @@ def test_presets_fix_headlines_when_recorded(tmp_path, monkeypatch):
         "from": "a", "symbol": "b", "path": "a.py", "line": 1}
 
 
+def test_parse_decision_versions():
+    body = client.post(
+        "/api/parse-decision",
+        json={"decision": "upgrade werkzeug from 2.2 to 3.0"}).json()
+    assert body == {"package": "werkzeug", "from_version": "2.2",
+                    "to_version": "3.0"}
+    body = client.post(
+        "/api/parse-decision",
+        json={"decision": "upgrade numpy to 2.0"}).json()
+    assert body == {"package": "numpy", "from_version": "",
+                    "to_version": "2.0"}
+    body = client.post(
+        "/api/parse-decision",
+        json={"decision": "switch to Meta Model API"}).json()
+    assert body == {"package": None, "from_version": "",
+                    "to_version": None}
+    body = client.post("/api/parse-decision", json={}).json()
+    assert body["package"] is None
+
+
 def test_main_help_and_unknown_command():
     from chainreaction.__main__ import main
 
