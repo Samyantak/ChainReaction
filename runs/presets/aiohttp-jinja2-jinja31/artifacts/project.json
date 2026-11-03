@@ -1,0 +1,25 @@
+{
+  "commit_date": "2020-11-23",
+  "editable": true,
+  "has_suite": true,
+  "package": "aiohttp_jinja2",
+  "package_candidates": [],
+  "pytest_addopts": "--cov=aiohttp_jinja2 --cov-report xml --cov-report html --cov-report term",
+  "pytest_required_plugins": "",
+  "python_version": "3.9",
+  "pythonpath": "",
+  "ref": "fd97cef408ecbe5ffe5963556459ac2591154a2a",
+  "repo_url": "https://github.com/aio-libs/aiohttp-jinja2",
+  "requires_python": ">=3.5.3",
+  "resolved_commit": "fd97cef408ecbe5ffe5963556459ac2591154a2a",
+  "test_command": [
+    "pytest",
+    "-q"
+  ],
+  "test_extras": [],
+  "test_requirements": [
+    "requirements-dev.txt"
+  ],
+  "test_specs": [],
+  "workspace": "workspaces/aio-libs__aiohttp-jinja2@fd97cef408ec"
+}

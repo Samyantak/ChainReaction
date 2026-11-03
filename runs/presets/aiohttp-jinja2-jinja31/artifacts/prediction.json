@@ -1,0 +1,34 @@
+{
+  "at_risk": [
+    "aiohttp_jinja2.helpers.static_url",
+    "aiohttp_jinja2.helpers.url_for"
+  ],
+  "change_symbols": [
+    "Context.resolve",
+    "jinja2.Context.resolve",
+    "jinja2.Markup",
+    "jinja2.autoescape",
+    "jinja2.contextfilter",
+    "jinja2.contextfunction",
+    "jinja2.environmentfilter",
+    "jinja2.environmentfunction",
+    "jinja2.escape",
+    "jinja2.evalcontextfilter",
+    "jinja2.evalcontextfunction",
+    "jinja2.ext.AutoEscapeExtension",
+    "jinja2.ext.WithExtension",
+    "jinja2.filters.unicode_urlencode",
+    "jinja2.unicode_urlencode",
+    "jinja2.with",
+    "jinja2.with_"
+  ],
+  "changed_symbols": [],
+  "deprecated_symbols": [],
+  "hard": [],
+  "probe_entries": [],
+  "spine": [],
+  "spine_evidence": [],
+  "used_symbols": [
+    "jinja2.contextfunction"
+  ]
+}

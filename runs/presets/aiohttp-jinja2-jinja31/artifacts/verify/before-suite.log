@@ -1,0 +1,17 @@
+# suite: before
+# counts: 31 passed
+# failed ids (0):
+# error files (0):
+## tail
+...............................                                                                                                                                                                  [100%]
+---------- coverage: platform win32, python 3.9.25-final-0 -----------
+Name                         Stmts   Miss Branch BrPart  Cover
+--------------------------------------------------------------
+aiohttp_jinja2\__init__.py     122      6     26      0    96%
+aiohttp_jinja2\helpers.py       35      1     10      1    96%
+aiohttp_jinja2\typedefs.py       3      0      0      0   100%
+--------------------------------------------------------------
+TOTAL                          160      7     36      1    96%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+31 passed in 0.36 seconds

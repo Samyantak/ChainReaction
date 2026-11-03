@@ -1,0 +1,5 @@
+# probe: before-import
+# ok: True
+# numpy: MISSING
+# modules: (none)
+## stderr

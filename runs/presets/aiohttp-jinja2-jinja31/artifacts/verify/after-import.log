@@ -1,0 +1,12 @@
+# probe: after-import
+# ok: False
+# numpy: MISSING
+# modules: aiohttp_jinja2 -> aiohttp_jinja2.helpers
+## stderr
+Traceback (most recent call last):
+  File "<string>", line 7, in <module>
+  File "<ws>/aiohttp_jinja2/__init__.py", line 24, in <module>
+    from .helpers import GLOBAL_HELPERS
+  File "<ws>/aiohttp_jinja2/helpers.py", line 23, in <module>
+    @jinja2.contextfunction
+AttributeError: module 'jinja2' has no attribute 'contextfunction'

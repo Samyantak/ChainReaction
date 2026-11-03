@@ -1,0 +1,39 @@
+# suite: after
+# counts: 4 errors
+# failed ids (0):
+# error files (4):
+- tests/test_context_processors.py
+- tests/test_jinja_filters.py
+- tests/test_jinja_globals.py
+- tests/test_simple_renderer.py
+## tail
+    import aiohttp_jinja2
+aiohttp_jinja2\__init__.py:24: in <module>
+    from .helpers import GLOBAL_HELPERS
+aiohttp_jinja2\helpers.py:23: in <module>
+    ???
+E   AttributeError: module 'jinja2' has no attribute 'contextfunction'
+___________________________________________________________________________ ERROR collecting tests/test_simple_renderer.py ____________________________________________________________________________
+tests\test_simple_renderer.py:8: in <module>
+    import aiohttp_jinja2
+aiohttp_jinja2\__init__.py:24: in <module>
+    from .helpers import GLOBAL_HELPERS
+aiohttp_jinja2\helpers.py:23: in <module>
+    ???
+E   AttributeError: module 'jinja2' has no attribute 'contextfunction'
+---------- coverage: platform win32, python 3.9.25-final-0 -----------
+Name                         Stmts   Miss Branch BrPart  Cover
+--------------------------------------------------------------
+aiohttp_jinja2\__init__.py     104     95     26      0     7%
+aiohttp_jinja2\helpers.py       35     25     10      1    24%
+aiohttp_jinja2\typedefs.py       3      3      0      0     0%
+--------------------------------------------------------------
+TOTAL                          142    123     36      1    11%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+======================================================================================= short test summary info =======================================================================================
+ERROR tests/test_context_processors.py
+ERROR tests/test_jinja_filters.py
+ERROR tests/test_jinja_globals.py
+ERROR tests/test_simple_renderer.py
+4 error in 0.31 seconds

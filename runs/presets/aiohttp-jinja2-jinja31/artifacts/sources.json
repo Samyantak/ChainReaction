@@ -1,0 +1,37 @@
+{
+  "from_version": "2.11.2",
+  "package": "jinja2",
+  "sources": [
+    {
+      "bytes": 78076,
+      "clean": "text",
+      "found_via": "pypi_meta",
+      "note": "",
+      "sha256": "f944a0ab4808f42bd0523158b2a78d2638eee650f664ccd9a9a3d6630a298bd4",
+      "url": "https://pypi.org/pypi/jinja2/json",
+      "used": true
+    },
+    {
+      "bytes": 104020,
+      "clean": "text",
+      "found_via": "search",
+      "note": "",
+      "sha256": "9a2c519b487bb96a25ff4021bf0534c9a2fd55708792d8aa1aee56463c58e7f5",
+      "url": "https://jinja.palletsprojects.com/en/stable/changes/",
+      "used": true
+    },
+    {
+      "bytes": 449657,
+      "clean": "text",
+      "found_via": "search",
+      "note": "",
+      "sha256": "0b5d419693737dd76596db3a0c386fa0d4a39d383cd27d1dc6118cf3a5a2122d",
+      "url": "https://github.com/pallets/jinja/blob/main/CHANGES.rst",
+      "used": false
+    }
+  ],
+  "to_version": "3.1.6",
+  "tried": [
+    "search: 5 citation(s)"
+  ]
+}
