@@ -532,7 +532,7 @@ def test_coerce_text_html_and_markdown():
     html = ("<html><body><h2>Version 3.1.0</h2><ul><li><code>f</code> "
             "gone</li></ul><script>var x = 1;</script></body></html>")
     assert sources_mod.coerce_text(html) == \
-        "## Version 3.1.0\n\n- f gone"
+        "## Version 3.1.0\n\n- `f` gone"
     assert sources_mod.coerce_text("## 3.1.0\r\n- x\r\n") == "## 3.1.0\n- x\n"
 
 
@@ -554,3 +554,10 @@ def test_on_domain_hosts_orgs_subdomains():
     assert not sources_mod._on_domain("https://github.com/other/r", hosts,
                                       orgs)
     assert not sources_mod._on_domain("https://evil.com/x", hosts, orgs)
+
+
+def test_structured_text_preserves_code_spans():
+    html = ("<html><body><ul><li>Deprecate the <code>pkg.mod</code> "
+            "module, except <code>keep</code>.</li></ul></body></html>")
+    assert sources_mod.coerce_text(html) == \
+        "- Deprecate the `pkg.mod` module, except `keep`."

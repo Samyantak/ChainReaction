@@ -87,7 +87,8 @@ def test_schema_shape_and_json_roundtrip():
     assert json.loads(text)["name"] == "change_set"
     item_schema = CHANGE_SET_JSON_SCHEMA["schema"]["properties"]["items"]["items"]
     assert set(item_schema["required"]) == {
-        "symbol", "kind", "quote", "replacement", "detail"}
+        "symbol", "kind", "quote", "replacement", "detail", "source_url",
+        "introduced_in", "signature", "supporting"}
     cs = ChangeSet("d", "u", [ChangeItem("s", "removed", "q", None, True)])
     assert json.loads(to_json(cs))["items"][0]["symbol"] == "s"
 
@@ -103,7 +104,8 @@ OpenAI-compatible client. Then call the muse-spark-1.3 model by name.
 def test_config_and_schema_break_kinds():
     item_schema = CHANGE_SET_JSON_SCHEMA["schema"]["properties"]["items"]["items"]
     assert set(item_schema["properties"]["kind"]["enum"]) == {
-        "removed", "renamed", "changed", "deprecated", "missing_param",
+        "removed", "renamed", "signature_changed", "changed", "deprecated",
+        "missing_param",
         "missing_key", "rejected_value",
     }
     detail_schema = item_schema["properties"]["detail"]
@@ -495,6 +497,36 @@ def test_extract_pattern_rows_except_clause():
     assert rows[0]["quote"] in WERKZEUG_NOTES
 
 
+def test_extract_pattern_rows_skip_call_site_words():
+    from chainreaction.interpret import extract_pattern_rows
+
+    text = ("## 2.0\n\n"
+            "- The `timeout` parameter was removed from `connect`.\n"
+            "- The `is_filename` parameter to `unquote_it` is deprecated.\n"
+            "- The `charset` attribute of `Request` is deprecated.\n"
+            "- Deprecate the `__version__` attribute.\n"
+            "- Remove the `stale` option entirely.\n")
+    rows = extract_pattern_rows(text, "pkg")
+    by_symbol = {r["symbol"]: r for r in rows}
+    # Parameters/options ("removed from" survivors too) are signature
+    # words, never member symbols; a bare attribute named before the
+    # trigger is one too. Owners ("of `Request`") and member-first
+    # deprecations survive as low-confidence rows.
+    assert set(by_symbol) == {"pkg.unquote_it", "pkg.Request",
+                              "pkg.__version__"}
+    assert by_symbol["pkg.unquote_it"]["kind"] == "deprecated"
+    assert by_symbol["pkg.__version__"]["kind"] == "deprecated"
+
+
+def test_heading_break_kind_removed_not_renamed():
+    from chainreaction.interpret import _heading_break_kind
+
+    assert _heading_break_kind("### Removed") == "removed"
+    assert _heading_break_kind("### Moved") == "renamed"
+    assert _heading_break_kind("### Renamed") == "renamed"
+    assert _heading_break_kind("### Changed") is None
+
+
 def test_extract_list_rows_rst_sections():
     from chainreaction.interpret import extract_list_rows
 
@@ -519,3 +551,379 @@ def test_extract_deterministic_rows_merge_priority():
     assert by_symbol["gone.mod"]["extraction"] == "list"
     assert by_symbol["pkg.tired"]["extraction"] == "list"
     assert all(r["quote"] in RST_NOTES for r in rows)
+
+
+# -- M3 §4/§5: expanded items, verification modes, multi-release flow --
+
+def test_verify_quotes_normalized_mode():
+    from chainreaction.interpret import verify_quotes
+
+    text = "Deprecate  the `foo`   module\u2014use `bar\u2019s` replacement."
+    items = [
+        ChangeItem("pkg.foo", "deprecated",
+                   "Deprecate the `foo` module—use `bar's` replacement."),
+        ChangeItem("pkg.paraphrase", "removed", "foo is gone, roughly"),
+    ]
+    verified, dropped = verify_quotes(items, text, "https://x/notes")
+    assert [i.symbol for i in verified] == ["pkg.foo"]
+    assert verified[0].verified_mode == "normalized"
+    assert verified[0].quote_offset >= 0
+    assert verified[0].source_url == "https://x/notes"
+    assert [i.symbol for i in dropped] == ["pkg.paraphrase"]
+    # Exact-only legacy flows don't rescue punctuation drift.
+    legacy, _ = verify_quotes(
+        [ChangeItem("pkg.foo", "deprecated", items[0].quote)],
+        text, normalized=False)
+    assert legacy == []
+
+
+def test_locate_quote_exact_offset():
+    from chainreaction.interpret import locate_quote
+
+    text = "aaa `foo` was removed here."
+    offset, mode = locate_quote("`foo` was removed", text)
+    assert (offset, mode) == (4, "exact")
+    assert locate_quote("missing", text) == (-1, "")
+
+
+def test_parse_model_items_new_fields():
+    from chainreaction.interpret import parse_model_items
+
+    data = {"items": [
+        {"symbol": "pkg.fn()", "kind": "signature_changed",
+         "quote": "`fn` drops `gone`.", "replacement": None,
+         "source_url": "https://x/n", "introduced_in": "2.0",
+         "signature": {"removed_kwargs": ["gone"],
+                       "renamed_kwargs": [{"old": "a", "new": "b"}],
+                       "min_positionals": None},
+         "supporting": {"quote": "Removed deprecated code.",
+                        "source_url": "https://x/n2",
+                        "introduced_in": "3.0"}},
+        {"symbol": "pkg.bad", "kind": "bogus_kind",
+         "quote": "x", "source_url": ""},
+        {"symbol": "not a symbol!!", "kind": "removed", "quote": "x"},
+        "junk",
+    ]}
+    items, dropped = parse_model_items(data, "pkg")
+    assert len(items) == 1
+    item = items[0]
+    assert item.symbol == "pkg.fn"
+    assert item.signature.removed_kwargs == ["gone"]
+    assert item.signature.renamed_kwargs == {"a": "b"}
+    assert item.supporting.quote == "Removed deprecated code."
+    assert item.supporting.introduced_in == "3.0"
+    assert [(d.symbol, d.reason) for d in dropped] == [
+        ("pkg.bad", "unparseable"), ("not a symbol!!", "unparseable"),
+        ("?", "unparseable")]
+
+
+MULTI_NOTES = [
+    {"version": "3.0.1", "source_url": "https://x/changes-3.0",
+     "text": ("## Version 3.0.1\n\n"
+              "- `oldthing` was removed, use `newthing` instead.\n\n"
+              "### Removed\n\n"
+              "- `listgone` is gone for good.\n")},
+    {"version": "3.1.0", "source_url": "https://x/changes-3.1",
+     "text": ("## Version 3.1.0\n\n"
+              "- `contextfunction` is replaced by `pass_context`.\n"
+              "- Remove previously deprecated code.\n"
+              "- `quiet` behaves differently now.\n")},
+]
+
+
+def _multi_fake(system, user, max_tokens=8000, response_format=None):
+    guided = "Deterministic extraction" in user
+    if not guided:
+        items = [
+            {"symbol": "pkg.contextfunction", "kind": "renamed",
+             "quote": "`contextfunction` is replaced by `pass_context`.",
+             "replacement": "pkg.pass_context",
+             "source_url": "https://x/changes-3.0",
+             "introduced_in": "3.0.1",
+             "supporting": {
+                 "quote": "Remove previously deprecated code.",
+                 "source_url": "https://x/changes-3.1",
+                 "introduced_in": "3.1.0"}},
+            {"symbol": "pkg.quiet", "kind": "removed",
+             "quote": "`quiet` behaves differently now.",
+             "replacement": None, "source_url": "https://x/changes-3.1",
+             "introduced_in": "3.1.0"},
+            {"symbol": "pkg.bogus", "kind": "removed",
+             "quote": "this never appears anywhere.",
+             "replacement": None, "source_url": "https://x/changes-3.1",
+             "introduced_in": "3.1.0"},
+        ]
+    else:
+        items = [
+            {"symbol": "pkg.contextfunction", "kind": "renamed",
+             "quote": "`contextfunction` is replaced by `pass_context`.",
+             "replacement": "pkg.pass_context",
+             "source_url": "https://x/changes-3.0",
+             "introduced_in": "3.0.1",
+             "supporting": {
+                 "quote": "Remove previously deprecated code.",
+                 "source_url": "https://x/changes-3.1",
+                 "introduced_in": "3.1.0"}},
+            {"symbol": "pkg.oldthing", "kind": "removed",
+             "quote": "`oldthing` was removed, use `newthing` instead.",
+             "replacement": "pkg.newthing",
+             "source_url": "https://x/changes-3.0",
+             "introduced_in": "3.0.1"},
+            {"symbol": "pkg.listgone", "kind": "removed",
+             "quote": "`listgone` is gone for good.",
+             "replacement": None,
+             "source_url": "https://x/changes-3.0",
+             "introduced_in": "3.0.1"},
+        ]
+    return json.dumps({"items": items})
+
+
+def test_interpret_multi_two_releases():
+    from chainreaction.interpret import interpret_multi
+
+    events = []
+    cs, stats = interpret_multi(
+        "upgrade pkg to 3.1", MULTI_NOTES, "pkg",
+        chat_fn=_multi_fake, emit=lambda t, d: events.append((t, d)))
+    by_symbol = {i.symbol: i for i in cs.items}
+    assert set(by_symbol) == {"pkg.contextfunction", "pkg.quiet",
+                              "pkg.oldthing", "pkg.listgone"}
+    # Attribution follows the quote: both passes mislabeled the
+    # release, verification fixed it.
+    ctx_item = by_symbol["pkg.contextfunction"]
+    assert ctx_item.source_url == "https://x/changes-3.1"
+    assert ctx_item.introduced_in == "3.1.0"
+    assert ctx_item.quote_offset >= 0
+    assert ctx_item.verified_mode == "exact"
+    assert ctx_item.confidence == "high"
+    assert ctx_item.supporting.verified is True
+    assert ctx_item.supporting.introduced_in == "3.1.0"
+    assert by_symbol["pkg.oldthing"].introduced_in == "3.0.1"
+    assert {(d.symbol, d.reason) for d in cs.dropped} == {
+        ("pkg.bogus", "quote_not_found"),
+        ("pkg.contextfunction", "duplicate"),
+    }
+    assert stats["releases"] == ["3.0.1", "3.1.0"]
+    assert stats["recall"] == 1.0
+    assert stats["blind_hits"] == 0
+    assert stats["blind_recall"] == 0.0
+    assert stats["survival_rate"] == 0.8
+    assert stats["model_only"] == ["pkg.quiet"]
+    assert stats["missed"] == []
+    assert stats["det_by_method"] == {"table": 0, "list": 1,
+                                      "pattern": 2}
+    counts = stats["source_counts"]["https://x/changes-3.1"]
+    assert counts["verified"] == 2
+    assert stats["source_counts"]["https://x/changes-3.0"]["verified"] == 2
+    assert any("deterministic rows" in d["message"] for _, d in events)
+    assert any("blind pass done" in d["message"] for _, d in events)
+    assert any("final change set" in d["message"] for _, d in events)
+
+
+def test_interpret_multi_completes_missed_rows():
+    from chainreaction.interpret import interpret_multi
+
+    calls = []
+
+    def fake(system, user, max_tokens=8000, response_format=None):
+        calls.append(user)
+        return json.dumps({"items": []})
+
+    cs, stats = interpret_multi("d", MULTI_NOTES, "pkg", chat_fn=fake)
+    assert len(calls) == 2  # blind + guided (rows exist)
+    assert {i.symbol for i in cs.items} == {"pkg.contextfunction",
+                                           "pkg.oldthing",
+                                           "pkg.listgone"}
+    assert {i.extraction for i in cs.items} == {"pattern", "list"}
+    assert all(i.verified and i.quote_offset >= 0 for i in cs.items)
+    by_symbol = {i.symbol: i for i in cs.items}
+    assert by_symbol["pkg.contextfunction"].introduced_in == "3.1.0"
+    assert by_symbol["pkg.oldthing"].introduced_in == "3.0.1"
+    assert by_symbol["pkg.listgone"].introduced_in == "3.0.1"
+    assert stats["blind_recall"] == 0.0
+    assert stats["quote_misses"] == []
+    assert stats["survival_rate"] is None
+
+
+def test_interpret_multi_single_blind_call_without_rows():
+    from chainreaction.interpret import interpret_multi
+
+    calls = []
+
+    def fake(system, user, max_tokens=8000, response_format=None):
+        calls.append(user)
+        return json.dumps({"items": []})
+
+    notes = [{"version": "1.0", "source_url": "https://x/n",
+              "text": "## 1.0\n\n- Add things.\n"}]
+    _, stats = interpret_multi("d", notes, "pkg", chat_fn=fake)
+    assert len(calls) == 1
+    assert stats["blind_recall"] is None
+    assert stats["recall"] is None
+
+
+def test_interpret_multi_split_merges_earliest(monkeypatch):
+    import chainreaction.interpret as interpret_mod
+    from chainreaction.interpret import interpret_multi
+
+    monkeypatch.setattr(interpret_mod, "MULTI_PROMPT_CHAR_LIMIT", 50)
+
+    def fake(system, user, max_tokens=8000, response_format=None):
+        if "3.0.1" in user:
+            quote = "`oldthing` was removed, use `newthing` instead."
+            items = [{"symbol": "pkg.oldthing", "kind": "removed",
+                      "quote": quote, "replacement": None,
+                      "source_url": "https://x/changes-3.0",
+                      "introduced_in": "3.0.1"}]
+        else:
+            items = [{"symbol": "pkg.oldthing", "kind": "removed",
+                      "quote": "`oldthing` was removed, use `newthing` instead.",
+                      "replacement": None,
+                      "source_url": "https://x/changes-3.1",
+                      "introduced_in": "3.1.0"}]
+        return json.dumps({"items": items})
+
+    cs, _ = interpret_multi("d", MULTI_NOTES, "pkg", chat_fn=fake)
+    by_symbol = {i.symbol: i for i in cs.items}
+    # Earliest release kept; the later dup recorded.
+    assert by_symbol["pkg.oldthing"].introduced_in == "3.0.1"
+    assert ("pkg.oldthing", "duplicate") in {
+        (d.symbol, d.reason) for d in cs.dropped}
+
+
+def test_seed_exclusions_and_signature_seeds():
+    from chainreaction.interpret import (
+        ChangeSet,
+        SignatureChange,
+        seed_exclusions,
+        signature_seeds,
+    )
+
+    cs = ChangeSet("d", "u", [
+        ChangeItem("werkzeug.urls", "removed",
+                   "Deprecate the `werkzeug.urls` module, except for the "
+                   "`uri_to_iri` and `iri_to_uri` functions.",
+                   verified=True),
+        ChangeItem("pkg.fn", "signature_changed", "`fn` drops `gone`.",
+                   verified=True,
+                   signature=SignatureChange(["gone"], {"a": "b"}, None)),
+        ChangeItem("pkg.plain", "signature_changed", "q", verified=True),
+        ChangeItem("pkg.unverified", "removed", "except `x`.",
+                   verified=False),
+        ChangeItem("pkg.warn", "deprecated", "except `y`.", verified=True),
+    ])
+    assert seed_exclusions(cs) == {
+        "werkzeug.urls": {"uri_to_iri", "iri_to_uri"}}
+    assert signature_seeds(cs) == {
+        "pkg.fn": {"kwargs": {"gone", "a"}, "min_positionals": None}}
+
+
+def test_signature_changed_excluded_from_plain_symbols():
+    from chainreaction.interpret import change_symbols
+
+    cs = ChangeSet("d", "u", [
+        ChangeItem("pkg.gone", "removed", "q", verified=True),
+        ChangeItem("pkg.fn", "signature_changed", "q", verified=True),
+    ])
+    assert change_symbols(cs) == {"pkg.gone"}
+
+
+def test_item_confidence_matrix():
+    from chainreaction.interpret import item_confidence
+
+    assert item_confidence("table", "removed", True) == "high"
+    assert item_confidence("list", "deprecated", True) == "high"
+    assert item_confidence("model", "removed", True) == "high"
+    assert item_confidence("model", "renamed", True) == "high"
+    assert item_confidence("model", "deprecated", True) == "medium"
+    assert item_confidence("model", "signature_changed", True) == "medium"
+    assert item_confidence("model", "changed", True) == "low"
+    assert item_confidence("pattern", "removed", True) == "low"
+    assert item_confidence("model", "removed", False) == "low"
+
+
+def test_item_link_and_record():
+    from chainreaction.interpret import item_link, item_record
+
+    item = ChangeItem("pkg.a", "removed", "Remove the `a` helper now.",
+                      verified=True, source_url="https://x/notes#frag")
+    assert item_link(item) == (
+        "https://x/notes#frag#:~:text=Remove%20the%20%60a%60%20helper%20now.")
+    assert item_record(item)["link"] == item_link(item)
+    assert item_record(ChangeItem("s", "removed", "")).get("link", "") == ""
+
+
+def test_split_out_of_package_records():
+    from chainreaction.interpret import split_out_of_package
+
+    cs = ChangeSet("d", "u", [
+        ChangeItem("fit.Provider", "rejected_value", "q", verified=True),
+        ChangeItem("MODEL_API_KEY", "missing_param", "q", verified=True),
+        ChangeItem("numpy.sctypes", "removed", "q", verified=True),
+    ])
+    kept, dropped = split_out_of_package(cs, "fit")
+    assert [i.symbol for i in kept.items] == ["fit.Provider",
+                                             "numpy.sctypes"]
+    assert [(d.symbol, d.reason) for d in dropped] == [
+        ("MODEL_API_KEY", "out_of_package")]
+
+
+def test_prioritize_sections():
+    from chainreaction.interpret import prioritize_sections
+
+    text = ("## Version 2.0\n\n- boring.\n\n"
+            "### Breaking changes\n\n- `gone` removed.\n\n"
+            "### Features\n\n- shiny.\n")
+    prio, rest = prioritize_sections(text)
+    assert "`gone` removed." in prio
+    assert "boring." in rest and "shiny." in rest
+    assert "Breaking" not in rest
+
+
+def test_interpret_multi_same_url_notes_attribute_per_note():
+    from chainreaction.interpret import interpret_multi
+
+    # Several notes from ONE changelog page: attribution must search
+    # every note, not just one text per URL.
+    notes = [
+        {"version": "2.3.0", "source_url": "https://x/changes",
+         "text": "## 2.3.0\n\n- `alpha` was removed.\n"},
+        {"version": "3.0.0", "source_url": "https://x/changes",
+         "text": "## 3.0.0\n\n- `beta` was removed.\n"},
+    ]
+
+    def fake(system, user, max_tokens=8000, response_format=None):
+        return json.dumps({"items": [
+            {"symbol": "pkg.alpha", "kind": "removed",
+             "quote": "`alpha` was removed.", "replacement": None,
+             "source_url": "https://x/changes",
+             "introduced_in": "2.3.0"},
+            {"symbol": "pkg.beta", "kind": "removed",
+             "quote": "`beta` was removed.", "replacement": None,
+             "source_url": "https://x/changes",
+             "introduced_in": "3.0.0"},
+        ]})
+
+    cs, _ = interpret_multi("d", notes, "pkg", chat_fn=fake)
+    by_symbol = {i.symbol: i for i in cs.items}
+    assert set(by_symbol) == {"pkg.alpha", "pkg.beta"}
+    assert by_symbol["pkg.alpha"].introduced_in == "2.3.0"
+    assert by_symbol["pkg.beta"].introduced_in == "3.0.0"
+
+
+def test_interpret_multi_no_bogus_dupes_without_rows():
+    from chainreaction.interpret import interpret_multi
+
+    def fake(system, user, max_tokens=8000, response_format=None):
+        return json.dumps({"items": [
+            {"symbol": "pkg.a", "kind": "removed",
+             "quote": "`a` looks different.",
+             "replacement": None, "source_url": "https://x/n",
+             "introduced_in": "1.0"},
+        ]})
+
+    notes = [{"version": "1.0", "source_url": "https://x/n",
+              "text": "## 1.0\n\n- `a` looks different.\n"}]
+    cs, _ = interpret_multi("d", notes, "pkg", chat_fn=fake)
+    assert [i.symbol for i in cs.items] == ["pkg.a"]
+    assert cs.dropped == []

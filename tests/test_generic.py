@@ -1196,7 +1196,8 @@ def test_generic_interpret_model_path(monkeypatch):
     from types import SimpleNamespace
 
     monkeypatch.setattr("chainreaction.llm.has_key", lambda: True)
-    guide = "numpy sctypes was removed in 2.0, use explicit dtypes"
+    guide = ("numpy sctypes was removed in 2.0, use explicit dtypes. "
+             + "padding prose. " * 20)
     calls = []
     saved = {}
     manifest = {"preset": None, "decision": "upgrade numpy to 2.0",
@@ -1210,23 +1211,36 @@ def test_generic_interpret_model_path(monkeypatch):
             "items": [{"symbol": "numpy.sctypes", "kind": "removed",
                        "quote": "sctypes was removed",
                        "replacement": None,
+                       "source_url": "https://guide",
+                       "introduced_in": "2.0.2",
                        "detail": {"expected": None, "actual": None,
                                   "note": None}}]})
+
+    def fetch(url, timeout=60, clean="text"):
+        body = b"" if "pypi.org" in url else guide.encode()
+        fetched = FetchedText(body.decode() if body else "")
+        fetched.status = 404 if "pypi.org" in url else 200
+        fetched.bytes = len(body)
+        fetched.sha256 = "ab" * 32
+        return fetched
 
     ctx = SimpleNamespace(
         manifest=manifest, mode="live",
         state={"scenario": Scenario(id="g", decision="d", target="t",
                                     package="demopkg", guide_url=""),
                "decision_parsed": Decision("numpy", "2.0.2")},
-        llm=llm, fetch=lambda url, timeout=60: FetchedText(guide),
+        llm=llm, fetch=fetch,
         emit=lambda *a, **k: None, set_manifest=manifest.update,
         save_artifact=lambda n, o: saved.update({n: o}))
     stages_mod.stage_interpret(ctx)
     assert manifest["changeset_source"] == "muse-spark"
-    assert manifest["guide_method"] == "request"
+    assert manifest["interpret_flow"] == "m3"
     assert [i["symbol"] for i in
             saved["changeset.json"]["items"]] == ["numpy.sctypes"]
+    assert saved["changeset.json"]["items"][0]["introduced_in"] == "2.0.2"
+    assert saved["sources.json"]["package"] == "numpy"
     assert ctx.state["symbols"] == {"numpy.sctypes"}
+    assert len(calls) == 1  # prose-only guide: single blind call
 
 
 def test_generic_predict_untouched_and_touched(tmp_path, monkeypatch):

@@ -72,6 +72,7 @@ class Discovery:
     pypi: dict = field(default_factory=dict)
     github_releases: list = field(default_factory=list)
     texts: dict = field(default_factory=dict)  # url -> structured text
+    raw: dict = field(default_factory=dict)  # url -> raw body (HTML only)
     guide_url: str | None = None
 
 
@@ -89,7 +90,16 @@ class _StructuredExtractor(HTMLParser):
         self.chunks: list[str] = []
         self.skip = 0
         self.nolink = 0
+        self._code: list[str] | None = None
         self._heading: list[str] | None = None
+
+    def _emit(self, text: str) -> None:
+        if self._code is not None:
+            self._code.append(text)
+        elif self._heading is not None:
+            self._heading.append(text)
+        else:
+            self.chunks.append(text)
 
     def handle_starttag(self, tag: str, attrs) -> None:
         if tag in ("script", "style"):
@@ -99,6 +109,10 @@ class _StructuredExtractor(HTMLParser):
             self.nolink += 1
         elif self.skip or self.nolink:
             pass
+        elif tag == "code" and self._code is None:
+            # Code spans keep backticks so literal extraction works on
+            # rendered HTML exactly as on Markdown sources.
+            self._code = []
         elif tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
             self._heading = []
         elif tag in ("p", "div", "section", "article", "table", "tr",
@@ -114,6 +128,11 @@ class _StructuredExtractor(HTMLParser):
             self.skip = max(0, self.skip - 1)
         elif tag == "a" and self.nolink:
             self.nolink = max(0, self.nolink - 1)
+        elif tag == "code" and self._code is not None:
+            text = "".join(self._code).strip()
+            self._code = None
+            if text:
+                self._emit(f"`{text}`")
         elif self.skip or self.nolink:
             pass
         elif tag in ("h1", "h2", "h3", "h4", "h5", "h6") and \
@@ -128,10 +147,7 @@ class _StructuredExtractor(HTMLParser):
     def handle_data(self, data: str) -> None:
         if self.skip or self.nolink:
             return
-        if self._heading is not None:
-            self._heading.append(data)
-        else:
-            self.chunks.append(data)
+        self._emit(data)
 
 
 def html_to_structured_text(page: str) -> str:
@@ -394,17 +410,20 @@ def discover_sources(ctx, package: str, from_version: str | None,
         found.sources.append(src)
         return src
 
-    def attempt(url: str, via: str, *, clean: str = "text"):
+    def attempt(url: str, via: str):
         try:
-            fetched = ctx.fetch(url, timeout=60, clean=clean)
+            fetched = ctx.fetch(url, timeout=60, clean="text")
         except _FETCH_ERRORS as exc:
             found.tried.append(f"{via}: {url} ({exc.__class__.__name__})")
-            record(url, via, None, clean=clean, note="network error")
+            record(url, via, None, clean="text", note="network error")
             return None
-        src = record(url, via, fetched, clean=clean)
-        body = str(fetched) if clean == "html" else coerce_text(str(fetched))
+        src = record(url, via, fetched, clean="text")
+        raw_body = str(fetched)
+        body = coerce_text(raw_body)
         if fetched.status == 200 and len(body.strip()) >= MIN_USABLE_CHARS:
             found.texts[url] = body
+            if _HTML_RE.match(raw_body or ""):
+                found.raw[url] = raw_body
             ctx.emit("log", {"message":
                              f"interpret: source found ({via}): {url}"})
             return body
@@ -433,9 +452,10 @@ def discover_sources(ctx, package: str, from_version: str | None,
         else:
             found.tried.append(f"pypi meta: status {meta.status}")
 
-    # Step 1: request guide_url.
+    # Step 1: request guide_url (raw body recorded; quotes use the
+    # structured text, tables use the raw HTML via Discovery.raw).
     if guide_url:
-        if attempt(guide_url, "guide_url", clean="html") is not None:
+        if attempt(guide_url, "guide_url") is not None:
             found.guide_url = guide_url
             return found
 

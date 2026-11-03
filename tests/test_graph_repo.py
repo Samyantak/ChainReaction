@@ -209,3 +209,28 @@ def test_newbyteorder_classifies_dtype_vs_ndarray(tmp_path):
     # reassignment kills dtype-ness: the surviving use is an array call
     assert targets["demo.endian.on_reassigned"] == \
         "numpy.ndarray.newbyteorder"
+
+
+def test_call_keywords_and_nargs_recorded(tmp_path):
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("from . import mod\n",
+                                     encoding="utf-8")
+    (pkg / "mod.py").write_text(
+        "import ext\n\n"
+        "A = ext.fn(1, x=2)\n"
+        "B = ext.fn(3)\n"
+        "C = ext.fn(y=4)\n"
+        "D = ext.CONST\n",
+        encoding="utf-8")
+    g = build_graph_from_repo(tmp_path, "demo")
+    call = g.edges["demo.mod", "ext.fn"]
+    assert call["kind"] == "USES_EXTERNAL"
+    # Repeat calls union keywords and max positionals; the first line
+    # stays the evidence.
+    assert call["keywords"] == ("x", "y")
+    assert call["nargs"] == 1
+    assert call["line"] == 3
+    read = g.edges["demo.mod", "ext.CONST"]
+    assert read.get("keywords", ()) == ()
+    assert read.get("nargs", 0) == 0

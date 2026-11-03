@@ -55,7 +55,9 @@ def resolve_symbol(g: nx.DiGraph, package: str, symbol: str) -> str:
 def propagate(g: nx.DiGraph, broken: set[str],
               config: list[ChangeItem] | tuple = (),
               package: str = "",
-              entries: tuple[str, ...] = ()) -> dict[str, Impact]:
+              entries: tuple[str, ...] = (),
+              excluded: dict | None = None,
+              sig_seeds: dict | None = None) -> dict[str, Impact]:
     impacts: dict[str, Impact] = {}
     defs = _def_index(g)
 
@@ -81,11 +83,15 @@ def propagate(g: nx.DiGraph, broken: set[str],
         if node not in reach:
             mark(node, "AT_RISK", item.symbol, [])
 
-    # 1. Seeds: direct uses of broken symbols.
+    # 1. Seeds: direct uses of broken symbols (plain seeds win over
+    # signature seeds when both match an edge).
     for u, v, d in g.edges(data=True):
         if d.get("kind") != "USES_EXTERNAL":
             continue
-        sym = matches_symbol(v, broken)
+        sym = matches_symbol(v, broken, excluded)
+        if sym is None:
+            sym = matches_signature(v, d.get("keywords", ()),
+                                    d.get("nargs", 0), sig_seeds)
         if sym is None:
             continue
         seed_hop = [(u, v, d["file"], d["line"])]
@@ -185,7 +191,8 @@ def predicted_chain(g: nx.DiGraph, hops: list[tuple[str, str, str, int]]
 
 def _genuinely_fails(g: nx.DiGraph, impacts: dict[str, Impact],
                      broken: set[str], node: str, executing: set[str],
-                     _seen: frozenset = frozenset()) -> bool:
+                     _seen: frozenset = frozenset(), excluded=None,
+                     sig_seeds=None) -> bool:
     """True when importing node fails given `executing` are in sys.modules.
 
     Structural, race-free: a HARD marking keeps one recorded via, which
@@ -203,8 +210,12 @@ def _genuinely_fails(g: nx.DiGraph, impacts: dict[str, Impact],
     seen = _seen | {node}
     for _, w, d in g.out_edges(node, data=True):
         kind = d.get("kind")
-        if kind == "USES_EXTERNAL" and matches_symbol(w, broken):
-            return True
+        if kind == "USES_EXTERNAL":
+            if matches_symbol(w, broken, excluded):
+                return True
+            if matches_signature(w, d.get("keywords", ()),
+                                 d.get("nargs", 0), sig_seeds):
+                return True
         if kind == "EXECUTES_AT_IMPORT" and w in impacts:
             return True
         if kind in ("IMPORTS", "PARENT_INIT"):
@@ -214,13 +225,17 @@ def _genuinely_fails(g: nx.DiGraph, impacts: dict[str, Impact],
             if (wimp is not None and wimp.status == "HARD"
                     and w not in executing
                     and _genuinely_fails(g, impacts, broken, w,
-                                         executing, seen)):
+                                         executing, _seen=seen,
+                                         excluded=excluded,
+                                         sig_seeds=sig_seeds)):
                 return True
     return False
 
 
 def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
-                 broken: set[str], package: str
+                 broken: set[str], package: str,
+                 excluded: dict | None = None,
+                 sig_seeds: dict | None = None
                  ) -> list[tuple[str, str, str, int]]:
     """First-failure path from the package root, in execution order.
 
@@ -242,6 +257,13 @@ def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
         visited.add(node)
         kind = g.nodes[node].get("kind") if node in g.nodes else None
         cands: list[tuple[int, tuple[str, str, str, int], str | None]] = []
+        def _seed_hit(target: str, data: dict) -> bool:
+            if matches_symbol(target, broken, excluded):
+                return True
+            return bool(matches_signature(
+                target, data.get("keywords", ()),
+                data.get("nargs", 0), sig_seeds))
+
         for _, v, d in g.out_edges(node, data=True):
             edge_kind = d.get("kind")
             if kind == "module":
@@ -249,13 +271,14 @@ def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
                     imp = impacts.get(v)
                     if (imp is not None and imp.status == "HARD"
                             and _genuinely_fails(g, impacts, broken, v,
-                                                 visited)):
+                                                 visited, excluded=excluded,
+                                                 sig_seeds=sig_seeds)):
                         cands.append((d["line"], (node, v, d["file"], d["line"]), v))
-                elif edge_kind == "USES_EXTERNAL" and matches_symbol(v, broken):
+                elif edge_kind == "USES_EXTERNAL" and _seed_hit(v, d):
                     cands.append((d["line"], (node, v, d["file"], d["line"]), None))
                 elif edge_kind == "EXECUTES_AT_IMPORT" and v in impacts:
                     cands.append((d["line"], (node, v, d["file"], d["line"]), v))
-            elif edge_kind == "USES_EXTERNAL" and matches_symbol(v, broken):
+            elif edge_kind == "USES_EXTERNAL" and _seed_hit(v, d):
                 cands.append((d["line"], (node, v, d["file"], d["line"]), None))
             elif edge_kind == "CALLS":
                 target = _resolve_call(g, node, v, defs) if "." not in v else v
@@ -266,7 +289,8 @@ def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
                 # in-function import of a HARD module: descend into it
                 if (imp is not None and imp.status == "HARD"
                         and _genuinely_fails(g, impacts, broken, v,
-                                             visited)):
+                                             visited, excluded=excluded,
+                                             sig_seeds=sig_seeds)):
                     cands.append((d["line"], (node, v, d["file"], d["line"]), v))
             elif edge_kind == "EXECUTES_AT_IMPORT" and v in impacts:
                 cands.append((d["line"], (node, v, d["file"], d["line"]), v))
@@ -280,12 +304,49 @@ def failure_path(g: nx.DiGraph, impacts: dict[str, Impact],
     return hops
 
 
-def matches_symbol(target: str, broken: set[str]) -> str | None:
-    """Broken symbol matched by an edge target (exact or parent prefix)."""
+def matches_symbol(target: str, broken: set[str],
+                   excluded: dict | None = None) -> str | None:
+    """Broken symbol matched by an edge target (exact or parent prefix).
+
+    excluded maps a seed to surviving member names ("module except A
+    and B"): targets under an excluded member never match, and neither
+    does the seed itself (the module survives with those members).
+    """
+    excluded = excluded or {}
     # Sorted: set order varies across processes (PYTHONHASHSEED), and the
     # winner must be identical on live and replay runs.
     for sym in sorted(broken):
-        if target == sym or target.startswith(sym + "."):
+        if target != sym and not target.startswith(sym + "."):
+            continue
+        skipped = excluded.get(sym)
+        if not skipped:
+            return sym
+        if target == sym:
+            continue  # the module itself survives
+        leaf = target[len(sym) + 1:].split(".")[0]
+        if leaf not in skipped:
+            return sym
+    return None
+
+
+def matches_signature(target: str, keywords, nargs: int,
+                      sig_seeds: dict | None) -> str | None:
+    """signature_changed seed hit: the call passes an affected argument.
+
+    sig_seeds maps symbol -> {"kwargs", "min_positionals"} (see
+    interpret.signature_seeds). Prefix matching like matches_symbol.
+    """
+    if not sig_seeds:
+        return None
+    kw = set(keywords or ())
+    for sym in sorted(sig_seeds):
+        if target != sym and not target.startswith(sym + "."):
+            continue
+        seed = sig_seeds[sym]
+        if kw & set(seed.get("kwargs") or ()):
+            return sym
+        minimum = seed.get("min_positionals")
+        if minimum is not None and (nargs or 0) >= minimum:
             return sym
     return None
 

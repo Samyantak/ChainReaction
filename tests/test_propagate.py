@@ -354,3 +354,104 @@ def test_vendor_order_and_chain_hit_provider_first(tmp_path):
     assert hops == [("fit.llm.Client.call", "fit.llm", "fit/llm.py", 2)]
     assert predicted_chain(g, hops) == ["fit.llm"]
     assert vendor_chain(g, "fit", [], ordered) == []
+
+
+# -- M3 §4: except-seeds and signature_changed seeds --
+
+def test_matches_symbol_honors_except_members():
+    from chainreaction.propagate import matches_symbol
+
+    broken = {"werkzeug.urls"}
+    excluded = {"werkzeug.urls": {"uri_to_iri", "iri_to_uri"}}
+    assert matches_symbol("werkzeug.urls.url_decode", broken,
+                          excluded) == "werkzeug.urls"
+    assert matches_symbol("werkzeug.urls.uri_to_iri", broken,
+                          excluded) is None
+    assert matches_symbol("werkzeug.urls", broken, excluded) is None
+    # No exclusions: exact and prefix match as before.
+    assert matches_symbol("werkzeug.urls.url_decode", broken) == \
+        "werkzeug.urls"
+    assert matches_symbol("werkzeug.urls", broken) == "werkzeug.urls"
+
+
+def test_matches_signature_kwargs_and_positionals():
+    from chainreaction.propagate import matches_signature
+
+    seeds = {"pkg.fn": {"kwargs": {"gone", "old"},
+                        "min_positionals": None},
+             "pkg.multi": {"kwargs": set(), "min_positionals": 3}}
+    assert matches_signature("pkg.fn", ("gone",), 1, seeds) == "pkg.fn"
+    assert matches_signature("pkg.fn", ("other",), 1, seeds) is None
+    assert matches_signature("pkg.fn.sub", ("old",), 0, seeds) == "pkg.fn"
+    assert matches_signature("pkg.multi", (), 3, seeds) == "pkg.multi"
+    assert matches_signature("pkg.multi", (), 2, seeds) is None
+    assert matches_signature("pkg.fn", ("gone",), 1, None) is None
+    assert matches_signature("pkg.fn", ("gone",), 1, {}) is None
+
+
+def test_signature_changed_seeds_kwarg_call_sites(tmp_path):
+    from chainreaction.interpret import (
+        ChangeSet,
+        SignatureChange,
+        change_symbols,
+        seed_exclusions,
+        signature_seeds,
+    )
+
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("from . import mod\n",
+                                     encoding="utf-8")
+    (pkg / "mod.py").write_text(
+        "import ext\n\n"
+        "VAL = ext.fn(1, gone=2)\n\n"
+        "def ok():\n"
+        "    return ext.fn(3)\n",
+        encoding="utf-8")
+    g = build_graph_from_repo(tmp_path, "demo")
+    cs = ChangeSet("d", "u", [ChangeItem(
+        "ext.fn", "signature_changed", "`fn` drops `gone`.",
+        verified=True, signature=SignatureChange(["gone"], {}, None))])
+    impacts = propagate(g, change_symbols(cs), (), "demo", (),
+                        seed_exclusions(cs), signature_seeds(cs))
+    # Module-level call passes gone= → HARD; the kwarg-less call seeds
+    # nothing (and the bare symbol is not a plain seed).
+    assert impacts["demo.mod"].status == "HARD"
+    assert "demo.mod.ok" not in impacts
+    assert change_symbols(cs) == set()
+
+
+def test_except_seed_matches_members_but_not_survivors(tmp_path):
+    from chainreaction.interpret import (
+        ChangeSet,
+        change_symbols,
+        seed_exclusions,
+        signature_seeds,
+    )
+
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("from . import mod\n",
+                                     encoding="utf-8")
+    (pkg / "mod.py").write_text(
+        "from werkzeug.urls import url_decode, uri_to_iri\n\n"
+        "A = url_decode('x')\n"
+        "B = uri_to_iri('y')\n",
+        encoding="utf-8")
+    g = build_graph_from_repo(tmp_path, "demo")
+    cs = ChangeSet("d", "u", [ChangeItem(
+        "werkzeug.urls", "removed",
+        "Deprecate the `werkzeug.urls` module, except for the "
+        "`uri_to_iri` and `iri_to_uri` functions.",
+        verified=True)])
+    # Sanity: the graph resolves both from-imports as member uses.
+    targets = sorted(v for _, v, d in g.edges(data=True)
+                     if d.get("kind") == "USES_EXTERNAL")
+    assert targets == ["werkzeug.urls.uri_to_iri",
+                       "werkzeug.urls.url_decode"]
+    impacts = propagate(g, change_symbols(cs), (), "demo", (),
+                        seed_exclusions(cs), signature_seeds(cs))
+    assert impacts["demo.mod"].status == "HARD"
+    assert impacts["demo.mod"].symbol == "werkzeug.urls"
+    via_targets = [v for _, v, _, _ in impacts["demo.mod"].via]
+    assert via_targets == ["werkzeug.urls.url_decode"]

@@ -117,7 +117,9 @@ class _FileVisitor(ast.NodeVisitor):
             if data.get("kind") == kind:
                 # Repeat occurrence: keep the FIRST (earliest-executed)
                 # evidence, but OR the import_time flag — one module-level
-                # occurrence means importing u executes this edge.
+                # occurrence means importing u executes this edge — and
+                # union call keywords / max positional counts, so a later
+                # call passing a removed kwarg still seeds.
                 if lineno < data["line"]:
                     data["line"] = lineno
                     data["file"] = self.filename
@@ -126,6 +128,12 @@ class _FileVisitor(ast.NodeVisitor):
                 if "import_time" in attrs:
                     data["import_time"] = (bool(data.get("import_time"))
                                            or bool(attrs["import_time"]))
+                if "keywords" in attrs:
+                    data["keywords"] = tuple(sorted(
+                        set(data.get("keywords", ())) | set(attrs["keywords"])))
+                if "nargs" in attrs:
+                    data["nargs"] = max(data.get("nargs", 0),
+                                        attrs["nargs"])
                 return
         self.g.add_edge(
             u, target, kind=kind,
@@ -292,7 +300,12 @@ class _FileVisitor(ast.NodeVisitor):
                 elif self._is_internal(resolved):
                     self._edge(resolved, "CALLS", node.lineno)
                 else:
-                    self._edge(resolved, "USES_EXTERNAL", node.lineno)
+                    # Keyword names + positional count seed
+                    # signature_changed items (M3 §4).
+                    keywords = tuple(sorted(
+                        kw.arg for kw in node.keywords if kw.arg))
+                    self._edge(resolved, "USES_EXTERNAL", node.lineno,
+                               keywords=keywords, nargs=len(node.args))
         self.generic_visit(node)
 
     def visit_Attribute(self, node: ast.Attribute) -> None:

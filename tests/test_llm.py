@@ -30,11 +30,11 @@ GUIDE = (
 MODEL_ITEMS = {
     "items": [
         {"symbol": "numpy.sctypes",
-         "kind": "removed_symbol",
+         "kind": "removed",
          "quote": "np.sctypes was removed; use explicit dtype lists instead.",
          "replacement": "explicit dtype lists"},
         {"symbol": "numpy.fake",
-         "kind": "removed_symbol",
+         "kind": "removed",
          "quote": "paraphrased words that appear nowhere in the guide"},
     ]
 }

@@ -31,6 +31,8 @@ from chainreaction.interpret import (
     fetch_text,
     interpret,
     interpret_vendor,
+    seed_exclusions,
+    signature_seeds,
     verify_all,
 )
 from chainreaction.propagate import (
@@ -81,7 +83,9 @@ def predict(scenario_id: str, fetch_guide: bool = False,
         cfg = config_items(changeset)
         entries = probe_entries(scen.probe_code or "", scen.package, g)
         impacts = propagate(g, symbols, cfg, scen.package,
-                            entries=tuple(entries))
+                            entries=tuple(entries),
+                            excluded=seed_exclusions(changeset),
+                            sig_seeds=signature_seeds(changeset))
         return scen, changeset, symbols, g, impacts
     changeset = ChangeSet(scen.decision, scen.guide_url,
                           [i for i in scen.stub_items])
@@ -97,11 +101,15 @@ def predict(scenario_id: str, fetch_guide: bool = False,
     g = build_graph_from_repo(scen.target, scen.package)
     cfg = config_items(changeset)
     entries = probe_entries(scen.probe_code or "", scen.package, g)
-    impacts = propagate(g, symbols, cfg, scen.package, entries=tuple(entries))
+    impacts = propagate(g, symbols, cfg, scen.package,
+                        entries=tuple(entries),
+                        excluded=seed_exclusions(changeset),
+                        sig_seeds=signature_seeds(changeset))
     return scen, changeset, symbols, g, impacts
 
 
-def spine_for_scenario(g, impacts, symbols: set, scen, config) -> list:
+def spine_for_scenario(g, impacts, symbols: set, scen, config,
+                       excluded=None, sig_seeds=None) -> list:
     """Predicted failure hops: vendor call path or import chain.
 
     Decision probes with known entries predict the call path from the
@@ -122,7 +130,8 @@ def spine_for_scenario(g, impacts, symbols: set, scen, config) -> list:
                         for u, v, path, line in hops]
     return [(u, v, relative_posix(path, scen.target), line)
             for u, v, path, line in failure_path(g, impacts, symbols,
-                                                 scen.package)]
+                                                 scen.package, excluded,
+                                                 sig_seeds)]
 
 
 def _failure_site(frames, root: str | Path) -> str | None:
@@ -173,7 +182,9 @@ def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
     risky = {n for n, i in impacts.items() if i.status == "AT_RISK"}
     cfg = [i for i in changeset.items
            if i.kind in CONFIG_KINDS and i.verified]
-    spine_evidence = spine_for_scenario(g, impacts, symbols, scen, cfg)
+    spine_evidence = spine_for_scenario(g, impacts, symbols, scen, cfg,
+                                        seed_exclusions(changeset),
+                                        signature_seeds(changeset))
     predicted = predicted_chain(g, spine_evidence)
     layer_fixes = [f"{layer.name}: {layer.failure_site}" for layer in layers
                    if not layer.ok and layer.failure_site]

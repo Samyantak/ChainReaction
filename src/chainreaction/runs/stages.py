@@ -40,8 +40,13 @@ from chainreaction.interpret import (
     config_items,
     deprecated_symbols,
     drop_out_of_package_items,
+    interpret_multi,
     interpret_vendor,
     interpret_with_table,
+    item_record,
+    seed_exclusions,
+    signature_seeds,
+    split_out_of_package,
 )
 from chainreaction.pipeline import build_layers, build_report, spine_for_scenario
 from chainreaction.propagate import predicted_chain, probe_entries, propagate
@@ -254,8 +259,6 @@ def _stub_changeset(decision: str, guide_url: str, scen) -> ChangeSet:
 
 
 def _stage_interpret_generic(ctx) -> None:
-    from chainreaction.generic import discover_guide
-
     scen = ctx.state["scenario"]
     parsed = ctx.state["decision_parsed"]
     decision = ctx.manifest.get("decision") or scen.decision
@@ -267,6 +270,20 @@ def _stage_interpret_generic(ctx) -> None:
         raise RuntimeError(
             "generic runs need MODEL_API_KEY for live interpretation "
             "(only presets have hand-recorded fallbacks)")
+    # Manifest-driven flow: live runs and M3 recordings use source
+    # discovery + multi-release interpretation; older recordings keep
+    # the legacy guide path so they still replay.
+    flow = ("m3" if ctx.mode == "live"
+            else ctx.manifest.get("interpret_flow") or "legacy")
+    if flow == "m3":
+        _stage_interpret_m3(ctx, scen, parsed, decision)
+    else:
+        _stage_interpret_legacy(ctx, scen, parsed, decision)
+
+
+def _stage_interpret_legacy(ctx, scen, parsed, decision) -> None:
+    from chainreaction.generic import discover_guide
+
     guide_text, guide_url, method = discover_guide(
         ctx, package=parsed.package, to_version=parsed.to_version)
     changeset, stats = interpret_with_table(
@@ -301,6 +318,74 @@ def _stage_interpret_generic(ctx) -> None:
         "interpret_blind_recall": stats["blind_recall"],
         "dropped_symbols": dropped,
         "items": [asdict(i) for i in changeset.items],
+    })
+
+
+def _stage_interpret_m3(ctx, scen, parsed, decision) -> None:
+    from chainreaction import sources as sources_mod
+    from chainreaction.generic import GuideNotFound
+
+    envs = ctx.state.get("envs") or {}
+    before_freeze = (envs.get("before") or {}).get("freeze") or {}
+    after_freeze = (envs.get("after") or {}).get("freeze") or {}
+    pkg = (parsed.package or "").lower()
+    from_version = before_freeze.get(pkg) or parsed.from_version
+    to_version = after_freeze.get(pkg) or parsed.to_version
+    guide_url = ctx.manifest.get("guide_url") or None
+    found = sources_mod.discover_sources(
+        ctx, parsed.package, from_version, to_version,
+        guide_url=guide_url)
+    notes = sources_mod.collect_release_notes(ctx, found)
+    ctx.save_artifact("sources.json", sources_mod.sources_record(found))
+    if not notes:
+        raise GuideNotFound(
+            f"found {len(found.texts)} source(s) but no release notes "
+            f"for {parsed.package} {to_version}")
+    changeset, stats = interpret_multi(
+        decision, notes, parsed.package, chat_fn=ctx.llm,
+        page_html=found.raw, emit=ctx.emit)
+    changeset, oop_dropped = split_out_of_package(changeset, scen.package)
+    changeset.dropped.extend(oop_dropped)
+    ctx.set_manifest(changeset_source="muse-spark", interpret_flow="m3",
+                     guide_url=changeset.source_url)
+    ctx.state["interpret_stats"] = stats
+    symbols = sorted(i.symbol for i in changeset.items)
+    chain = " → ".join([from_version or "?"] + stats["releases"])
+    ctx.emit("log", {"message":
+                     f"interpret: {len(notes)} release(s) {chain}; "
+                     f"{len(changeset.items)} items: "
+                     f"{', '.join(symbols) or '(none)'}"})
+    if oop_dropped:
+        ctx.emit("log", {"message":
+                         "warning: dropped "
+                         f"{len(oop_dropped)} model symbols outside "
+                         f"package {scen.package}: "
+                         + ", ".join(sorted({d.symbol
+                                             for d in oop_dropped}))})
+    ctx.state["changeset"] = changeset
+    ctx.state["symbols"] = change_symbols(changeset)
+    ctx.state["config"] = config_items(changeset)
+    ctx.state["deprecated"] = deprecated_symbols(changeset)
+    ctx.state["changed"] = changed_symbols(changeset)
+    ctx.save_artifact("changeset.json", {
+        "decision": changeset.decision, "source_url": changeset.source_url,
+        "changeset_source": ctx.manifest.get("changeset_source"),
+        "interpret_flow": "m3",
+        "guide_method": None,
+        "from_version": from_version, "to_version": to_version,
+        "releases": stats["releases"],
+        "interpret_recall": stats["recall"],
+        "interpret_table_size": stats["table_size"],
+        "interpret_missed": stats["missed"],
+        "interpret_blind_hits": stats["blind_hits"],
+        "interpret_blind_recall": stats["blind_recall"],
+        "interpret_survival_rate": stats["survival_rate"],
+        "interpret_model_only": stats["model_only"],
+        "interpret_det_by_method": stats["det_by_method"],
+        "source_counts": stats["source_counts"],
+        "dropped_symbols": sorted({d.symbol for d in oop_dropped}),
+        "dropped": [asdict(d) for d in changeset.dropped],
+        "items": [item_record(i) for i in changeset.items],
     })
 
 
@@ -439,11 +524,16 @@ def stage_predict(ctx) -> None:
     ctx.state["untouched"] = False
     g = build_graph_from_repo(scen.target, scen.package)
     entries = probe_entries(scen.probe_code or "", scen.package, g)
+    changeset = ctx.state.get("changeset")
+    excluded = seed_exclusions(changeset) if changeset else {}
+    sig = signature_seeds(changeset) if changeset else {}
     impacts = propagate(g, symbols, config, scen.package,
-                        entries=tuple(entries))
+                        entries=tuple(entries), excluded=excluded,
+                        sig_seeds=sig)
     hard = sorted(n for n, i in impacts.items() if i.status == "HARD")
     at_risk = sorted(n for n, i in impacts.items() if i.status == "AT_RISK")
-    spine_evidence = spine_for_scenario(g, impacts, symbols, scen, config)
+    spine_evidence = spine_for_scenario(g, impacts, symbols, scen, config,
+                                        excluded, sig)
     spine = predicted_chain(g, spine_evidence)
     ctx.state["graph"] = g
     ctx.state["impacts"] = impacts
