@@ -88,9 +88,9 @@ Removal-table recall: Muse Spark alone 9/62 → with deterministic table extract
 
 HARD: 0 modules | AT_RISK: 17 nodes
 
-Predicted layer-1 chain:
+Import chain is clean (import succeeds); worst damage is at call time:
 
-Chain vs layer-1 actual: MATCH
+- `tests/test_concatenate.py::test_batch_key[0]` runs `anndata._core.merge.Reindexer._apply_to_df` which uses `numpy.NaN` (`src/anndata/_core/merge.py:552`)
 
 ## Test suites
 
