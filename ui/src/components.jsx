@@ -76,7 +76,7 @@ export function RedCircle({ children, className = '' }) {
         viewBox="0 0 120 60"
         preserveAspectRatio="none"
         aria-hidden="true"
-        style={{ position: 'absolute', inset: '-30% -12%', width: '124%', height: '160%', pointerEvents: 'none' }}
+        style={{ position: 'absolute', inset: '-30% -10px -30% -4px', pointerEvents: 'none' }}
       >
         <ellipse
           cx="60" cy="30" rx="56" ry="25"

@@ -51,7 +51,14 @@ function LandingHeader({ onReplay, busy, theme, onToggleTheme }) {
       </nav>
       <span className="spacer" />
       <Button kind="secondary" onClick={onReplay} disabled={busy}>
-        {busy ? 'Starting…' : 'Watch a replay'}
+        {busy ? (
+          'Starting…'
+        ) : (
+          <>
+            <span className="long">Watch a replay</span>
+            <span className="short">Replay</span>
+          </>
+        )}
       </Button>
       <button className="theme-toggle" type="button" onClick={onToggleTheme}>
         {theme === 'dark' ? 'Light' : 'Dark'}
@@ -103,6 +110,16 @@ function ChainStrip({ headlines }) {
   )
 }
 
+const KIND_VERBS = { removed: 'was removed', deprecated: 'was deprecated' }
+
+/* The alias the code actually uses (np.sctypes), read from the breaking
+ * line itself — never a hard-coded alias map. */
+function shortAlias(lineText, symbol) {
+  const last = symbol.split('.').pop().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = (lineText || '').match(new RegExp(`([A-Za-z0-9_.]*${last})`))
+  return match ? match[1] : symbol
+}
+
 function CodeDrawing({ preset }) {
   const h = preset.headlines
   const brk = h.first_break
@@ -113,14 +130,30 @@ function CodeDrawing({ preset }) {
   )
   const { data: changeset } = useApi(`/api/runs/preset:${preset.id}/artifacts/changeset.json`)
   const item = changeset?.items?.find((i) => i.symbol === brk.symbol)
-  const callout = item ? item.replacement || item.quote : null
+  const breakText = (src?.lines ?? []).find((l) => l.no === brk.line)?.text ?? ''
+  const alias = shortAlias(breakText, brk.symbol)
+  const verb = KIND_VERBS[item?.kind]
+  const parsed = preset.decision_parsed
+  let callout1 = `breaks here first — ${alias}`
+  if (verb && parsed) {
+    callout1 = `breaks here first — ${alias} ${verb} in ${parsed.package} ${parsed.version}`
+  } else if (verb) {
+    callout1 = `breaks here first — ${alias} ${verb}`
+  }
+  const callout2 = item?.replacement || null
 
   return (
     <div className="code-drawing">
-      {callout && (
+      {item && (
         <div className="callout">
           <RedNote>
-            {brk.symbol}: {callout}
+            {callout1}
+            {callout2 && (
+              <>
+                <br />
+                {callout2}
+              </>
+            )}
           </RedNote>
           <svg className="leader" viewBox="0 0 40 32" aria-hidden="true">
             <path
@@ -257,11 +290,12 @@ function Measurements({ nibabel }) {
       source: 'changeset.json',
     })
   }
-  if (h.file_recall != null) {
+  if (h.files) {
     stats.push({
-      value: `${Math.round(h.file_recall * 100)}%`,
-      label: 'upstream files recalled',
-      source: 'PR #1250',
+      value: `${h.files.breaking_found}/${h.files.breaking_total}`,
+      label: 'breaking files',
+      sub: `${h.files.found}/${h.files.total} including behavior changes`,
+      source: h.files.pr_ref,
     })
   }
   return (
@@ -273,22 +307,17 @@ function Measurements({ nibabel }) {
             {s.status ? <Status tone={s.status} text={s.value} /> : s.value}
           </div>
           <div className="measure-label">{s.label}</div>
-          <div className="mono measure-source">{s.source}</div>
+          {s.sub && <div className="measure-sub">{s.sub}</div>}
+          {s.source && <div className="mono measure-source">{s.source}</div>}
         </div>
       ))}
     </section>
   )
 }
 
-const META_USES = [
-  ['Structured output', 'change sets with a strict schema (interpret)'],
-  ['Tool calling', 'the investigator agent over deterministic tools'],
-  ['Search grounding', 'finds and cites the migration guide itself'],
-  ['1M context', 'whole-repo baselines and full-guide reading'],
-  ['Muse Code', 'fix proposals, and the build itself'],
-]
-
 function GroundingBand() {
+  const { data } = useApi('/api/meta-usage')
+  const caps = data?.capabilities ?? []
   return (
     <section className="band">
       <div className="band-inner">
@@ -299,10 +328,11 @@ function GroundingBand() {
           result replays offline with no key.
         </p>
         <ul className="meta-list">
-          {META_USES.map(([cap, where]) => (
-            <li key={cap}>
-              <span className="mono meta-cap">{cap}</span>
-              <span className="meta-where">{where}</span>
+          {caps.map((c) => (
+            <li key={c.id}>
+              <span className="mono meta-cap">{c.label}</span>
+              <span className="meta-where">{c.where}</span>
+              {c.evidence && <span className="mono meta-evidence">{c.evidence}</span>}
             </li>
           ))}
         </ul>
@@ -312,6 +342,10 @@ function GroundingBand() {
 }
 
 function DrawingsOnFile({ presets, busy, onReplay }) {
+  // The hero drawing leads; the rest keep API order (stable sort).
+  const ordered = [...presets].sort((a, b) =>
+    a.id === NIBABEL_PRESET ? -1 : b.id === NIBABEL_PRESET ? 1 : 0,
+  )
   return (
     <section className="drawings">
       <h2>Drawings on file</h2>
@@ -319,8 +353,9 @@ function DrawingsOnFile({ presets, busy, onReplay }) {
         Targets are pre-existing repos, analyzed by ChainReaction — not part of this build.
       </p>
       <div className="sheet-grid drawings-grid">
-        {presets.map((p, i) => {
+        {ordered.map((p, i) => {
           const h = p.headlines
+          const hasChain = (h?.chain?.length ?? 0) > 0
           return (
             <div className="sheet drawing-card" key={p.id}>
               <div className="mono sheet-no">DWG CR-{String(i + 1).padStart(3, '0')}</div>
@@ -329,10 +364,16 @@ function DrawingsOnFile({ presets, busy, onReplay }) {
               {h && (
                 <p className="drawing-stats">
                   {h.hard} HARD · {h.at_risk} AT RISK
-                  {h.chain_match != null && (
+                  {hasChain && h.chain_match != null && (
                     <>
                       {' · '}
                       <Status tone={h.chain_match ? 'ok' : 'flag'} text="chain" />
+                    </>
+                  )}
+                  {!hasChain && h.suite && (
+                    <>
+                      {' · '}
+                      <span className="mono">{h.suite.new_failures} new test failures</span>
                     </>
                   )}
                 </p>
@@ -377,29 +418,41 @@ export default function Landing() {
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
       />
-      <main className="landing">
+      <main>
         {!presets && !error && (
-          <Sheet>
-            <p>Loading drawings…</p>
-          </Sheet>
+          <div className="landing">
+            <Sheet>
+              <p>Loading drawings…</p>
+            </Sheet>
+          </div>
         )}
-        {error && <div className="view-error">Could not load presets: {error}</div>}
+        {error && (
+          <div className="landing">
+            <div className="view-error">Could not load presets: {error}</div>
+          </div>
+        )}
         {presets && (
           <>
-            <Hero
-              preset={presets.find((p) => p.id === NIBABEL_PRESET)}
-              busy={busy}
-              error={replayError}
-              onReplay={() => replay(NIBABEL_PRESET)}
-            />
-            <ChainStrip headlines={presets.find((p) => p.id === NIBABEL_PRESET)?.headlines} />
-            <SevenSheets nibabel={presets.find((p) => p.id === NIBABEL_PRESET)} />
-            <Measurements nibabel={presets.find((p) => p.id === NIBABEL_PRESET)} />
+            <div className="landing">
+              <Hero
+                preset={presets.find((p) => p.id === NIBABEL_PRESET)}
+                busy={busy}
+                error={replayError}
+                onReplay={() => replay(NIBABEL_PRESET)}
+              />
+              <ChainStrip headlines={presets.find((p) => p.id === NIBABEL_PRESET)?.headlines} />
+              <SevenSheets nibabel={presets.find((p) => p.id === NIBABEL_PRESET)} />
+              <Measurements nibabel={presets.find((p) => p.id === NIBABEL_PRESET)} />
+            </div>
             <GroundingBand />
-            <DrawingsOnFile presets={presets} busy={busy} onReplay={replay} />
+            <div className="landing">
+              <DrawingsOnFile presets={presets} busy={busy} onReplay={replay} />
+            </div>
           </>
         )}
-        <Footer />
+        <div className="landing">
+          <Footer />
+        </div>
       </main>
     </>
   )

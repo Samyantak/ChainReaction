@@ -37,9 +37,66 @@ def test_presets_lists_all_three_on_disk():
         "anndata-numpy2", "nibabel-numpy2", "sponsorfit-meta"]
     for preset in body:
         assert {"id", "title", "repo", "decision", "target",
-                "has_recording", "headlines"} <= set(preset)
+                "decision_parsed", "has_recording", "headlines"} <= set(preset)
         assert preset["has_recording"] is True
-        assert "×" in preset["title"] and preset["decision"]
+        assert preset["decision"]
+    titles = {p["id"]: p["title"] for p in body}
+    assert titles == {"anndata-numpy2": "anndata",
+                      "nibabel-numpy2": "nibabel",
+                      "sponsorfit-meta": "sponsorfit"}
+    parsed = {p["id"]: p["decision_parsed"] for p in body}
+    assert parsed["nibabel-numpy2"] == {"package": "numpy", "version": "2.0"}
+    assert parsed["sponsorfit-meta"] is None
+
+
+def test_presets_file_breaking_stats():
+    body = {p["id"]: p for p in client.get("/api/presets").json()}
+    assert body["nibabel-numpy2"]["headlines"]["files"] == {
+        "breaking_found": 5, "breaking_total": 5,
+        "found": 5, "total": 8, "pr_ref": "PR #1250"}
+    assert body["anndata-numpy2"]["headlines"]["files"] is None
+
+
+def test_presets_suite_failures():
+    body = {p["id"]: p for p in client.get("/api/presets").json()}
+    suite = body["anndata-numpy2"]["headlines"]["suite"]
+    assert suite["new_failures"] == 612
+    assert suite["recall"] == 1.0
+    assert body["nibabel-numpy2"]["headlines"]["suite"] is None
+
+
+def test_meta_usage_real_presets():
+    body = client.get("/api/meta-usage").json()
+    ids = [c["id"] for c in body["capabilities"]]
+    # Only structured output + Muse Code are evidenced today; tool
+    # calling, search grounding, and 1M context appear once M3/M4 land.
+    assert ids == ["structured-output", "muse-code"]
+    first = body["capabilities"][0]
+    assert first["label"] == "Structured output"
+    assert "change_set" in first["evidence"]
+
+
+def test_meta_usage_lights_up_with_evidence(tmp_path, monkeypatch):
+    import json
+
+    runs = tmp_path / "runs"
+    preset = runs / "presets" / "ev"
+    preset.mkdir(parents=True)
+    calls = [
+        {"params": {"tools": [{"type": "function", "name": "find_usages"}]},
+         "usage": {"prompt_tokens": 10}},
+        {"params": {"tools": [{"type": "web_search"}]},
+         "usage": {"prompt_tokens": 10}},
+        {"params": {}, "usage": {"prompt_tokens": 150000}},
+    ]
+    (preset / "llm_calls.jsonl").write_text(
+        "\n".join(json.dumps(c) for c in calls) + "\n")
+    (preset / "manifest.json").write_text(json.dumps({"status": "done"}))
+    monkeypatch.setenv("CHAINREACTION_RUNS_DIR", str(runs))
+    body = client.get("/api/meta-usage").json()
+    ids = [c["id"] for c in body["capabilities"]]
+    assert ids == ["tool-calling", "search-grounding", "context-1m",
+                   "muse-code"]
 
 
 def test_presets_headlines_match_report_files():

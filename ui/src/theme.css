@@ -1,7 +1,27 @@
 /* ChainReaction — Redline Blueprint theme (M6 §B).
  * Tokens for light + dark. Page ground carries the 24px blueprint grid;
- * panels stay flat. Fonts load from Google Fonts (see index.html) with
- * system fallbacks so the app still works offline. */
+ * panels stay flat. */
+
+/* Bundled Redline faces (all SIL Open Font License, latin subset from
+ * Google Fonts, self-hosted so the app looks right offline). */
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("./assets/fonts/InstrumentSans.woff2") format("woff2");
+  font-weight: 400 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Martian Mono";
+  src: url("./assets/fonts/MartianMono.woff2") format("woff2");
+  font-weight: 400 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Caveat";
+  src: url("./assets/fonts/Caveat.woff2") format("woff2");
+  font-weight: 600 700;
+  font-display: swap;
+}
 
 :root {
   color-scheme: light;
@@ -19,6 +39,10 @@
   --red: #d9481c;
   --red-ink: #c23e15;
   --ok: #2f7d5b;
+  --band-sky: #8ec9ec;
+  /* Primary button: fills chosen for 4.5:1 text contrast (5.26 light, 5.67 dark). */
+  --btn-fill: #c23e15;
+  --btn-ink: #ffffff;
   --rule: 1.5px;
 }
 
@@ -38,6 +62,9 @@
   --red: #f07a4e;
   --red-ink: #f59a76;
   --ok: #7fd1a8;
+  --band-sky: #8ec9ec;
+  --btn-fill: #f07a4e;
+  --btn-ink: #102536;
 }
 
 * { box-sizing: border-box; }
@@ -97,10 +124,13 @@ a:visited { color: var(--sky-ink); }
   font-size: 12px;
 }
 .title-block > .cell {
+  flex: 1 1 0;
+  min-width: 0;
   padding: 6px 12px;
   border-right: var(--rule) solid var(--ink);
-  white-space: nowrap;
+  overflow-wrap: break-word;
 }
+.title-block .label { white-space: nowrap; }
 .title-block > .cell:last-child { border-right: none; }
 .title-block .label {
   color: var(--ink-muted);
@@ -125,9 +155,9 @@ a:visited { color: var(--sky-ink); }
   transition: background-color 150ms ease-out, color 150ms ease-out;
 }
 .btn-primary {
-  background: var(--red);
-  color: #fff;
-  border: var(--rule) solid var(--red);
+  background: var(--btn-fill);
+  color: var(--btn-ink);
+  border: var(--rule) solid var(--btn-fill);
 }
 .btn-primary:hover { filter: brightness(1.06); }
 .btn-secondary {

@@ -6,6 +6,9 @@ of recordings made before a field existed: the UI hides sections whose
 data is absent rather than crashing (M6 plan point 3).
 """
 
+import json
+import re
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -65,7 +68,50 @@ def _first_break(spine_evidence: list) -> dict | None:
     return {"from": hop[0], "symbol": hop[1], "path": hop[2], "line": hop[3]}
 
 
-def _headlines(report: dict | None, fix: dict | None) -> dict | None:
+def _file_stats(report: dict, behavior: set) -> dict | None:
+    """Upstream-file overlap split into breaking vs behavior files.
+
+    "5/5 breaking files" with "5/8 including behavior changes" says what
+    the report says; a bare recall percentage undersells it.
+    """
+    pr_files = list(report.get("pr_files") or [])
+    if not pr_files:
+        return None
+    missing = set(report.get("file_missing") or [])
+    total = len(pr_files)
+    behavior_in_pr = set(pr_files) & set(behavior)
+    breaking_total = total - len(behavior_in_pr)
+    breaking_found = breaking_total - len(missing - behavior_in_pr)
+    pr_url = report.get("pr_url") or ""
+    match = re.search(r"/pull/(\d+)", pr_url)
+    pr_ref = f"PR #{match.group(1)}" if match else (
+        "upstream PR" if pr_url else None)
+    return {
+        "breaking_found": breaking_found,
+        "breaking_total": breaking_total,
+        "found": total - len(missing),
+        "total": total,
+        "pr_ref": pr_ref,
+    }
+
+
+def _suite_stats(scores: dict | None) -> dict | None:
+    """After-suite failures vs baseline (generic-path runs only)."""
+    if not isinstance(scores, dict):
+        return None
+    actual_new = scores.get("actual_new")
+    if not isinstance(actual_new, list):
+        return None
+    return {
+        "new_failures": len(actual_new),
+        "precision": scores.get("test_precision"),
+        "recall": scores.get("test_recall"),
+    }
+
+
+def _headlines(report: dict | None, fix: dict | None,
+               scores: dict | None = None,
+               behavior: set | None = None) -> dict | None:
     """Landing-page numbers, all optional-tolerant (M6 plan point 3).
 
     Sections the backend hasn't produced yet come back as None and the
@@ -102,6 +148,8 @@ def _headlines(report: dict | None, fix: dict | None) -> dict | None:
         },
         "file_precision": report.get("file_precision"),
         "file_recall": report.get("file_recall"),
+        "files": _file_stats(report, behavior or set()),
+        "suite": _suite_stats(scores),
         "grep_hits": report.get("grep_hits"),
         "ruff_hits": report.get("ruff_hits"),
         "fix": fix_rounds,
@@ -123,18 +171,43 @@ def _preset_entry(preset_id: str) -> dict | None:
     report = run_store.read_json(report_path) if report_path.is_file() else None
     fix_path = directory / run_store.ARTIFACTS / "fix.json"
     fix = run_store.read_json(fix_path) if fix_path.is_file() else None
+    scores_path = directory / run_store.ARTIFACTS / "scores.json"
+    scores = run_store.read_json(scores_path) if scores_path.is_file() else None
     decision = manifest.get("decision") or ""
     repo_url = manifest.get("repo_url") or ""
     target = (report or {}).get("target") or ""
     return {
         "id": preset_id,
-        "title": f"{_repo_short(repo_url, target, preset_id)} × {decision}",
+        "title": _repo_short(repo_url, target, preset_id),
         "repo": repo_url,
         "decision": decision,
+        "decision_parsed": _parse_decision(decision),
         "target": target,
         "has_recording": manifest.get("status") == "done" and report is not None,
-        "headlines": _headlines(report, fix),
+        "headlines": _headlines(report, fix, scores,
+                                _pr_behavior(preset_id, report)),
     }
+
+
+def _parse_decision(decision: str) -> dict | None:
+    """Deterministic package/version parse; None for vendor decisions."""
+    from chainreaction.generic import parse_decision  # noqa: PLC0415 - lazy
+
+    parsed = parse_decision(decision)
+    if parsed is None:
+        return None
+    return {"package": parsed.package, "version": parsed.to_version}
+
+
+def _pr_behavior(preset_id: str, report: dict | None) -> set:
+    """Upstream-PR files that are behavior changes, not breakage."""
+    from chainreaction import scenarios  # noqa: PLC0415 - lazy, cheap
+
+    try:
+        return set(scenarios.get(preset_id).pr_behavior)
+    except KeyError:
+        pass
+    return set((report or {}).get("file_behavior") or [])
 
 
 @router.get("/api/presets")
@@ -158,6 +231,110 @@ def ui_presets() -> list[dict]:
         if entry is not None:
             entries.append(entry)
     return entries
+
+
+# A recorded call proves large-context use only past ordinary windows.
+CONTEXT_TOKENS_THRESHOLD = 100_000
+
+
+def _iter_llm_calls(root: Path):
+    for child in sorted(root.iterdir(), key=lambda p: p.name):
+        if not child.is_dir():
+            continue
+        calls_path = child / run_store.LLM_CALLS
+        if not calls_path.is_file():
+            continue
+        try:
+            text = calls_path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            if not line.strip():
+                continue
+            try:
+                yield json.loads(line)
+            except ValueError:
+                continue
+
+
+def _tool_uses_web_search(tools) -> bool:
+    if not tools:
+        return False
+    entries = tools if isinstance(tools, list) else [tools]
+    return any("web_search" in json.dumps(entry).lower()
+               for entry in entries)
+
+
+@lru_cache(maxsize=32)
+def _scan_meta_usage(root_str: str) -> list:
+    """Meta capabilities evidenced by preset recordings.
+
+    Each line appears only once a recording proves it, so the landing
+    page never claims tooling that hasn't landed yet. Cached per runs
+    dir; recordings are static within a server process lifetime for the
+    committed presets.
+    """
+    structured, schemas = 0, set()
+    tool_calls = web_search = 0
+    max_prompt = 0
+    for call in _iter_llm_calls(Path(root_str)):
+        params = call.get("params") or {}
+        fmt = params.get("response_format")
+        if fmt:
+            structured += 1
+            name = (fmt.get("json_schema") or {}).get("name") \
+                if isinstance(fmt, dict) else None
+            schemas.add(name or "json")
+        tools = params.get("tools")
+        if tools:
+            tool_calls += 1
+            if _tool_uses_web_search(tools):
+                web_search += 1
+        prompt = (call.get("usage") or {}).get("prompt_tokens") or 0
+        max_prompt = max(max_prompt, prompt)
+    capabilities = []
+    if structured:
+        capabilities.append({
+            "id": "structured-output",
+            "label": "Structured output",
+            "where": "change sets, validated against a strict schema",
+            "evidence": (f"{structured} recorded calls "
+                         f"({', '.join(sorted(schemas))})"),
+        })
+    if tool_calls:
+        capabilities.append({
+            "id": "tool-calling",
+            "label": "Tool calling",
+            "where": "the investigator agent's deterministic tools",
+            "evidence": f"{tool_calls} recorded calls",
+        })
+    if web_search:
+        capabilities.append({
+            "id": "search-grounding",
+            "label": "Search grounding",
+            "where": "finds and cites the migration guide",
+            "evidence": f"{web_search} recorded calls",
+        })
+    if max_prompt >= CONTEXT_TOKENS_THRESHOLD:
+        capabilities.append({
+            "id": "context-1m",
+            "label": "1M context",
+            "where": "whole-repo baselines and full-guide reads",
+            "evidence": f"{max_prompt:,} prompt tokens in one call",
+        })
+    capabilities.append({
+        "id": "muse-code",
+        "label": "Muse Code",
+        "where": "built ChainReaction during the hackathon",
+        "evidence": None,
+    })
+    return capabilities
+
+
+@router.get("/api/meta-usage")
+def ui_meta_usage() -> dict:
+    """Meta tooling evidenced by preset recordings (landing band)."""
+    return {"capabilities": _scan_meta_usage(str(run_store.presets_dir()))}
 
 
 def _source_root(directory: Path, manifest: dict) -> Path:

@@ -42,6 +42,13 @@
 .landing-header nav a:hover, .landing-header nav .navlink:hover { text-decoration: underline; }
 .landing-header .spacer, .app-header .spacer { margin-left: auto; }
 .landing-header .btn { min-height: 40px; padding: 8px 16px; }
+.landing-header .btn .short { display: none; }
+@media (max-width: 480px) {
+  .landing-header .dwg-tag { display: none; }
+  .landing-header .btn .long { display: none; }
+  .landing-header .btn .short { display: inline; }
+  .landing-header .btn { padding: 8px 12px; }
+}
 
 /* ---- Hero ---- */
 .hero {
@@ -86,6 +93,8 @@
   grid-template-columns: 28px 44px 1fr;
   padding: 0 16px 0 0;
   white-space: pre;
+  width: max-content;
+  min-width: 100%;
 }
 .code-gutter { text-align: center; color: var(--red); }
 .code-num { text-align: right; padding-right: 12px; color: var(--line-num); user-select: none; }
@@ -132,13 +141,14 @@
 }
 .measure-value { font-size: 36px; font-weight: 700; letter-spacing: -0.03em; }
 .measure-label { font-weight: 600; }
+.measure-sub { font-size: 14px; color: var(--ink-muted); }
 .measure-source { font-size: 12px; color: var(--ink-muted); }
 
 /* ---- Grounding band ---- */
 .band {
   background: var(--band);
   color: var(--band-ink);
-  margin: 0 -24px 48px;
+  margin: 0 0 48px;
   padding: 40px 24px;
 }
 .band-inner { max-width: 1152px; margin: 0 auto; }
@@ -146,8 +156,9 @@
 .band p { max-width: 70ch; color: var(--band-ink); }
 .meta-list { list-style: none; padding: 16px 0 0; margin: 0; display: grid; gap: 10px; }
 .meta-list li { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; }
-.meta-cap { font-size: 13px; color: var(--sky, #a9ddf8); min-width: 180px; }
+.meta-cap { font-size: 13px; color: var(--band-sky); min-width: 180px; }
 .meta-where { color: var(--band-muted); }
+.meta-evidence { font-size: 12px; color: var(--band-muted); }
 
 /* ---- Drawings on file ---- */
 .drawings { padding-bottom: 48px; }
@@ -185,4 +196,8 @@
   .sheets-grid { grid-template-columns: 1fr; }
   .measurements { grid-template-columns: 1fr; gap: 24px; }
   .band h2, .drawings h2 { font-size: 28px; }
+  .code-lines { font-size: 12px; }
+  .code-line { grid-template-columns: 22px 36px 1fr; }
+  .title-block { font-size: 11px; }
+  .title-block > .cell { padding: 6px 8px; }
 }
