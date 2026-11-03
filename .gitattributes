@@ -4,3 +4,5 @@ runs/presets/** text eol=lf
 # ...except compressed recordings, which are binary (line-ending
 # conversion would corrupt them).
 runs/presets/**/*.gz binary
+# Bundled fonts are binary; never convert line endings inside them.
+ui/src/assets/fonts/** binary

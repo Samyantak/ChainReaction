@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "vite build && node scripts/dist-hash.js --write",
+    "preview": "vite preview",
+    "check-dist": "node scripts/dist-hash.js",
+    "test": "node --test test/stages.test.js"
   },
   "dependencies": {
     "cytoscape": "^3.28.0",
+    "cytoscape-dagre": "^4.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

@@ -32,10 +32,11 @@ runs/*
 # LLM prompt-hash cache (regenerable, machine-local)
 .llm_cache/
 
-# Frontend
+# Frontend (ui/dist is committed so judges don't need Node)
 ui/node_modules/
-ui/dist/
 ui/.npm-cache/
+!ui/dist/
+!ui/dist/**
 
 # Secrets
 .env

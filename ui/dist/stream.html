@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ChainReaction run stream</title>
+<style>
+  body { background: #141417; color: #e8e8e8; font: 14px/1.45 system-ui, sans-serif; margin: 1em auto; max-width: 70em; padding: 0 1em; }
+  h1 { font-size: 1.2em; } code { background: #26262b; padding: 0 .3em; border-radius: 3px; }
+  input, select, button { background: #26262b; color: #e8e8e8; border: 1px solid #444; border-radius: 4px; padding: .3em .6em; }
+  button { cursor: pointer; } button:hover { background: #33333a; }
+  #events { list-style: none; padding: 0; } #events li { border-bottom: 1px solid #2a2a2e; padding: .25em 0; font-family: ui-monospace, monospace; font-size: 12px; white-space: pre-wrap; }
+  .seq { color: #8b8d98; } .stage { color: #7ab8ff; } .type-stage_start, .type-stage_end { color: #f5a524; }
+  .type-error { color: #e5484d; } .type-llm_call, .type-cmd, .type-fetch { color: #9ece6a; }
+  #status { margin-left: 1em; }
+</style>
+</head>
+<body>
+<h1>Run <code id="run">—</code><span id="status"></span></h1>
+<p>
+  <input id="preset" size="16" value="nibabel-numpy2" />
+  <button id="live">new live run</button>
+  <button id="replay">new preset replay</button>
+  <input id="runid" size="34" placeholder="run id" />
+  <button id="go">stream</button>
+  <button id="cancel">cancel</button>
+</p>
+<ol id="events"></ol>
+<script>
+const $ = (id) => document.getElementById(id);
+let source = null;
+
+async function post(url, body) {
+  const res = await fetch(url, { method: 'POST', headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : null });
+  if (!res.ok) throw new Error(`${url}: HTTP ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+function line(ev) {
+  const li = document.createElement('li');
+  const summary = JSON.stringify(ev.data);
+  li.innerHTML = `<span class="seq">#${ev.seq} ${ev.ts}</span> <span class="stage">[${ev.stage}]</span> <span class="type-${ev.type}">${ev.type}</span> ${summary.length > 500 ? summary.slice(0, 500) + '…' : summary}`;
+  $('events').appendChild(li);
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
+async function refreshStatus(id) {
+  try {
+    const run = await (await fetch(`/api/runs/${id}`)).json();
+    $('status').textContent = ` — ${run.status} (${run.stage || '—'})`;
+  } catch (e) { $('status').textContent = ` — ${e}`; }
+}
+
+function stream(id) {
+  if (source) source.close();
+  $('run').textContent = id;
+  $('runid').value = id;
+  $('events').innerHTML = '';
+  history.replaceState(null, '', `?run=${id}`);
+  source = new EventSource(`/api/runs/${id}/events`);
+  source.onmessage = (m) => line(JSON.parse(m.data));
+  // EventSource auto-resumes with Last-Event-ID on reconnect.
+  source.addEventListener('stage_start', (m) => line(JSON.parse(m.data)));
+  source.addEventListener('stage_end', (m) => line(JSON.parse(m.data)));
+  source.addEventListener('log', (m) => line(JSON.parse(m.data)));
+  source.addEventListener('error', (m) => { if (m.data) line(JSON.parse(m.data)); });
+  source.addEventListener('llm_call', (m) => line(JSON.parse(m.data)));
+  source.addEventListener('cmd', (m) => line(JSON.parse(m.data)));
+  source.addEventListener('fetch', (m) => line(JSON.parse(m.data)));
+  source.addEventListener('artifact', (m) => line(JSON.parse(m.data)));
+  source.onerror = () => { source.close(); refreshStatus(id); setTimeout(() => refreshStatus(id), 1500); };
+  refreshStatus(id);
+}
+
+$('go').onclick = () => $('runid').value && stream($('runid').value.trim());
+$('cancel').onclick = async () => { const id = $('runid').value.trim(); if (id) { await post(`/api/runs/${id}/cancel`); refreshStatus(id); } };
+$('live').onclick = async () => { const r = await post('/api/runs', { preset: $('preset').value.trim(), mode: 'live' }); stream(r.id); };
+$('replay').onclick = async () => { const r = await post('/api/runs', { preset: $('preset').value.trim(), mode: 'replay' }); stream(r.id); };
+
+const initial = new URLSearchParams(location.search).get('run');
+if (initial) stream(initial);
+</script>
+</body>
+</html>

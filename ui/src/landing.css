@@ -1,0 +1,174 @@
+/* Landing page (M6 §A): artboard C structure on the Redline tokens. */
+
+.landing {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 48px;
+}
+
+.landing-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--sheet);
+  border-bottom: var(--rule) solid var(--ink);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.landing-header .wordmark {
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.landing-header .dwg-tag {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+.landing-header nav { display: flex; gap: 20px; margin-left: 16px; align-items: center; }
+.landing-header nav a, .landing-header nav .navlink {
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 500;
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.landing-header nav a:hover, .landing-header nav .navlink:hover { text-decoration: underline; }
+.landing-header .spacer, .app-header .spacer { margin-left: auto; }
+.landing-header .btn { min-height: 40px; padding: 8px 16px; }
+.landing-header .btn .short { display: none; }
+@media (max-width: 480px) {
+  .landing-header .dwg-tag { display: none; }
+  .landing-header .btn .long { display: none; }
+  .landing-header .btn .short { display: inline; }
+  .landing-header .btn { padding: 8px 12px; }
+}
+
+/* ---- Hero ---- */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 32px;
+  padding: 48px 0 32px;
+  align-items: start;
+}
+/* Grid children must not size to the longest code line: the scroll
+ * stays inside .code-lines instead of widening the page. */
+.hero-copy, .hero-drawing, .code-drawing, .code-sheet { min-width: 0; max-width: 100%; }
+.hero-copy h1 {
+  font-size: 72px;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+.hero-copy p { font-size: 17px; max-width: 44ch; }
+.hero-buttons { display: flex; gap: 12px; margin: 24px 0; flex-wrap: wrap; }
+
+/* ---- Code drawing ---- */
+.code-drawing .callout {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin: 0 0 4px 12px;
+}
+.code-drawing .leader { width: 40px; height: 32px; flex: none; }
+/* Code drawing rows live in theme.css (shared with the graph panel). */
+.code-drawing .title-block { border-top: none; }
+
+/* ---- Chain strip ---- */
+.chain-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0 32px;
+}
+.chain-arrow { color: var(--ink-muted); font-weight: 700; }
+
+/* ---- Seven sheets ---- */
+.sheets-section { padding-bottom: 40px; }
+.sheets-grid { grid-template-columns: repeat(7, 1fr); }
+.sheet-card {
+  text-decoration: none;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+}
+.sheet-card:hover { background: var(--sky); }
+/* .sheet-no lives in theme.css (shared with run views). */
+.sheet-card h3 { font-size: 16px; margin: 0; }
+.sheet-card p { font-size: 13px; margin: 0; color: var(--ink-muted); }
+.sheet-note { margin-top: auto; padding-top: 8px; }
+.sheet-note .red-note { font-size: 19px; }
+
+/* ---- Measurements ---- */
+.measurements {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+  padding: 8px 0 48px;
+}
+/* .measure-* live in theme.css (shared with verify/report scoreboards). */
+
+/* ---- Grounding band ---- */
+.band {
+  background: var(--band);
+  color: var(--band-ink);
+  margin: 0 0 48px;
+  padding: 40px 24px;
+}
+.band-inner { max-width: 1152px; margin: 0 auto; }
+.band h2 { font-size: 36px; }
+.band p { max-width: 70ch; color: var(--band-ink); }
+.meta-list { list-style: none; padding: 16px 0 0; margin: 0; display: grid; gap: 10px; }
+.meta-list li { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; }
+.meta-cap { font-size: 13px; color: var(--band-sky); min-width: 180px; }
+.meta-where { color: var(--band-muted); }
+.meta-evidence { font-size: 12px; color: var(--band-muted); }
+
+/* ---- Drawings on file ---- */
+.drawings { padding-bottom: 48px; }
+.drawings h2 { font-size: 36px; }
+.drawings-note { color: var(--ink-muted); margin-top: -8px; }
+.drawings-grid { grid-template-columns: repeat(3, 1fr); }
+.drawing-card h3 { font-size: 20px; margin: 4px 0; }
+.drawing-decision { font-size: 13px; color: var(--ink-muted); margin: 0 0 8px; }
+.drawing-stats { font-size: 14px; }
+.drawing-card .btn { margin-top: 8px; min-height: 40px; }
+
+/* ---- Footer ---- */
+.landing-footer {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  padding: 20px 0 8px;
+  border-top: var(--rule) solid var(--ink);
+  font-size: 14px;
+  color: var(--ink-muted);
+  flex-wrap: wrap;
+}
+
+/* ---- Narrow ---- */
+@media (max-width: 1020px) {
+  .hero { grid-template-columns: 1fr; }
+  .hero-copy h1 { font-size: 48px; }
+  .sheets-grid { grid-template-columns: repeat(2, 1fr); }
+  .measurements { grid-template-columns: repeat(2, 1fr); }
+  .drawings-grid { grid-template-columns: 1fr; }
+  .landing-header nav { display: none; }
+}
+@media (max-width: 640px) {
+  .hero-copy h1 { font-size: 36px; }
+  .sheets-grid { grid-template-columns: 1fr; }
+  .measurements { grid-template-columns: 1fr; gap: 24px; }
+  .band h2, .drawings h2 { font-size: 28px; }
+  .title-block { font-size: 11px; }
+  .title-block > .cell { padding: 6px 8px; }
+}
