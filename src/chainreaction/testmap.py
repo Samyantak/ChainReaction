@@ -47,7 +47,19 @@ class TestMap:
 
     @staticmethod
     def load(path: str | Path) -> "TestMap":
-        d = json.loads(Path(path).read_text(encoding="utf-8"))
+        p = Path(path)
+        if not p.is_file():
+            gzipped = p.with_name(p.name + ".gz")
+            if gzipped.is_file():
+                import gzip
+
+                d = json.loads(
+                    gzip.decompress(gzipped.read_bytes()).decode("utf-8"))
+                return TestMap(d["target"], d["package"], d["built_with"],
+                               d["tests"],
+                               d.get("collected", len(d["tests"])),
+                               d.get("line_hits", {}))
+        d = json.loads(p.read_text(encoding="utf-8"))
         return TestMap(d["target"], d["package"], d["built_with"], d["tests"],
                        d.get("collected", len(d["tests"])),
                        d.get("line_hits", {}))
@@ -626,6 +638,11 @@ def file_to_rel(path_text: str | Path, target: str | Path, package: str
         return None
     head = rel.split("/")[0]
     if head not in (package, "src"):
+        if len(head) == 2 and head[1] == ":":
+            # Forward-slashed drive path on a POSIX box (E:/...): not
+            # absolute there, so relpath passed it through — match by
+            # package tail instead of dropping the line hit.
+            return _tail_rel(text, package)
         return None
     return rel
 

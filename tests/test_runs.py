@@ -612,6 +612,71 @@ def test_preset_scan_finds_no_leaks(monkeypatch):
     assert store.scan_for_leaks(preset) == []
 
 
+def test_record_readers_accept_gzip_twins(tmp_path):
+    plain = tmp_path / "cmds.jsonl"
+    plain.write_text('{"a": 1}\n{"b": 2}\n', encoding="utf-8")
+    assert store.read_jsonl(plain) == [{"a": 1}, {"b": 2}]
+    gzipped = store.gzip_file(plain)
+    assert gzipped.name == "cmds.jsonl.gz" and not plain.exists()
+    assert store.read_jsonl(plain) == [{"a": 1}, {"b": 2}]
+    assert store.read_jsonl(tmp_path / "missing.jsonl") == []
+    doc = tmp_path / "doc.json"
+    doc.write_text('{"x": 1}', encoding="utf-8")
+    store.gzip_file(doc)
+    assert store.read_json(doc) == {"x": 1}
+    # Deterministic bytes: same content compresses identically.
+    twin = tmp_path / "twin.jsonl"
+    twin.write_text('{"a": 1}\n{"b": 2}\n', encoding="utf-8")
+    assert store.gzip_file(twin).read_bytes() == gzipped.read_bytes()
+
+
+def test_compress_preset_gzips_only_large_candidates(tmp_path):
+    preset = tmp_path / "preset"
+    (preset / "artifacts").mkdir(parents=True)
+    (preset / "cmds.jsonl").write_text("x" * 200, encoding="utf-8")
+    (preset / "fetches.jsonl").write_text("tiny", encoding="utf-8")
+    (preset / "artifacts" / "testmap.json").write_text(
+        "y" * 200, encoding="utf-8")
+    (preset / "artifacts" / "report.json").write_text(
+        "z" * 200, encoding="utf-8")
+    done = store.compress_preset(preset, threshold=100)
+    assert sorted(done) == ["artifacts/testmap.json.gz", "cmds.jsonl.gz"]
+    assert (preset / "fetches.jsonl").is_file()  # under threshold
+    assert (preset / "artifacts" / "report.json").is_file()  # not listed
+    assert store.compress_preset(preset, threshold=100) == []  # idempotent
+
+
+def test_scan_for_leaks_sees_through_gzip(tmp_path):
+    from chainreaction.runs.scrub import ROOT as scrub_root
+
+    clean = tmp_path / "cmds.jsonl"
+    clean.write_bytes(b'{"ok": true}\n')
+    store.gzip_file(clean)
+    assert store.scan_for_leaks(tmp_path) == []
+    dirty = tmp_path / "fetches.jsonl"
+    dirty.write_bytes(f"oops {scrub_root}\n".encode("utf-8"))
+    store.gzip_file(dirty)
+    assert any("absolute path" in i for i in store.scan_for_leaks(tmp_path))
+    (tmp_path / "bogus.jsonl.gz").write_bytes(b"not gzip")
+    assert any("not valid gzip" in i
+               for i in store.scan_for_leaks(tmp_path))
+
+
+def test_copy_recordings_prefers_gzip_twin(tmp_path):
+    from types import SimpleNamespace
+
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "cmds.jsonl.gz").write_bytes(b"gz-bytes")
+    (src / "fetches.jsonl").write_text("plain", encoding="utf-8")
+    dst = tmp_path / "dst"
+    dst.mkdir()
+    worker._copy_recordings(SimpleNamespace(source_dir=src, dir=dst))
+    assert (dst / "cmds.jsonl.gz").read_bytes() == b"gz-bytes"
+    assert not (dst / "cmds.jsonl").exists()
+    assert (dst / "fetches.jsonl").is_file()
+
+
 def test_preset_replay_matches_committed(monkeypatch, tmp_path):
     monkeypatch.delenv("CHAINREACTION_RUNS_DIR", raising=False)
     preset, source = _real_preset()

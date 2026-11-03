@@ -76,6 +76,8 @@ def main() -> int:
             print(f"  {issue}")
         return 1
     print("leak scan clean (no key, no absolute paths, LF-only)")
+    for gzipped in store.compress_preset(dest):
+        print(f"compressed {gzipped}")
     replay = worker.create_run(
         worker.RunRequest(preset=preset, mode="replay"))
     print(f"replay run: {replay}")

@@ -218,10 +218,12 @@ def submit_run(run_id: str, stages=None) -> None:
 def _copy_recordings(ctx: RunContext) -> None:
     # Every run dir stays self-contained (replay-of-replay works) and
     # byte-preserving copies keep the provenance chain auditable.
+    # Presets store large recordings gzipped; the .gz twin wins.
     for name in (store_mod.LLM_CALLS, store_mod.CMDS, store_mod.FETCHES):
-        src = ctx.source_dir / name
-        if src.is_file():
-            shutil.copy(src, ctx.dir / name)
+        for cand in (ctx.source_dir / (name + ".gz"), ctx.source_dir / name):
+            if cand.is_file():
+                shutil.copy(cand, ctx.dir / cand.name)
+                break
 
 
 def _warn_on_code_drift(ctx: RunContext) -> None:

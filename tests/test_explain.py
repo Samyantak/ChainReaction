@@ -53,6 +53,23 @@ def test_clean_report_passes_and_renders(tmp_path):
     assert json.loads(render_json(report))["decision"] == report.decision
 
 
+def test_empty_spine_leads_with_test_chain(tmp_path):
+    _, report = _setup(tmp_path)
+    report.spine = []
+    report.spine_evidence = []
+    chain = {"test": "t.py::a", "func": "demo.fn", "symbol": "numpy.NaN",
+             "file": "demo/x.py", "line": 10}
+    md = render_markdown(report, {"scores": {"test_chain": chain}})
+    assert "Predicted layer-1 chain" not in md
+    assert "Chain vs layer-1 actual" not in md
+    assert "Import chain is clean" in md
+    assert "`t.py::a` runs `demo.fn`" in md
+    # Without a test chain the (empty) spine block renders as before.
+    plain = render_markdown(report)
+    assert "Predicted layer-1 chain" in plain
+    assert "Chain vs layer-1 actual: MATCH" in plain
+
+
 def test_render_markdown_generic_extras(tmp_path):
     _, report = _setup(tmp_path)
     extra = {

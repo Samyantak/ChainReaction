@@ -533,6 +533,39 @@ def _generic_test_lines(extra: dict) -> list[str]:
     return lines + [""]
 
 
+def _prediction_chain_lines(report: Report, extra: dict | None,
+                            decision: bool) -> list[str]:
+    """Prediction chain block: import spine, or the test chain instead.
+
+    When the import succeeds (empty spine) but tests fail at call time,
+    the empty "Predicted layer-1 chain ... MATCH" lines say nothing, so
+    the test call chain leads instead.
+    """
+    chain = ((extra or {}).get("scores") or {}).get("test_chain")
+    if not report.spine_evidence and chain:
+        return [
+            "Import chain is clean (import succeeds); "
+            "worst damage is at call time:",
+            "",
+            f"- `{chain['test']}` runs `{chain['func']}` "
+            f"which uses `{chain['symbol']}` "
+            f"(`{chain['file']}:{chain['line']}`)",
+            "",
+        ]
+    return [
+        "Predicted call chain:" if decision else "Predicted layer-1 chain:",
+        "",
+        *[
+            f"- `{u}` -> `{v}` ({path}:{line})"
+            for u, v, path, line in report.spine_evidence
+        ],
+        (f"Chain vs decision actual: "
+         if decision else "Chain vs layer-1 actual: ")
+        + f"{'MATCH' if report.spine_match else 'DIFFERS'}",
+        "",
+    ]
+
+
 def render_markdown(report: Report, extra: dict | None = None) -> str:
     decision = report.probe_kind == "decision"
     target_line = (f"Target: `{report.target}` "
@@ -596,16 +629,7 @@ def render_markdown(report: Report, extra: dict | None = None) -> str:
         "",
         f"HARD: {len(report.hard)} modules | AT_RISK: {len(report.at_risk)} nodes",
         "",
-        "Predicted call chain:" if decision else "Predicted layer-1 chain:",
-        "",
-        *[
-            f"- `{u}` -> `{v}` ({path}:{line})"
-            for u, v, path, line in report.spine_evidence
-        ],
-        (f"Chain vs decision actual: "
-         if decision else "Chain vs layer-1 actual: ")
-        + f"{'MATCH' if report.spine_match else 'DIFFERS'}",
-        "",
+        *_prediction_chain_lines(report, extra, decision),
     ]
     if report.pr_url:
         flagged, total, breaking, missed = _file_score_bits(report)

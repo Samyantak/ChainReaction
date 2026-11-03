@@ -14,10 +14,15 @@ runs/<run_id>/
 runs/presets/<preset_id>/   # committed recordings (same layout)
 ```
 
+Large recordings (cmds, fetches, llm calls, testmap) are stored
+gzip-compressed in presets (*.gz); live runs always write plain for
+cheap appends, and every reader below accepts either form.
+
 All writes are scrubbed + LF + canonical JSON at this boundary, so no
 caller can leak a key or an absolute path into a run file.
 """
 
+import gzip
 import json
 import os
 import re
@@ -32,6 +37,12 @@ LLM_CALLS = "llm_calls.jsonl"
 CMDS = "cmds.jsonl"
 FETCHES = "fetches.jsonl"
 ARTIFACTS = "artifacts"
+TESTMAP = "testmap.json"
+
+# Preset members eligible for compression (never manifests, reports,
+# scores, or byte-compared artifacts, which stay human-readable).
+GZ_CANDIDATES = (LLM_CALLS, CMDS, FETCHES, f"{ARTIFACTS}/{TESTMAP}")
+GZ_THRESHOLD_BYTES = 1_000_000
 
 TERMINAL = ("done", "failed", "cancelled")
 ACTIVE = ("queued", "running")
@@ -88,8 +99,30 @@ def write_json(path: Path, obj) -> None:
     os.replace(tmp, path)  # last attempt raises (e.g. disk full)
 
 
+def resolve_record(path: Path) -> Path:
+    """Existing record for path: plain wins, else the .gz twin, else path."""
+    if path.is_file():
+        return path
+    gzipped = path.with_name(path.name + ".gz")
+    return gzipped if gzipped.is_file() else path
+
+
+def read_text_record(path: Path) -> str:
+    """Record text, transparently through gzip (missing reads as "")."""
+    resolved = resolve_record(path)
+    if not resolved.is_file():
+        return ""
+    if resolved.suffix == ".gz":
+        return gzip.decompress(resolved.read_bytes()).decode("utf-8")
+    return resolved.read_text(encoding="utf-8")
+
+
 def read_json(path: Path):
-    return json.loads(path.read_text(encoding="utf-8"))
+    resolved = resolve_record(path)
+    if resolved.suffix == ".gz":
+        return json.loads(
+            gzip.decompress(resolved.read_bytes()).decode("utf-8"))
+    return json.loads(resolved.read_text(encoding="utf-8"))
 
 
 def append_jsonl(path: Path, obj) -> None:
@@ -100,10 +133,8 @@ def append_jsonl(path: Path, obj) -> None:
 
 
 def read_jsonl(path: Path) -> list:
-    if not path.is_file():
-        return []
     rows = []
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in read_text_record(path).splitlines():
         if line.strip():
             rows.append(json.loads(line))
     return rows
@@ -150,6 +181,31 @@ def save_artifact(directory: Path, name: str, obj) -> Path:
     return target
 
 
+def gzip_file(path: Path) -> Path:
+    """Compress path to path.gz deterministically; remove the original."""
+    gzipped = path.with_name(path.name + ".gz")
+    gzipped.write_bytes(
+        gzip.compress(path.read_bytes(), compresslevel=9, mtime=0))
+    path.unlink()
+    return gzipped
+
+
+def compress_preset(preset_dir: Path,
+                    threshold: int = GZ_THRESHOLD_BYTES) -> list[str]:
+    """Gzip large recordings in a preset dir; return compressed names.
+
+    Only GZ_CANDIDATES at or above threshold move; reports, scores,
+    manifests, and small files stay plain. Idempotent.
+    """
+    done = []
+    for name in GZ_CANDIDATES:
+        plain = preset_dir / name
+        if plain.is_file() and plain.stat().st_size >= threshold:
+            gzip_file(plain)
+            done.append(name + ".gz")
+    return done
+
+
 def scan_for_leaks(directory: Path) -> list:
     """Suspicious content for committed runs: keys, abs paths, CR bytes."""
     needles = []
@@ -176,6 +232,12 @@ def scan_for_leaks(directory: Path) -> list:
         if not path.is_file():
             continue
         raw = path.read_bytes()
+        if path.suffix == ".gz":
+            try:
+                raw = gzip.decompress(raw)
+            except (OSError, EOFError):
+                issues.append(f"{path}: not valid gzip")
+                continue
         if b"\r" in raw:
             issues.append(f"{path}: CR byte (runs/ must be LF-only)")
         try:

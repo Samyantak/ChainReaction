@@ -44,6 +44,20 @@ def test_file_to_module_handles_foreign_absolute():
     assert file_to_module("E:\\other\\pkg\\x.py", "ws", "anndata") is None
 
 
+def test_testmap_load_reads_gzip_twin(tmp_path):
+    import gzip
+
+    m = TestMap("t", "pkg", "env", {"t1": ["pkg.a"]}, 1,
+                {"t1": ["pkg/a.py:10"]})
+    path = tmp_path / "testmap.json"
+    m.save(path)
+    blob = path.read_bytes()
+    (tmp_path / "testmap.json.gz").write_bytes(
+        gzip.compress(blob, mtime=0))
+    path.unlink()
+    assert TestMap.load(path) == m
+
+
 def test_covering_and_roundtrip(tmp_path):
     m = TestMap("t", "pkg", "env", {"t1": ["pkg.a"], "t2": ["pkg.b"]})
     assert m.covering({"pkg.a", "pkg.zz"}) == ["t1"]
@@ -268,6 +282,25 @@ def test_dump_script_reports_focused_lines(tmp_path):
         check=False)
     _, no_lines = parse_dump_full(proc.stdout, str(tmp_path), "pkg")
     assert no_lines == {}
+
+
+def test_file_to_rel_matches_drive_path_on_passthrough(monkeypatch):
+    """Forward-slashed drive paths map by tail when relpath passes through.
+
+    Regression (Linux): os.path.isabs("E:/...") is False on POSIX, so
+    relative_posix returns the drive path unchanged and the head check
+    rejected it -- line hits went empty and prediction silently fell
+    back to module level. Forcing passthrough reproduces POSIX here.
+    """
+    import chainreaction.testmap as tm
+
+    monkeypatch.setattr(tm, "relative_posix",
+                        lambda p, r: str(p).replace("\\", "/"))
+    assert tm.file_to_rel("E:/fake/ws//src//pkg//a.py", "ws", "pkg") == \
+        "src/pkg/a.py"
+    # Genuinely package-external relatives still map to None.
+    assert tm.file_to_rel("docs/conf.py", "ws", "pkg") is None
+    assert tm.file_to_rel("other/pkg/x.py", "ws", "pkg") is None
 
 
 def test_parse_dump_handles_foreign_absolute():
