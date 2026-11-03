@@ -244,6 +244,57 @@ def test_addopts_cov_keeps_pytest_cov_in_after_env():
     assert after_tooling(plain) == ["pytest"]
 
 
+def test_strip_spec_version_keeps_name_extras_markers():
+    from chainreaction.generic import _strip_spec_version
+
+    assert _strip_spec_version("pytest==6.1.2") == "pytest"
+    assert _strip_spec_version("alabaster>=0.6.2") == "alabaster"
+    assert _strip_spec_version("pytest") == "pytest"
+    assert _strip_spec_version("pkg[extra]==1.0") == "pkg[extra]"
+    assert _strip_spec_version(
+        "mypy==0.790; implementation_name=='cpython'") == \
+        "mypy; implementation_name=='cpython'"
+    # Paths and direct references pass through unstripped.
+    assert _strip_spec_version("./subdir") == "./subdir"
+    assert _strip_spec_version("pkg @ https://x/pkg.zip") == \
+        "pkg @ https://x/pkg.zip"
+    assert _strip_spec_version("@invalid") is None
+
+
+def test_after_install_args_floats_test_deps_to_freeze(tmp_path):
+    from chainreaction.generic import (
+        ProjectInfo, _after_install_args)
+
+    (tmp_path / "requirements-dev.txt").write_text(
+        "# comment\n\npytest==6.1.2\npytest-cov==2.10.1\n"
+        "mypy==0.790; implementation_name=='cpython'\n"
+        "pkg[extra]==1.0\njinja2==2.11.2\nghostpkg==9.9\n",
+        encoding="utf-8")
+    info = ProjectInfo(
+        package="demopkg",
+        test_requirements=["requirements-dev.txt"],
+        test_specs=["pytest-asyncio", "flake8==3.8.4"])
+    freeze = {"pytest": "3.5.1", "pytest-cov": "2.6.0", "mypy": "0.790",
+              "pkg": "1.0", "pytest-asyncio": "0.15", "flake8": "3.8.4",
+              "jinja2": "2.11.2", "demopkg": "1.4.2", "sphinx": "3.3.1"}
+    tooling = ["pytest", "coverage>=7", "pytest-cov"]
+    args = _after_install_args(tmp_path, info, tooling, freeze,
+                               "jinja2", "demopkg")
+    assert args[0] == "."
+    assert "-r" not in args
+    names = args[1:-len(tooling)]
+    assert "pytest" in names and "pytest-cov" in names
+    assert "mypy; implementation_name=='cpython'" in names
+    assert "pkg[extra]" in names
+    assert "pytest-asyncio" in names and "flake8" in names
+    # Decided, repo, unknown-to-freeze, and non-test-dep packages
+    # are never named; tooling passes through verbatim.
+    for absent in ("jinja2", "demopkg", "ghostpkg", "sphinx"):
+        assert absent not in names
+    assert all("==" not in spec.partition(";")[0] for spec in names)
+    assert args[-len(tooling):] == tooling
+
+
 def test_detect_project_end_to_end(tmp_path):
     _pkg(tmp_path, "full")
     (tmp_path / "pyproject.toml").write_text(
@@ -1726,6 +1777,25 @@ def test_scrubber_rewrites_workspace_and_role_envs():
     # Preset scrubbing is untouched.
     assert scrub.text("E:\\co\\envs\\numpy2\\Lib\\site-packages\\n.py") == \
         "<env:numpy2>/site-packages/n.py"
+
+
+def test_scrubber_rewrites_env_and_ws_paths_at_token_end():
+    from chainreaction.runs.scrub import ROOT, Scrubber
+
+    # A ctx scrubber built before the envs existed has no exact env
+    # pairs; the regex catchers must still canonicalize role paths
+    # that end the token (uv's "environment at: <path>" line ends
+    # with a newline). Otherwise live stages see <root>/envs/...
+    # while the record carries <env:role> and replay diverges.
+    stale = Scrubber((((str(ROOT), "<root>"),)))
+    line = ("Using Python 3.9.25 environment at: " + str(ROOT) +
+            "\\envs\\a__b@c00000000000\\after\nerror: x")
+    assert stale.text(line) == \
+        "Using Python 3.9.25 environment at: <env:after>\nerror: x"
+    ws_line = "cloning into '" + str(ROOT) + "\\workspaces\\k'\n"
+    assert stale.text(ws_line) == "cloning into '<ws>'\n"
+    assert stale.text("E:\\foreign\\co\\envs\\numpy2\n") == \
+        "<env:numpy2>\n"
 
 
 def _pkgdir(tmp_path):

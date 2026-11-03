@@ -1260,6 +1260,50 @@ def _install_args(info: ProjectInfo, tooling: list | None = None) -> list:
     return args + list(tooling if tooling is not None else TEST_TOOLING)
 
 
+def _after_install_args(ws_root: str | Path, info: ProjectInfo,
+                        tooling: list, before_freeze: dict,
+                        decided_package: str, repo_package: str) -> list:
+    """After-env install args: repo + tooling + before-known test dep names.
+
+    Test deps float to the before-freeze pins (passed as constraints),
+    so the after env mirrors the before resolution plus the decision.
+    Passing the era -r pins as direct requirements fights the freeze
+    (platform-resolved versions differ, e.g. pytest 3.5.1 installed
+    vs pytest==6.1.2 required) where no constraint surgery can reach:
+    direct-vs-direct conflicts never name a constraint culprit. Names
+    outside the freeze are omitted (the green before suite never had
+    them); the decided and repo packages install separately.
+    """
+    if info.test_extras:
+        args = [f".[{','.join(info.test_extras)}]"]
+    else:
+        args = ["."]
+    frozen = {str(n).lower().replace("_", "-") for n in before_freeze}
+    decided = decided_package.lower().replace("_", "-")
+    repo = (repo_package or "").lower().replace("_", "-")
+    specs = list(info.test_specs)
+    for req in info.test_requirements:
+        specs.extend(req_lines(ws_root, req))
+    seen: set[str] = set()
+    for spec in specs:
+        stripped = _strip_spec_version(spec)
+        if stripped is None:
+            continue
+        head = stripped.partition(";")[0]
+        if "/" in head or "\\" in head:
+            if stripped not in args:
+                args.append(stripped)
+            continue
+        name = _pin_name(head).partition("[")[0].replace("_", "-")
+        if not name or name in (decided, repo) or name in seen:
+            continue
+        if name not in frozen:
+            continue
+        seen.add(name)
+        args.append(stripped)
+    return args + list(tooling)
+
+
 def extra_specs(root: str | Path, info: ProjectInfo) -> list | None:
     """Per-dependency specs for the test extras; None when unreadable."""
     if not info.test_extras:
@@ -1323,6 +1367,25 @@ def _pin_spec(spec: str, version: str) -> str | None:
     if not match:
         return None
     out = f"{match.group(1)}{match.group(2) or ''}=={version}"
+    if markers.strip():
+        out += f";{markers}"
+    return out
+
+
+def _strip_spec_version(spec: str) -> str | None:
+    """Requirement head without its version pin (extras/markers kept).
+
+    None when the head is unparseable. Paths and direct references
+    (PEP 508 `@`, local paths) pass through: they carry no version
+    to strip.
+    """
+    head, _, markers = spec.partition(";")
+    if "/" in head or "\\" in head:
+        return spec
+    match = _REQ_HEAD_RE.match(head.strip())
+    if not match:
+        return None
+    out = f"{match.group(1)}{match.group(2) or ''}"
     if markers.strip():
         out += f";{markers}"
     return out
@@ -1547,7 +1610,6 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
             "M2 env builds need uv")
     repo_args = _install_args(info)
     after_tools = after_tooling(info)
-    after_repo_args = _install_args(info, after_tools)
     # "from A to B" pins the before line (A.*); the after env never
     # inherits it (it installs ==to_version under constraints).
     from_pin = ([f"{decision.package}=={decision.from_version}.*"]
@@ -1556,14 +1618,9 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
         sha, info.python_version, ",".join(repo_args), decision.package,
         decision.to_version, commit_date,
         *([f"from={decision.from_version}"] if decision.from_version else []))
-    # The after env has its own spec: its tooling differs (no coverage
-    # unless addopts need it), so a tooling change rebuilds afters
-    # without disturbing befores. The coverage drop is part of the
-    # spec: dropping it changes the env's contents.
+    # The coverage drop is part of the after spec: dropping it
+    # changes the env's contents.
     drop_cov = not needs_coverage_packages(info)
-    after_spec_hash = install_spec_hash(
-        spec_hash, ",".join(after_repo_args),
-        "nocov" if drop_cov else "keepcov", AFTER_BUILD_REV)
     provenance: dict = {}
     # Before: the world as of the commit.
     before_note = None
@@ -1620,7 +1677,15 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
                      f"setup: before env "
                      f"{decision.package}="
                      f"{before_freeze.get(decision.package.lower(), '?')}"})
-    # After: change only what the decision changes.
+    # After: change only what the decision changes. Test deps float
+    # to the before pins (constraints file); the after spec covers
+    # the tooling split and the args so either rebuilds the env.
+    after_repo_args = _after_install_args(
+        ROOT / ws_rel, info, after_tools, before_freeze,
+        decision.package, info.package)
+    after_spec_hash = install_spec_hash(
+        spec_hash, ",".join(after_repo_args),
+        "nocov" if drop_cov else "keepcov", AFTER_BUILD_REV)
     conflict = None
     after_skipped: list = []
     if _env_cached(ctx, "after", ROOT / after_rel, after_spec_hash):
