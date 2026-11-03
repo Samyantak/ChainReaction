@@ -18,11 +18,11 @@ tests/test_x.py: 10 warnings
   <env:before>/site-packages/scipy/sparse/_index.py:142: SparseEfficiencyWarning: Changing the sparsity structure of a csc_matrix is expensive. lil_matrix is more efficient.
     self._set_arrayXarray_sparse(i, j, x)
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ===========================
-FAILED tests/test_concatenate_disk.py::test_output_dir_exists - re.error: inc...
+======================================================================================= short test summary info =======================================================================================
+FAILED tests/test_concatenate_disk.py::test_output_dir_exists - re.error: incomplete escape \U at position 2
 ERROR benchmarks/benchmarks/readwrite.py
 ERROR benchmarks/benchmarks/utils.py
-ERROR src/anndata/tests/helpers.py - RuntimeError: anndata is not correctly i...
+ERROR src/anndata/tests/helpers.py - RuntimeError: anndata is not correctly installed. Please install it, e.g. with pip.
 ERROR ci/scripts/min-deps.py::ci.scripts.min-deps.min_dep
 ERROR src/anndata/_core/anndata.py::anndata._core.anndata.AnnData.concatenate
 ERROR src/anndata/_core/anndata.py::anndata._core.anndata.AnnData.obs_names_make_unique
@@ -36,4 +36,4 @@ ERROR src/anndata/_warnings.py::anndata._warnings.ImplicitModificationWarning
 ERROR src/anndata/experimental/merge.py::anndata.experimental.merge.concat_on_disk
 ERROR src/anndata/experimental/multi_files/_anncollection.py::anndata.experimental.multi_files._anncollection.AnnCollection
 ERROR src/anndata/utils.py::anndata.utils.make_index_unique
-1 failed, 4243 passed, 607 skipped, 144 xfailed, 1725 warnings, 16 errors in 509.12s (0:08:29)
+1 failed, 4243 passed, 607 skipped, 144 xfailed, 1726 warnings, 16 errors in 490.48s (0:08:10)

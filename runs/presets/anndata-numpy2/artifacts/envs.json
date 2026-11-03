@@ -81,7 +81,7 @@
       "zict": "3.0.0"
     },
     "note": null,
-    "provenance": "built",
+    "provenance": "reused",
     "python": "3.12",
     "spec_hash": "ab762e7830e42275"
   },
@@ -174,14 +174,6 @@
     "spec_hash": "6a62dbbd4471e77a"
   },
   "collateral": {
-    "anndata": {
-      "after": "0.11.0.dev113+g1461fecd1",
-      "before": "0.11.0.dev113+g1461fec"
-    },
-    "coverage": {
-      "after": null,
-      "before": "7.5.1"
-    },
     "llvmlite": {
       "after": "0.50.0",
       "before": "0.42.0"
@@ -189,10 +181,6 @@
     "numba": {
       "after": "0.68.1",
       "before": "0.59.1"
-    },
-    "pytest-cov": {
-      "after": null,
-      "before": "5.0.0"
     }
   },
   "conflict": null,
