@@ -29,21 +29,33 @@ from chainreaction.generic import (
 def test_parse_decision_grammar():
     assert parse_decision("upgrade numpy to 2.0").package == "numpy"
     assert parse_decision("upgrade numpy to 2.0").to_version == "2.0"
+    assert parse_decision("upgrade numpy to 2.0").from_version == ""
     assert parse_decision("bump requests to 2.32").package == "requests"
     assert parse_decision("move scipy to 1.14").to_version == "1.14"
     assert parse_decision("numpy==2.0.2").to_version == "2.0.2"
     assert parse_decision("numpy 2.0").package == "numpy"
     assert parse_decision("please maybe upgrade") is None
     assert parse_decision("") is None
+    pinned = parse_decision("upgrade werkzeug from 2.2 to 3.0")
+    assert (pinned.package, pinned.from_version, pinned.to_version) == (
+        "werkzeug", "2.2", "3.0")
 
 
 def test_parse_decision_with_llm_fallback():
     def fake(system, user, max_tokens, response_format):
         assert "migrate" in user
-        return json.dumps({"package": "pandas", "to_version": "3.0"})
+        return json.dumps({"package": "pandas", "to_version": "3.0",
+                           "from_version": ""})
 
     d = parse_decision_with_llm("migrate to the new pandas", fake)
-    assert (d.package, d.to_version) == ("pandas", "3.0")
+    assert (d.package, d.to_version, d.from_version) == ("pandas", "3.0", "")
+
+    def pinned(system, user, max_tokens, response_format):
+        return json.dumps({"package": "sqlalchemy", "to_version": "2.0",
+                           "from_version": "1.4"})
+
+    d2 = parse_decision_with_llm("jump sqlalchemy 1.4 to 2.0", pinned)
+    assert d2.from_version == "1.4"
 
     def empty(system, user, max_tokens, response_format):
         return json.dumps({"package": "", "to_version": ""})
@@ -137,6 +149,39 @@ def test_pick_python_version():
     assert pick_python_version("==3.10") == "3.10"
     assert pick_python_version(">=3.14") == "3.11"  # nothing fits: default
     assert pick_python_version("") == "3.12"
+    # Commit-date era: newest interpreter released by then.
+    assert pick_python_version("", "2020-11-23") == "3.9"
+    assert pick_python_version(">=3.7", "2023-09-01") == "3.11"
+    assert pick_python_version("", "2024-05-14") == "3.12"
+    assert pick_python_version("", "2025-06-01") == "3.13"
+    assert pick_python_version("", "2019-01-01") == "3.9"  # oldest we build
+    assert pick_python_version("", "not-a-date") == "3.12"  # ignored
+    assert pick_python_version(">=3.10", "2020-11-23") == "3.13"  # reqs win
+    assert pick_python_version("==3.10", "2020-11-23") == "3.10"
+
+
+def test_requires_python_readers(tmp_path):
+    from chainreaction.generic import _read_requires_python, _setup_py_static
+
+    assert _read_requires_python(tmp_path) == ""
+    assert _setup_py_static(tmp_path) == (None, "")
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "x"\nrequires-python = ">=3.9"\n',
+        encoding="utf-8")
+    (tmp_path / "setup.cfg").write_text(
+        "[options]\npython_requires = >=3.8\n", encoding="utf-8")
+    (tmp_path / "setup.py").write_text(
+        "from setuptools import setup\n"
+        'deps = ["a>=1"]\n'
+        'setup(name="x", install_requires=deps, python_requires=">=3.7")\n',
+        encoding="utf-8")
+    assert _read_requires_python(tmp_path) == ">=3.9,>=3.8,>=3.7"
+    assert _setup_py_static(tmp_path) == (["a>=1"], ">=3.7")
+    (tmp_path / "setup.py").write_text("setup(\n", encoding="utf-8")
+    assert _setup_py_static(tmp_path) == (None, "")
+    (tmp_path / "setup.py").write_text(
+        "setup(name='x', install_requires=get_deps())\n", encoding="utf-8")
+    assert _setup_py_static(tmp_path) == (None, "")
 
 
 def test_detect_test_command_and_extras(tmp_path):
@@ -680,6 +725,39 @@ def test_build_envs_constrains_before_and_relaxes_pins(tmp_path, monkeypatch):
             / ".chainreaction-after-constraints.txt").read_text(
                 encoding="utf-8") == "scipy>=1.11.0\n"
     assert any("relax scipy to its before floor" in m for m in messages)
+
+
+def test_build_envs_pins_before_line_on_from_version(tmp_path, monkeypatch):
+    import chainreaction.generic as generic_mod
+    from chainreaction.generic import Decision
+    from types import SimpleNamespace
+
+    installs = []
+    uv = _uv_fake(tmp_path, [])
+
+    def run_cmd(cmd, cwd=".", env_name=None, timeout=900, tool=None):
+        if cmd[0] == "git":
+            return SimpleNamespace(returncode=0, stdout="", stderr="",
+                                   missing=None)
+        if cmd[:3] == ["uv", "pip", "install"]:
+            installs.append((env_name, list(cmd)))
+        hit = uv(cmd, env_name)
+        assert hit is not None, f"unexpected cmd: {cmd}"
+        return hit
+
+    ctx, saved, _, info = _env_ctx(tmp_path, monkeypatch, run_cmd)
+    decision = Decision("numpy", "2.0.2", "upgrade numpy from 1.26 to 2.0",
+                        "1.26")
+    record = generic_mod.build_envs(
+        ctx, key="acme__demo@aaaaaaaaaaaa", ws_rel="workspaces/w",
+        info=info, decision=decision, commit_date="2023-05-01", sha=SHA)
+    # Installs carry env_name=None; the env rides in --python <envpy:...>.
+    before_cmds = [c for _, c in installs if "/before>" in " ".join(c)]
+    after_cmds = [c for _, c in installs if "/after>" in " ".join(c)]
+    assert before_cmds and after_cmds
+    assert any("numpy==1.26.*" in c for c in before_cmds)
+    assert not any("numpy==1.26.*" in c for c in after_cmds)
+    assert record["decision"]["from_version"] == "1.26"
 
 
 def test_build_envs_conflict_is_a_finding(tmp_path, monkeypatch):

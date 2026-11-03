@@ -136,7 +136,8 @@ def _stage_setup_generic(ctx) -> None:
         raise RuntimeError("generic runs need repo_url and decision")
     ws_rel, sha, commit_date = ensure_workspace(ctx, repo_url, ref)
     info = detect_project(ROOT / ws_rel,
-                          ctx.manifest.get("package") or "")
+                          ctx.manifest.get("package") or "",
+                          commit_date or "")
     ctx.save_artifact("project.json", project_record(
         info, repo_url=repo_url, ref=ref, resolved_commit=sha,
         commit_date=commit_date, workspace=ws_rel))

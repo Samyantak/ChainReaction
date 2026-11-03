@@ -164,6 +164,87 @@ def _read_name_from_setup_py(root: Path) -> str:
     return ""
 
 
+_MISSING = object()
+
+
+def _setup_py_literal(value, bound: dict):
+    """literal_eval of an AST value, resolving module-level bound names."""
+    if isinstance(value, ast.Name):
+        return bound.get(value.id, _MISSING)
+    try:
+        return ast.literal_eval(value)
+    except Exception:
+        return _MISSING
+
+
+def _setup_py_static(root: Path) -> tuple[list[str] | None, str]:
+    """(install_requires or None, python_requires) from setup.py's AST.
+
+    Literal-only, never executed: setup() keywords that are literals
+    or names bound to literals at module level. Anything dynamic or
+    absent yields the None/"" halves.
+    """
+    path = root / "setup.py"
+    if not path.is_file():
+        return None, ""
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError):
+        return None, ""
+    bound: dict = {}
+    for node in tree.body:
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)):
+            try:
+                bound[node.targets[0].id] = ast.literal_eval(node.value)
+            except Exception:
+                continue
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        fname = ""
+        if isinstance(func, ast.Name):
+            fname = func.id
+        elif isinstance(func, ast.Attribute):
+            fname = func.attr
+        if fname != "setup":
+            continue
+        reqs: list[str] | None = None
+        py_req = ""
+        for kw in node.keywords:
+            if kw.arg == "install_requires":
+                val = _setup_py_literal(kw.value, bound)
+                if (isinstance(val, (list, tuple))
+                        and all(isinstance(s, str) for s in val)):
+                    reqs = list(val)
+            elif kw.arg == "python_requires":
+                val = _setup_py_literal(kw.value, bound)
+                py_req = val if isinstance(val, str) else ""
+        return reqs, py_req
+    return None, ""
+
+
+def _read_requires_python(root: Path) -> str:
+    """Combined requires-python (pyproject, setup.cfg, setup.py).
+
+    Comma-joined: a version must satisfy every declaration. Empty
+    when no source declares one.
+    """
+    parts = [_read_name_from_pyproject(root)[1]]
+    cfg = root / "setup.cfg"
+    if cfg.is_file():
+        parser = configparser.ConfigParser()
+        try:
+            parser.read(cfg, encoding="utf-8")
+            parts.append(parser.get("options", "python_requires",
+                                    fallback=""))
+        except (OSError, configparser.Error):
+            pass
+    parts.append(_setup_py_static(root)[1])
+    return ",".join(p.strip() for p in parts if p and p.strip())
+
+
 def _normalize(name: str) -> str:
     return re.sub(r"[-_.]+", "-", name).lower()
 
@@ -265,11 +346,46 @@ def _satisfies(requires_python: str, version: str) -> bool:
     return True
 
 
-def pick_python_version(requires_python: str,
-                        available: tuple[str, ...] = ("3.12", "3.11", "3.10")
-                        ) -> str:
-    """Newest available 3.10–3.12 satisfying requires-python, else 3.11."""
-    for ver in available:
+# CPython minor releases (oldest first); 2020-era repos need 3.9
+# (newer interpreters have no wheels for their C deps and fail to build).
+CPYTHON_RELEASES = (("3.9", "2020-10-05"), ("3.10", "2021-10-04"),
+                    ("3.11", "2022-10-24"), ("3.12", "2023-10-02"),
+                    ("3.13", "2024-10-07"))
+
+# Newest interpreter picked without date evidence (validated default).
+_DEFAULT_MAX_PYTHON = "3.12"
+
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def pick_python_version(requires_python: str, commit_date: str = "",
+                        available: tuple[str, ...] | None = None) -> str:
+    """Newest Python satisfying requires-python, era-appropriate.
+
+    With a commit date (ISO), only interpreters released by then are
+    eligible, so a 2020 checkout gets 3.9 instead of a wheel-less 3.12.
+    Without one, the validated default range applies (3.9–3.12). When
+    nothing eligible satisfies requires-python, the full table is tried
+    (satisfying the repo wins over the era); else 3.11. An explicit
+    `available` keeps legacy caller control (no date filtering).
+    """
+    if available is not None:
+        for ver in available:
+            if _satisfies(requires_python, ver):
+                return ver
+        return "3.11"
+    dated = bool(_DATE_RE.match(commit_date or ""))
+    eligible = [v for v, day in CPYTHON_RELEASES
+                if not dated or day <= commit_date]
+    if not dated:
+        eligible = [v for v in eligible
+                    if version_tuple(v) <= version_tuple(_DEFAULT_MAX_PYTHON)]
+    if not eligible:
+        eligible = [CPYTHON_RELEASES[0][0]]  # pre-3.9: oldest we can build
+    for ver in reversed(eligible):
+        if _satisfies(requires_python, ver):
+            return ver
+    for ver, _ in reversed(CPYTHON_RELEASES):
         if _satisfies(requires_python, ver):
             return ver
     return "3.11"
@@ -408,17 +524,18 @@ def needs_coverage_packages(info: ProjectInfo) -> bool:
     return "cov" in (info.pytest_required_plugins or "")
 
 
-def detect_project(root: str | Path, package_override: str = "") -> ProjectInfo:
+def detect_project(root: str | Path, package_override: str = "",
+                   commit_date: str = "") -> ProjectInfo:
     """Full deterministic project detection (never executes repo code)."""
     root = Path(root)
     package, others = detect_package(root, package_override)
-    _, requires = _read_name_from_pyproject(root)
+    requires = _read_requires_python(root)
     cmd, has_suite = detect_test_command(root)
     extras, req_files = detect_test_extras(root)
     addopts, required = _pytest_options(root)
     return ProjectInfo(
         package=package, package_candidates=others,
-        python_version=pick_python_version(requires),
+        python_version=pick_python_version(requires, commit_date),
         requires_python=requires, test_command=cmd, has_suite=has_suite,
         test_extras=extras, test_requirements=req_files,
         pytest_addopts=addopts, pytest_required_plugins=required)
@@ -431,9 +548,14 @@ class Decision:
     package: str
     to_version: str
     raw: str = ""
+    # Pinned before line ("upgrade X from A to B" -> before installs A.*);
+    # "" means the before env floats (constrained only below to_version).
+    from_version: str = ""
 
 
 _DECISION_RES = (
+    re.compile(r"^\s*(?:upgrade|bump|move)\s+([A-Za-z0-9_.\-]+)\s+from\s+"
+               r"([A-Za-z0-9_.\-]+)\s+to\s+([A-Za-z0-9_.\-]+)\s*$", re.I),
     re.compile(r"^\s*(?:upgrade|bump|move)\s+([A-Za-z0-9_.\-]+)\s+to\s+"
                r"([A-Za-z0-9_.\-]+)\s*$", re.I),
     re.compile(r"^\s*([A-Za-z0-9_.\-]+)\s*==\s*([A-Za-z0-9_.\-]+)\s*$"),
@@ -446,6 +568,9 @@ def parse_decision(text: str) -> Decision | None:
     for rx in _DECISION_RES:
         m = rx.match(text or "")
         if m:
+            if m.lastindex == 3:
+                return Decision(package=m.group(1), to_version=m.group(3),
+                                raw=text, from_version=m.group(2))
             return Decision(package=m.group(1), to_version=m.group(2),
                             raw=text)
     return None
@@ -459,16 +584,19 @@ DECISION_JSON_SCHEMA = {
         "properties": {
             "package": {"type": "string"},
             "to_version": {"type": "string"},
+            "from_version": {"type": "string"},
         },
-        "required": ["package", "to_version"],
+        "required": ["package", "to_version", "from_version"],
         "additionalProperties": False,
     },
 }
 
 DECISION_SYSTEM_PROMPT = """\
 You are the ChainReaction decision parser. Given a dependency upgrade
-decision in plain words, emit the PyPI package name and the requested
-target version as JSON. Output JSON only, matching the schema.
+decision in plain words, emit the PyPI package name, the requested
+target version, and the starting version line when one is named
+("from A to B" -> from_version A, otherwise ""). Output JSON only,
+matching the schema.
 """
 
 
@@ -478,7 +606,7 @@ def parse_decision_with_llm(decision: str, chat_fn) -> Decision:
 
     from chainreaction.llm import extract_json
 
-    user = (f"Decision: {decision}\n\nEmit the change set as a single "
+    user = (f"Decision: {decision}\n\nEmit the decision as a single "
             f"JSON object matching this schema:\n"
             f"{json.dumps(DECISION_JSON_SCHEMA['schema'])}")
     data = extract_json(chat_fn(
@@ -487,10 +615,12 @@ def parse_decision_with_llm(decision: str, chat_fn) -> Decision:
                          "json_schema": DECISION_JSON_SCHEMA}))
     package = str(data.get("package", "") or "").strip()
     to_version = str(data.get("to_version", "") or "").strip()
+    from_version = str(data.get("from_version", "") or "").strip()
     if not package or not to_version:
         raise VersionNotFound(
             f"could not parse a package and version from {decision!r}")
-    return Decision(package=package, to_version=to_version, raw=decision)
+    return Decision(package=package, to_version=to_version, raw=decision,
+                    from_version=from_version)
 
 
 def resolve_target_version(pypi_json: dict, requested: str) -> str:
@@ -726,7 +856,7 @@ def resolve_decision(ctx, decision_text: str) -> Decision:
     to_version = resolve_target_version(pypi, parsed.to_version)
     ctx.state["pypi_guide_urls"] = guide_candidates_from_pypi(pypi)
     return Decision(package=parsed.package, to_version=to_version,
-                    raw=decision_text)
+                    raw=decision_text, from_version=parsed.from_version)
 
 
 # -- before/after environments (M2 §3) --
@@ -1266,9 +1396,14 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
     repo_args = _install_args(info)
     after_tools = after_tooling(info)
     after_repo_args = _install_args(info, after_tools)
-    spec_hash = install_spec_hash(sha, info.python_version,
-                                  ",".join(repo_args), decision.package,
-                                  decision.to_version, commit_date)
+    # "from A to B" pins the before line (A.*); the after env never
+    # inherits it (it installs ==to_version under constraints).
+    from_pin = ([f"{decision.package}=={decision.from_version}.*"]
+                if decision.from_version else [])
+    spec_hash = install_spec_hash(
+        sha, info.python_version, ",".join(repo_args), decision.package,
+        decision.to_version, commit_date,
+        *([f"from={decision.from_version}"] if decision.from_version else []))
     # The after env has its own spec: its tooling differs (no coverage
     # unless addopts need it), so a tooling change rebuilds afters
     # without disturbing befores. The coverage drop is part of the
@@ -1293,13 +1428,14 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
         _make_venv(ctx, before_rel, info.python_version)
         flag_args = (["--exclude-newer", commit_date] if commit_date else [])
         res = _uv_install(ctx, ws_rel, before_name,
-                          [*flag_args, *repo_args])
+                          [*flag_args, *from_pin, *repo_args])
         if res.returncode != 0:
             ctx.emit("log", {"message":
                              "setup: full install failed; retrying "
                              "per-dependency"})
             ok, before_skipped = _install_best_effort(
-                ctx, ws_rel, before_name, info, flag_args, ["."], [])
+                ctx, ws_rel, before_name, info, flag_args,
+                [".", *from_pin], [])
             if not ok:
                 raise InstallFailed(
                     f"before env install failed:\n{log_tail(res.stderr)}"
@@ -1440,7 +1576,8 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
         "conflict": conflict,
         "skipped": {"before": before_skipped, "after": after_skipped},
         "decision": {"package": decision.package,
-                     "to_version": decision.to_version},
+                     "to_version": decision.to_version,
+                     "from_version": decision.from_version},
     }
     ctx.save_artifact("envs.json", record)
     ctx.state["envs"] = record
