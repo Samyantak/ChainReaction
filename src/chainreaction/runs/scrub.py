@@ -84,7 +84,7 @@ def _replace_env_token(value: str, name: str) -> str:
     relative `envs/<name>` references are left alone.
     """
     rx = re.compile(r"[^\s\"']*?[\\/]envs[\\/]" + re.escape(name)
-                    + r"(?=[\\/]|$)")
+                    + r"(?=[\\/]|$|[\s\"'])")
     out = []
     i = 0
     for m in rx.finditer(value):
@@ -108,7 +108,7 @@ def _replace_workspace_token(value: str) -> str:
     workspaces are covered by exact pairs in default().
     """
     rx = re.compile(r"[^\s\"']*?[\\/]workspaces[\\/][^\\/\s\"']+"
-                    r"(?=[\\/]|$)")
+                    r"(?=[\\/]|$|[\s\"'])")
     out = []
     i = 0
     for m in rx.finditer(value):
@@ -131,7 +131,7 @@ def _replace_generic_env_token(value: str) -> str:
     placeholder keeps before/after tracebacks canonical across machines.
     """
     rx = re.compile(r"[^\s\"']*?[\\/]envs[\\/][^\\/\s\"']+[\\/](before|after)"
-                    r"(?=[\\/]|$)")
+                    r"(?=[\\/]|$|[\s\"'])")
     out = []
     i = 0
     for m in rx.finditer(value):
