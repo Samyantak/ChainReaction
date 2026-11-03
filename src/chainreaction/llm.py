@@ -151,6 +151,24 @@ class ChatResult:
     cache_mtime: str | None  # original entry time (disk hits only)
 
 
+@dataclass
+class WebCitation:
+    url: str
+    title: str
+    span: str  # cited slice of the model reply text
+
+
+@dataclass
+class WebSearchResult:
+    text: str  # concatenated model reply text (spans slice into this)
+    citations: list  # [WebCitation, ...]
+    searches: int  # completed web_search_call items
+    model: str
+    usage: dict | None
+    cached: bool
+    cache_mtime: str | None
+
+
 def _usage_dict(resp) -> dict | None:
     usage = getattr(resp, "usage", None)
     if usage is None:
@@ -198,6 +216,85 @@ def chat_full(system: str, user: str, max_tokens: int = 8000,
     _write_cache(key, content)
     return ChatResult(content, model, _usage_dict(resp),
                       resp.choices[0].finish_reason, False, None)
+
+
+def _message_texts(output) -> tuple[str, list, int]:
+    """Concatenated reply text, raw citations, completed search count.
+
+    Tolerates SDK shape drift: anything unexpected is skipped, never
+    fatal — an empty citation list just means discovery falls through
+    to the next source step.
+    """
+    texts: list[str] = []
+    citations: list[dict] = []
+    searches = 0
+    for item in output or []:
+        kind = getattr(item, "type", None)
+        if kind == "web_search_call":
+            if getattr(item, "status", None) in (None, "completed"):
+                searches += 1
+        elif kind == "message":
+            for part in getattr(item, "content", None) or []:
+                text = getattr(part, "text", None) or ""
+                if not isinstance(text, str) or not text:
+                    continue
+                texts.append(text)
+                for annot in getattr(part, "annotations", None) or []:
+                    if getattr(annot, "type", None) != "url_citation":
+                        continue
+                    url = getattr(annot, "url", None)
+                    if not url:
+                        continue
+                    try:
+                        start = int(getattr(annot, "start_index", 0))
+                        end = int(getattr(annot, "end_index", 0))
+                    except (TypeError, ValueError):
+                        start, end = 0, 0
+                    span = text[start:end] if 0 <= start < end else ""
+                    citations.append({
+                        "url": url,
+                        "title": getattr(annot, "title", None) or "",
+                        "span": span if isinstance(span, str) else "",
+                    })
+    return "\n\n".join(texts), citations, searches
+
+
+def _search_payload(result: "WebSearchResult") -> dict:
+    return {
+        "text": result.text,
+        "citations": [c.__dict__ for c in result.citations],
+        "searches": result.searches,
+        "usage": result.usage,
+    }
+
+
+def web_search(query: str) -> WebSearchResult:
+    """One Responses API call with the web_search tool (cached by query).
+
+    Raises when MODEL_API_KEY is missing (like chat) or the call fails.
+    Repeat queries are served from cache without needing the key.
+    """
+    model = model_name()
+    key = cache_key_for(model, "web_search:v1", query, None)
+    hit, mtime = _read_cache_entry(key)
+    if hit is not None:
+        payload = json.loads(hit)
+        return WebSearchResult(
+            payload.get("text", ""),
+            [WebCitation(c.get("url", ""), c.get("title", ""),
+                         c.get("span", ""))
+             for c in payload.get("citations", [])],
+            payload.get("searches", 0), model,
+            payload.get("usage"), True, mtime)
+    resp = client().responses.create(
+        model=model, input=query, tools=[{"type": "web_search"}])
+    text, citations, searches = _message_texts(resp.output)
+    result = WebSearchResult(
+        text, [WebCitation(c["url"], c["title"], c["span"])
+               for c in citations],
+        searches, model, _usage_dict(resp), False, None)
+    _write_cache(key, json.dumps(_search_payload(result)))
+    return result
 
 
 def chat(system: str, user: str, max_tokens: int = 8000,

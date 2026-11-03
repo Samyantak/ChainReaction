@@ -15,6 +15,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -94,7 +95,7 @@ def _kill_tree(proc: subprocess.Popen) -> None:
 class RunContext:
     def __init__(self, *, run_id: str, manifest: dict, mode: str = "live",
                  source_dir=None, cancel_event=None,
-                 live_llm=None, live_fetch=None):
+                 live_llm=None, live_fetch=None, live_search=None):
         self.run_id = run_id
         self.mode = mode
         self.manifest = manifest
@@ -106,6 +107,7 @@ class RunContext:
         self.cancel_event = cancel_event or threading.Event()
         self._live_llm = live_llm  # tests: (system, user, max, fmt) -> ChatResult
         self._live_fetch = live_fetch  # tests: (url, timeout) -> (status, raw)
+        self._live_search = live_search  # tests: (query,) -> WebSearchResult
         self._lock = threading.Lock()
         self._seq = 0
         self.live_children: set = set()  # Popen objects currently running
@@ -113,9 +115,11 @@ class RunContext:
         self._llm_recs: list = []
         self._cmd_recs: list = []
         self._fetch_recs: list = []
+        self._search_recs: list = []
         self._llm_keys: list = []
         self._cmd_keys: list = []
         self._fetch_keys: list = []
+        self._search_keys: list = []
         self._used: set = set()  # (which, index) consumed by replay
         self._calls: dict = {}  # (which, key) -> occurrences consumed
         if mode == "replay":
@@ -127,11 +131,14 @@ class RunContext:
                 self.source_dir / store_mod.CMDS)
             self._fetch_recs = store_mod.read_jsonl(
                 self.source_dir / store_mod.FETCHES)
+            self._search_recs = store_mod.read_jsonl(
+                self.source_dir / store_mod.SEARCHES)
             self._llm_keys = [r.get("prompt_hash") for r in self._llm_recs]
             self._cmd_keys = [(tuple(r.get("cmd", ())),
                                r.get("cwd"), r.get("env_name"))
                               for r in self._cmd_recs]
             self._fetch_keys = [r.get("url") for r in self._fetch_recs]
+            self._search_keys = [r.get("query") for r in self._search_recs]
 
     # -- run state --
 
@@ -185,7 +192,7 @@ class RunContext:
         if self.mode != "replay":
             return []
         warnings = []
-        for which in ("llm", "cmd", "fetch"):
+        for which in ("llm", "cmd", "fetch", "search"):
             recs = getattr(self, f"_{which}_recs")
             unused = [rec for i, rec in enumerate(recs)
                       if (which, i) not in self._used]
@@ -235,6 +242,56 @@ class RunContext:
         # Return exactly the recorded bytes (scrubbed): live and replay
         # stages see identical inputs.
         return self.scrubber.text(res.content)
+
+    def web_search(self, query: str):
+        """Recorded web search; in replay returns the recorded citations.
+
+        Live calls go through the Responses API web_search tool; the
+        query, reply text, and every url_citation (URL + cited span)
+        are recorded so replay reproduces the same sources offline.
+        """
+        if self.mode == "replay":
+            rec = self._take("search", query, f"query={query!r}")
+            self.emit("search", {"query": query,
+                                 "citations": len(rec.get("citations", [])),
+                                 "replayed": True})
+            res = llm_mod.WebSearchResult(
+                rec.get("text", ""),
+                [llm_mod.WebCitation(c.get("url", ""),
+                                     c.get("title", ""), c.get("span", ""))
+                 for c in rec.get("citations", [])],
+                rec.get("searches", 0), rec.get("model", ""),
+                rec.get("usage"), rec.get("cached", False), None)
+            return self._scrub_search(res)
+        self.check_cancelled()
+        started = utc_now_iso()
+        t0 = time.perf_counter()
+        if self._live_search is not None:
+            res = self._live_search(query)
+        else:
+            res = llm_mod.web_search(query)
+        duration_ms = int((time.perf_counter() - t0) * 1000)
+        store_mod.append_jsonl(self.dir / store_mod.SEARCHES, {
+            "query": query, "model": res.model, "text": res.text,
+            "citations": [{"url": c.url, "title": c.title, "span": c.span}
+                          for c in res.citations],
+            "searches": res.searches, "usage": res.usage,
+            "started_at": started, "duration_ms": duration_ms,
+            "cached": res.cached,
+        })
+        self.emit("search", {"query": query,
+                             "citations": len(res.citations),
+                             "searches": res.searches})
+        return self._scrub_search(res)
+
+    def _scrub_search(self, res):
+        scrub = self.scrubber.text
+        return llm_mod.WebSearchResult(
+            scrub(res.text),
+            [llm_mod.WebCitation(scrub(c.url), scrub(c.title),
+                                 scrub(c.span)) for c in res.citations],
+            res.searches, res.model, res.usage, res.cached,
+            res.cache_mtime)
 
     # -- subprocesses --
 
@@ -413,12 +470,19 @@ class RunContext:
 
     # -- URL fetching --
 
-    def fetch(self, url: str, timeout: int = 60) -> FetchedText:
+    def fetch(self, url: str, timeout: int = 60,
+              clean: str = "html") -> FetchedText:
         """Recorded URL fetch; in replay returns the recorded text.
 
-        Returns the cleaned text plus the guide's structured table rows
-        (FetchedText.removal_table); both come back from the recording
-        on replay so table completion stays offline.
+        clean="html" (default) returns one-line quotable guide text plus
+        the guide's structured table rows (FetchedText.removal_table).
+        clean="text" records the decoded body verbatim (newlines kept)
+        for changelogs and APIs, with an empty table.
+
+        HTTP error statuses are recorded with empty text (not raised)
+        so discovery probing replays deterministically; only network
+        failures raise. The result carries .status, .bytes, and .sha256
+        for sources.json provenance.
         """
         if self.mode == "replay":
             rec = self._take("fetch", url, f"url={url}")
@@ -426,30 +490,47 @@ class RunContext:
                                  "replayed": True})
             table = rec.get("removal_table") or {"removed": [],
                                                  "deprecated": []}
-            return FetchedText(rec["text"], table)
+            return self._fetched(rec["text"], table, rec.get("status"),
+                                 rec.get("bytes", 0),
+                                 rec.get("content_sha256", ""))
         self.check_cancelled()
         started = utc_now_iso()
         t0 = time.perf_counter()
         if self._live_fetch is not None:
             status, raw = self._live_fetch(url, timeout)
         else:
-            status, raw = fetch_page(url, timeout)
+            try:
+                status, raw = fetch_page(url, timeout)
+            except urllib.error.HTTPError as exc:
+                status, raw = exc.code, b""
         duration_ms = int((time.perf_counter() - t0) * 1000)
         page = decode_page(raw)
-        if page.lstrip().startswith("{"):
-            # JSON APIs (PyPI): keep the body parseable, no HTML cleaning.
+        if clean == "text" or page.lstrip().startswith("{"):
+            # JSON APIs (PyPI) and changelogs: keep the body parseable,
+            # no HTML cleaning.
             text = page.replace("\r\n", "\n").replace("\r", "\n")
             table = {"removed": [], "deprecated": []}
         else:
             text = html_to_text(page)
             table = self.scrubber.obj(extract_guide_tables(page))
+        sha256 = hashlib.sha256(raw).hexdigest()
         store_mod.append_jsonl(self.dir / store_mod.FETCHES, {
             "url": url, "status": status,
-            "content_sha256": hashlib.sha256(raw).hexdigest(),
+            "content_sha256": sha256,
             "bytes": len(raw), "text": text, "removal_table": table,
+            "clean": clean,
             "started_at": started, "duration_ms": duration_ms,
         })
         self.emit("fetch", {"url": url, "status": status, "bytes": len(raw),
                              "table_rows": len(table["removed"])
                              + len(table["deprecated"])})
-        return FetchedText(self.scrubber.text(text), table)
+        return self._fetched(self.scrubber.text(text), table, status,
+                             len(raw), sha256)
+
+    @staticmethod
+    def _fetched(text, table, status, nbytes, sha256) -> FetchedText:
+        result = FetchedText(text, table)
+        result.status = status
+        result.bytes = nbytes
+        result.sha256 = sha256
+        return result

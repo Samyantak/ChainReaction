@@ -9,6 +9,7 @@ runs/<run_id>/
   cmds.jsonl         # recorded subprocesses (cmd, cwd-relative, env_name,
                      # returncode, scrubbed stdout/stderr)
   fetches.jsonl      # recorded URL fetches (url, status, content hash, text)
+  searches.jsonl     # recorded web searches (query, citations, spans)
   artifacts/         # changeset.json, prediction.json, verify/*.log,
                      # report.json, report.md
 runs/presets/<preset_id>/   # committed recordings (same layout)
@@ -36,12 +37,14 @@ EVENTS = "events.jsonl"
 LLM_CALLS = "llm_calls.jsonl"
 CMDS = "cmds.jsonl"
 FETCHES = "fetches.jsonl"
+SEARCHES = "searches.jsonl"
 ARTIFACTS = "artifacts"
 TESTMAP = "testmap.json"
 
 # Preset members eligible for compression (never manifests, reports,
 # scores, or byte-compared artifacts, which stay human-readable).
-GZ_CANDIDATES = (LLM_CALLS, CMDS, FETCHES, f"{ARTIFACTS}/{TESTMAP}")
+GZ_CANDIDATES = (LLM_CALLS, CMDS, FETCHES, SEARCHES,
+                 f"{ARTIFACTS}/{TESTMAP}")
 GZ_THRESHOLD_BYTES = 1_000_000
 
 TERMINAL = ("done", "failed", "cancelled")

@@ -318,6 +318,12 @@ def stage_interpret(ctx) -> None:
     dropped: list[str] = []
     if use_model:
         guide_text = ctx.fetch(guide_url)
+        if not guide_text.strip():
+            # Function-level: generic pulls in runs/__init__ → stages.
+            from chainreaction.generic import GuideNotFound
+            raise GuideNotFound(
+                f"guide fetch failed for {guide_url} "
+                f"(status {guide_text.status})")
         if scen.code_aware:
             changeset = interpret_vendor(
                 decision, guide_text, scen.target, scen.package,
