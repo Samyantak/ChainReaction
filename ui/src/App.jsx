@@ -3,6 +3,7 @@ import { useRoute } from './router'
 import { useStatus } from './api'
 import { useTheme } from './theme'
 import { Sheet } from './components'
+import Landing from './views/Landing'
 
 function KeyPill() {
   const status = useStatus()
@@ -57,11 +58,12 @@ export default function App() {
   const [theme, setTheme] = useTheme()
   const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
 
+  if (route.name === 'landing') {
+    return <Landing />
+  }
+
   let view
   switch (route.name) {
-    case 'landing':
-      view = <Stub title="ChainReaction" step="3 (landing page)" />
-      break
     case 'feature':
       view = <Stub title={`Feature: ${route.params.id}`} step="9 (feature pages)" />
       break
@@ -80,17 +82,7 @@ export default function App() {
 
   return (
     <>
-      {route.name !== 'landing' && <AppHeader theme={theme} onToggleTheme={toggleTheme} />}
-      {route.name === 'landing' && (
-        <header className="app-header">
-          <span className="wordmark">ChainReaction</span>
-          <span className="dwg-tag mono">DWG CR-001</span>
-          <span className="spacer" />
-          <button className="theme-toggle" type="button" onClick={toggleTheme}>
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
-        </header>
-      )}
+      <AppHeader theme={theme} onToggleTheme={toggleTheme} />
       <main>{view}</main>
     </>
   )

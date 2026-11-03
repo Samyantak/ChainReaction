@@ -108,3 +108,82 @@ def test_main_help_and_unknown_command():
         main(["--help"])
     assert exc.value.code == 0
     assert main(["bogus"]) == 2
+
+
+def _source_fixture(tmp_path, monkeypatch):
+    """Tmp preset whose target is a scratch dir under workspaces/.
+
+    workspaces/ is gitignored, so the fixture never pollutes history; it
+    is removed after the test.
+    """
+    import json
+    import shutil
+
+    from chainreaction.runs.scrub import ROOT
+
+    target = ROOT / "workspaces" / "_test_src"
+    target.mkdir(parents=True, exist_ok=True)
+    (target / "a.py").write_text(
+        "".join(f"line {i}\n" for i in range(1, 31)))
+    runs = tmp_path / "runs"
+    art = runs / "presets" / "fixed" / "artifacts"
+    art.mkdir(parents=True)
+    (runs / "presets" / "fixed" / "manifest.json").write_text(
+        json.dumps({"status": "done", "decision": "do X"}))
+    (art / "report.json").write_text(
+        json.dumps({"target": "workspaces/_test_src"}))
+    monkeypatch.setenv("CHAINREACTION_RUNS_DIR", str(runs))
+    try:
+        yield
+    finally:
+        shutil.rmtree(target, ignore_errors=True)
+
+
+def test_source_preset_lines(tmp_path, monkeypatch):
+    for _ in _source_fixture(tmp_path, monkeypatch):
+        body = client.get(
+            "/api/runs/preset:fixed/source",
+            params={"path": "a.py", "start": 5, "end": 7}).json()
+        assert body["path"] == "a.py"
+        assert body["total_lines"] == 30
+        assert [(l["no"], l["text"]) for l in body["lines"]] == [
+            (5, "line 5"), (6, "line 6"), (7, "line 7")]
+        assert body["truncated"] is False
+
+
+def test_source_rejects_escape_and_nonpy(tmp_path, monkeypatch):
+    for _ in _source_fixture(tmp_path, monkeypatch):
+        assert client.get("/api/runs/preset:fixed/source",
+                          params={"path": "../a.py"}).status_code == 400
+        assert client.get("/api/runs/preset:fixed/source",
+                          params={"path": "/abs/a.py"}).status_code == 400
+        assert client.get("/api/runs/preset:fixed/source",
+                          params={"path": "a.txt"}).status_code == 400
+        assert client.get("/api/runs/preset:fixed/source",
+                          params={"path": "missing.py"}).status_code == 404
+        assert client.get("/api/runs/preset:nope/source",
+                          params={"path": "a.py"}).status_code == 404
+
+
+def test_source_missing_target_is_404(tmp_path, monkeypatch):
+    import json
+
+    runs = tmp_path / "runs"
+    art = runs / "presets" / "gone" / "artifacts"
+    art.mkdir(parents=True)
+    (runs / "presets" / "gone" / "manifest.json").write_text(
+        json.dumps({"status": "done", "decision": "do X"}))
+    (art / "report.json").write_text(
+        json.dumps({"target": "targets/_does_not_exist"}))
+    monkeypatch.setenv("CHAINREACTION_RUNS_DIR", str(runs))
+    resp = client.get("/api/runs/preset:gone/source",
+                      params={"path": "a.py"})
+    assert resp.status_code == 404
+
+
+def test_artifact_preset_prefix():
+    body = client.get(
+        "/api/runs/preset:nibabel-numpy2/artifacts/report.json").json()
+    assert body["decision"] == "upgrade numpy to 2.0"
+    resp = client.get("/api/runs/preset:nope/artifacts/report.json")
+    assert resp.status_code == 404

@@ -163,8 +163,10 @@ def cancel_run(run_id: str) -> dict:
 
 @app.get("/api/runs/{run_id}/artifacts/{name:path}")
 def get_artifact(run_id: str, name: str):
-    _manifest_or_404(run_id)
-    base = run_store.run_dir(run_id) / run_store.ARTIFACTS
+    try:
+        base = ui_api.run_or_preset_dir(run_id) / run_store.ARTIFACTS
+    except ValueError:
+        raise HTTPException(404, f"unknown run: {run_id}") from None
     if not name or ".." in Path(name).parts or Path(name).is_absolute():
         raise HTTPException(400, f"invalid artifact: {name}")
     path = (base / name).resolve()
