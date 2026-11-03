@@ -4,6 +4,7 @@ import { useStatus } from './api'
 import { useTheme } from './theme'
 import { Sheet } from './components'
 import Landing from './views/Landing'
+import Run from './views/Run'
 
 function KeyPill() {
   const status = useStatus()
@@ -71,7 +72,7 @@ export default function App() {
       view = <Stub title="New analysis" step="7" />
       break
     case 'run':
-      view = <Stub title={`Run ${route.params.id} · ${route.params.view}`} step="4–6, 8" />
+      view = <Run id={route.params.id} view={route.params.view} />
       break
     case 'history':
       view = <Stub title="History" step="7" />
