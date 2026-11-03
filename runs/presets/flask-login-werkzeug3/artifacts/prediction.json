@@ -1,0 +1,55 @@
+{
+  "at_risk": [
+    "flask_login.login_manager.LoginManager.needs_refresh",
+    "flask_login.login_manager.LoginManager.unauthorized",
+    "flask_login.utils.login_url"
+  ],
+  "change_symbols": [
+    "auth.key",
+    "warnings.catch_warnings",
+    "werkzeug.auth",
+    "werkzeug.datastructures.WWWAuthenticate.set_basic",
+    "werkzeug.datastructures.WWWAuthenticate.set_digest",
+    "werkzeug.delete_cookie",
+    "werkzeug.domain",
+    "werkzeug.http.parse_authorization_header",
+    "werkzeug.http.parse_www_authenticate_header",
+    "werkzeug.max_form_parts",
+    "werkzeug.path",
+    "werkzeug.routing.Map.charset",
+    "werkzeug.urls",
+    "werkzeug.wrappers.Request.charset",
+    "werkzeug.wrappers.Request.url_charset",
+    "werkzeug.wsgi.make_chunk_iter",
+    "werkzeug.wsgi.make_line_iter"
+  ],
+  "changed_symbols": [
+    "werkzeug.security.generate_password_hash",
+    "werkzeug.wrappers.Request.get_json"
+  ],
+  "deprecated_symbols": [
+    "Client.charset",
+    "WWWAuthenticate.set_basic",
+    "http.cookiejar",
+    "werkzeug.Location",
+    "werkzeug.__version__",
+    "werkzeug.charset",
+    "werkzeug.dump_cookie",
+    "werkzeug.generate_password_hash",
+    "werkzeug.iri_to_uri",
+    "werkzeug.make_chunk_iter",
+    "werkzeug.parse_cookie",
+    "werkzeug.parse_www_authenticate_header",
+    "werkzeug.quote_header_value",
+    "werkzeug.set_digest",
+    "werkzeug.unquote_header_value",
+    "werkzeug.value"
+  ],
+  "hard": [],
+  "probe_entries": [],
+  "spine": [],
+  "spine_evidence": [],
+  "used_symbols": [
+    "werkzeug.urls"
+  ]
+}

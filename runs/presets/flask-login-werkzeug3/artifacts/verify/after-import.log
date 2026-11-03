@@ -1,0 +1,14 @@
+# probe: after-import
+# ok: False
+# numpy: MISSING
+# modules: (none)
+## stderr
+Traceback (most recent call last):
+  File "<string>", line 7, in <module>
+  File "<env:after>/site-packages/flask_login/__init__.py", line 11, in <module>
+    from .login_manager import LoginManager
+  File "<env:after>/site-packages/flask_login/login_manager.py", line 31, in <module>
+    from .utils import _create_identifier
+  File "<env:after>/site-packages/flask_login/utils.py", line 14, in <module>
+    from werkzeug.urls import url_decode
+ImportError: cannot import name 'url_decode' from 'werkzeug.urls' (<env:after>/site-packages/werkzeug/urls.py)

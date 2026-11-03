@@ -1,0 +1,37 @@
+{
+  "from_version": "2.2.3",
+  "package": "werkzeug",
+  "sources": [
+    {
+      "bytes": 155517,
+      "clean": "text",
+      "found_via": "pypi_meta",
+      "note": "",
+      "sha256": "c8eef9776f47f1ccebe773eed4985be3580ceeacd6c4d3393cc59cc0b2383af2",
+      "url": "https://pypi.org/pypi/werkzeug/json",
+      "used": true
+    },
+    {
+      "bytes": 170481,
+      "clean": "text",
+      "found_via": "search",
+      "note": "",
+      "sha256": "399e5138b8d3bd78e6f8ed25cf0c28a86dbceaaf583ca8bdcaf5f197d6e1ee9a",
+      "url": "https://github.com/pallets/werkzeug/releases/tag/3.0.6",
+      "used": true
+    },
+    {
+      "bytes": 321386,
+      "clean": "text",
+      "found_via": "search",
+      "note": "",
+      "sha256": "1298d4c3d5369a522bbb2ef40850ebb7d5f87bc369fadc41ac904afc27205400",
+      "url": "https://werkzeug.palletsprojects.com/en/stable/changes/#version-3-0-6",
+      "used": true
+    }
+  ],
+  "to_version": "3.0.6",
+  "tried": [
+    "search: 13 citation(s)"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "commit_date": "2023-09-01",
+  "editable": true,
+  "has_suite": true,
+  "package": "flask_login",
+  "package_candidates": [],
+  "pytest_addopts": "",
+  "pytest_required_plugins": "",
+  "python_version": "3.11",
+  "pythonpath": "src",
+  "ref": "31e20a3cc143b8d07d6a67f18d4613e3ef85f1a0",
+  "repo_url": "https://github.com/maxcountryman/flask-login",
+  "requires_python": ">= 3.7",
+  "resolved_commit": "31e20a3cc143b8d07d6a67f18d4613e3ef85f1a0",
+  "test_command": [
+    "pytest",
+    "-q"
+  ],
+  "test_extras": [],
+  "test_requirements": [
+    "requirements/tests.txt"
+  ],
+  "test_specs": [],
+  "workspace": "workspaces/maxcountryman__flask-login@31e20a3cc143"
+}
