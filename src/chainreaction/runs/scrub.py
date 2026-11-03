@@ -165,9 +165,10 @@ def utc_now_iso() -> str:
 @dataclass(frozen=True)
 class Scrubber:
     replacements: tuple  # ((needle, placeholder), ...) longest needle first
+    ws_pin: str = ""  # absolute local path <ws> maps back to (run workspace)
 
     @classmethod
-    def default(cls) -> "Scrubber":
+    def default(cls, ws_pin: str | None = None) -> "Scrubber":
         pairs = []
         envs = ROOT / "envs"
         try:
@@ -189,6 +190,8 @@ class Scrubber:
         except OSError:
             ws_names = []
         for name in ws_names:
+            if name.startswith(".staging-"):
+                continue  # transient clone dirs, never recording paths
             pairs.append((str(workspaces / name), WS_PLACEHOLDER))
         pairs.append((str(ROOT), ROOT_PLACEHOLDER))
         try:
@@ -207,7 +210,7 @@ class Scrubber:
         # repo root; uv pythons under home). Matching is separator-
         # insensitive, so mixed E:\a/b spellings match too.
         pairs.sort(key=lambda p: len(p[0]), reverse=True)
-        return cls(tuple(pairs))
+        return cls(tuple(pairs), str(ws_pin or ""))
 
     def text(self, value: str) -> str:
         if not isinstance(value, str) or not value:
@@ -231,13 +234,24 @@ class Scrubber:
         Lets stages parse recorded text that names files (tracebacks)
         identically on every machine: placeholders map back to the
         local paths. Key redaction is one-way and stays redacted.
+        Restored paths use forward slashes: native backslashes would
+        corrupt JSON recordings (coverage dumps) that embed them, and
+        every consumer parses via separator-agnostic Path handling.
+        A pinned run workspace wins over the directory scan: several
+        local workspaces share one <ws> placeholder.
         """
         if not isinstance(value, str) or not value:
             return value
+        if self.ws_pin and WS_PLACEHOLDER in value:
+            value = value.replace(WS_PLACEHOLDER,
+                                  self.ws_pin.replace("\\", "/"))
         for needle, repl in sorted(self.replacements,
                                    key=lambda p: len(p[1]), reverse=True):
-            if repl and repl != KEY_PLACEHOLDER and repl in value:
-                value = value.replace(repl, needle)
+            if not repl or repl == KEY_PLACEHOLDER or repl not in value:
+                continue
+            if repl == WS_PLACEHOLDER and self.ws_pin:
+                continue  # pinned above
+            value = value.replace(repl, needle.replace("\\", "/"))
         return value
 
     def obj(self, node):

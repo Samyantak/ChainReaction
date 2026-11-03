@@ -305,6 +305,33 @@ def test_scrubber_normalizes_foreign_env_and_tmp_paths():
     assert twice == scrub.text(linux)  # idempotent
 
 
+def test_untext_restores_forward_slash_json_safe_paths():
+    from chainreaction.runs.scrub import Scrubber
+
+    scrub = Scrubber.default(ws_pin="E:\\fake\\ws")
+    # Native backslashes would corrupt JSON escapes in coverage dumps.
+    assert scrub.untext('{"<ws>/src/pkg/a.py"}') == '{"E:/fake/ws/src/pkg/a.py"}'
+    assert scrub.untext('{"a": 1}') == '{"a": 1}'
+    import json
+
+    json.loads(scrub.untext('{"<ws>/x.py": {"1": ["t"]}}'))
+
+
+def test_untext_prefers_pinned_workspace(tmp_path, monkeypatch):
+    import chainreaction.runs.scrub as scrub_mod
+    from chainreaction.runs.scrub import Scrubber
+
+    (tmp_path / "workspaces" / "a__x@111").mkdir(parents=True)
+    (tmp_path / "workspaces" / ".staging-deadbeef").mkdir(parents=True)
+    monkeypatch.setattr(scrub_mod, "ROOT", tmp_path)
+    scrub = Scrubber.default(ws_pin=str(tmp_path / "workspaces" / "b__y@222"))
+    assert scrub.untext("<ws>/f.py") == \
+        str(tmp_path / "workspaces" / "b__y@222").replace("\\", "/") + "/f.py"
+    # Staging dirs never contribute pairs.
+    assert not [n for n, _ in Scrubber.default().replacements
+                if ".staging-" in n]
+
+
 def test_interpret_falls_back_without_key(tmp_runs, monkeypatch):
     monkeypatch.delenv("MODEL_API_KEY", raising=False)
     manifest = _live_manifest("u1")

@@ -459,30 +459,54 @@ def build_map(python: str, target: str | Path, package: str,
 
 COVERAGE_DATA_NAME = ".coverage-chainreaction"
 
-# Coverage contexts dumped to stdout (recorded): {file: {line: [test ids]}}.
-# The .coverage file itself never leaves the live machine, so replay
-# rebuilds the identical map from the recording. Old recordings carry
-# {file: [test ids]}; parse_dump_full reads both.
+# Coverage contexts dumped to stdout (recorded): full file-level tids plus
+# per-line tids for focus files only:
+# {"files": {file: [test ids]}, "lines": {file: {line: [test ids]}}}.
+# Per-line detail for every file explodes (anndata: ~200MB — most lines
+# are covered by thousands of tests), so callers pass the break-line
+# files as argv[2] (JSON list of repo-relative posix paths, matched
+# against relpath-to-cwd). The .coverage file itself never leaves the
+# live machine, so replay rebuilds the identical map from the recording.
+# Old recordings carry {file: [test ids]} or {file: {line: [ids]}};
+# parse_dump_full reads all three shapes.
 _DUMP_CODE = (
-    "import json, sys\n"
+    "import json, os, sys\n"
     "from coverage import Coverage\n"
     "cov = Coverage(data_file=sys.argv[1])\n"
     "cov.load()\n"
     "data = cov.get_data()\n"
-    "out = {}\n"
+    "focus = set(json.loads(sys.argv[2])) if len(sys.argv) > 2 else set()\n"
+    "files = {}\n"
+    "lines = {}\n"
     "for fname in data.measured_files():\n"
-    "    per_line = {}\n"
-    "    for lineno, names in data.contexts_by_lineno(fname).items():\n"
-    "        tids = set()\n"
+    "    by_line = data.contexts_by_lineno(fname)\n"
+    "    tids = set()\n"
+    "    for names in by_line.values():\n"
     "        for raw in names:\n"
     "            tid = raw.split('|')[0]\n"
     "            if tid:\n"
     "                tids.add(tid)\n"
-    "        if tids:\n"
-    "            per_line[str(lineno)] = sorted(tids)\n"
+    "    if not tids:\n"
+    "        continue\n"
+    "    files[fname] = sorted(tids)\n"
+    "    try:\n"
+    "        rel = os.path.relpath(fname).replace(os.sep, '/')\n"
+    "    except ValueError:\n"
+    "        continue\n"
+    "    if rel not in focus:\n"
+    "        continue\n"
+    "    per_line = {}\n"
+    "    for lineno, names in by_line.items():\n"
+    "        ltids = set()\n"
+    "        for raw in names:\n"
+    "            tid = raw.split('|')[0]\n"
+    "            if tid:\n"
+    "                ltids.add(tid)\n"
+    "        if ltids:\n"
+    "            per_line[str(lineno)] = sorted(ltids)\n"
     "    if per_line:\n"
-    "        out[fname] = per_line\n"
-    "print(json.dumps(out))\n"
+    "        lines[fname] = per_line\n"
+    "print(json.dumps({'files': files, 'lines': lines}))\n"
 )
 
 # File-level dump (pre-line-hits recordings): replay falls back to this
@@ -507,6 +531,24 @@ _DUMP_CODE_V1 = (
 )
 
 
+def _tail_rel(path_text: str, package: str) -> str | None:
+    """Repo-relative path by package-tail match (foreign absolutes)."""
+    segs = _split_foreign(path_text)
+    for i, seg in enumerate(segs):
+        if seg != package:
+            continue
+        if "site-packages" in segs[:i]:
+            continue
+        tail = segs[i:]
+        if not tail or not tail[-1].endswith(".py"):
+            continue
+        # Preserve a src/ layout marker when present.
+        if i > 0 and segs[i - 1] == "src":
+            tail = ["src", *tail]
+        return "/".join(tail)
+    return None
+
+
 def file_to_rel(path_text: str | Path, target: str | Path, package: str
                 ) -> str | None:
     """Repo-relative posix path for a measured file, else None.
@@ -517,24 +559,15 @@ def file_to_rel(path_text: str | Path, target: str | Path, package: str
     """
     text = str(path_text)
     if "<ws>" in text or "\\" in text:
-        segs = _split_foreign(text)
-        for i, seg in enumerate(segs):
-            if seg != package:
-                continue
-            if "site-packages" in segs[:i]:
-                continue
-            tail = segs[i:]
-            if not tail or not tail[-1].endswith(".py"):
-                continue
-            # Preserve a src/ layout marker when present.
-            if i > 0 and segs[i - 1] == "src":
-                tail = ["src", *tail]
-            return "/".join(tail)
-        return None
+        return _tail_rel(text, package)
     try:
         rel = relative_posix(text, target)
     except Exception:
-        return None
+        return _tail_rel(text, package)
+    if rel.startswith(".."):
+        # A relpath escaping the target is a foreign absolute in
+        # disguise (forward-slashed drive path) — match by tail.
+        return _tail_rel(text, package)
     if not rel.endswith(".py"):
         return None
     head = rel.split("/")[0]
@@ -554,8 +587,9 @@ def parse_dump_full(text: str, target: str | Path, package: str,
                     ) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
     """Invert a coverage dump: (test->modules, test->file:line hits).
 
-    Reads per-line dumps ({file: {line: [ids]}}) and old file dumps
-    ({file: [ids]}); old dumps yield empty line hits.
+    Reads focused dumps ({"files": ..., "lines": ...}), per-line dumps
+    ({file: {line: [ids]}}), and old file dumps ({file: [ids]}); dumps
+    without per-line detail yield empty line hits.
     """
     try:
         raw = json.loads(text)
@@ -563,6 +597,10 @@ def parse_dump_full(text: str, target: str | Path, package: str,
         return {}, {}
     if not isinstance(raw, dict):
         return {}, {}
+    if isinstance(raw.get("files"), dict) and isinstance(raw.get("lines"),
+                                                         dict):
+        return (_parse_focused_dump(raw, target, package, strip_prefix),
+                _parse_focused_lines(raw, target, package, strip_prefix))
     mods: dict[str, set[str]] = {}
     lines: dict[str, set[str]] = {}
     for fname, payload in raw.items():
@@ -596,6 +634,47 @@ def parse_dump_full(text: str, target: str | Path, package: str,
             {t: sorted(hs) for t, hs in lines.items()})
 
 
+def _parse_focused_dump(raw: dict, target: str | Path, package: str,
+                        strip_prefix: str) -> dict[str, list[str]]:
+    """File-level half of a focused dump: test -> sorted modules."""
+    out: dict[str, set[str]] = {}
+    files = raw.get("files")
+    if not isinstance(files, dict):
+        return {}
+    for fname, tids in files.items():
+        mod = file_to_module(fname, target, package)
+        if mod is None:
+            continue
+        for tid in tids or []:
+            tid = _strip_tid(tid, strip_prefix)
+            if tid:
+                out.setdefault(tid, set()).add(mod)
+    return {t: sorted(ms) for t, ms in out.items()}
+
+
+def _parse_focused_lines(raw: dict, target: str | Path, package: str,
+                         strip_prefix: str) -> dict[str, list[str]]:
+    """Per-line half of a focused dump: test -> sorted file:line hits."""
+    out: dict[str, set[str]] = {}
+    lines = raw.get("lines")
+    if not isinstance(lines, dict):
+        return {}
+    for fname, per_line in lines.items():
+        rel = file_to_rel(fname, target, package)
+        if rel is None or not isinstance(per_line, dict):
+            continue
+        for lineno, tids in per_line.items():
+            try:
+                line = int(lineno)
+            except (TypeError, ValueError):
+                continue
+            for tid in tids or []:
+                tid = _strip_tid(tid, strip_prefix)
+                if tid:
+                    out.setdefault(tid, set()).add(f"{rel}:{line}")
+    return {t: sorted(hs) for t, hs in out.items()}
+
+
 def parse_dump(text: str, target: str | Path, package: str,
                strip_prefix: str = "") -> dict[str, list[str]]:
     """Invert a coverage dump: test node id -> sorted executed modules."""
@@ -607,14 +686,19 @@ def build_map_with(run, python: str, target: str | Path, package: str,
                    tests_rel: str = ".", timeout: int = 1800,
                    built_with: str = "",
                    data_name: str = COVERAGE_DATA_NAME,
-                   id_prefix: str = "") -> tuple[TestMap, str]:
+                   id_prefix: str = "",
+                   focus_files: set[str] | frozenset[str] | None = None
+                   ) -> tuple[TestMap, str]:
     """Coverage test map over an injected runner; returns (map, output).
 
     run(cmd, cwd, extra_env) executes (recorded runs pass a ctx.run_cmd
     adapter: outputs come back unscrubbed, the dump is recorded, and
     replay rebuilds the map from the recording). The suite output is
     returned so the caller can parse baseline counts from the same run.
-    Raises RuntimeError when coverage produces no mappable data.
+    focus_files are repo-relative posix paths getting per-line detail;
+    every other measured file contributes file-level tids only (full
+    per-line detail explodes to ~200MB on real suites). Raises
+    RuntimeError when coverage produces no mappable data.
     """
     cwd = str(target)
     data_path = Path(cwd) / data_name
@@ -628,9 +712,11 @@ def build_map_with(run, python: str, target: str | Path, package: str,
     if getattr(proc, "timed_out", False):
         raise RuntimeError(f"test suite timed out in {target}")
     output = proc.stdout
+    focus_arg = json.dumps(sorted(focus_files or ()))
     try:
         try:
-            dumped = run([python, "-c", _DUMP_CODE, data_name], cwd)
+            dumped = run([python, "-c", _DUMP_CODE, data_name, focus_arg],
+                         cwd)
         except Exception as exc:
             # Replay of a pre-line-hits recording: the recorded dump
             # command carries the old file-level code.

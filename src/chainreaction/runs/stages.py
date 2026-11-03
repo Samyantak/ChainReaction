@@ -156,8 +156,9 @@ def _stage_setup_generic(ctx) -> None:
                commit_date=commit_date, sha=sha)
     # Workspaces and envs did not exist when the run's scrubber was
     # built: refresh so <ws> placeholders map back for traceback
-    # parsing (recorded bytes are unchanged — the regexes agree).
-    ctx.scrubber = Scrubber.default()
+    # parsing (recorded bytes are unchanged — the regexes agree), pinned
+    # to this run's workspace so sibling checkouts can't win.
+    ctx.scrubber = Scrubber.default(ws_pin=str(ROOT / ws_rel))
     ctx.set_manifest(detected_package=info.package,
                      decision_package=parsed.package,
                      decision_version=parsed.to_version)
@@ -589,11 +590,22 @@ def _stage_verify_generic(ctx) -> None:
         else:
             use_cov, has_plain = True, True
         if use_cov:
+            # Per-line detail only for files with removed-symbol uses
+            # (full detail explodes to ~200MB); deterministic from the
+            # graph + changeset, so live and replay pass identical argv.
+            focus: set[str] = set()
+            _graph = ctx.state.get("graph")
+            _symbols = set(ctx.state.get("symbols", set()))
+            if _graph is not None and _symbols:
+                focus = {hit.rsplit(":", 1)[0] for hit in
+                         testmap_mod.break_lines(_graph, _symbols,
+                                                 scen.target)}
             try:
                 testmap, cov_output = testmap_mod.build_map_with(
                     before_run, before_py, target_abs, info.package, ".",
                     timeout=1200, built_with=scen.before_env,
-                    id_prefix=ws_rel + "/")
+                    id_prefix=ws_rel + "/",
+                    focus_files=focus)
                 before = parse_suite(cov_output, ws_rel, testmap)
                 outputs["before"] = cov_output
                 testmap.target = ws_rel

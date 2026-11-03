@@ -173,6 +173,81 @@ def test_failure_groups_attribute_by_message():
     assert any(g["message"] == "other" and g["count"] == 1 for g in groups)
 
 
+def test_focused_dump_survives_scrub_roundtrip():
+    """Scrubbed <ws> dump text stays valid JSON through untext+parse.
+
+    Regression: native-backslash untext corrupted the dump's JSON
+    escapes, json.loads failed, and the run fell back to plain pytest.
+    """
+    import json
+
+    from chainreaction.runs.scrub import Scrubber
+    from chainreaction.testmap import parse_dump_full
+
+    scrubbed = json.dumps({
+        "files": {"<ws>//src//pkg//a.py": ["t1"]},
+        "lines": {"<ws>//src//pkg//a.py": {"10": ["t1"]}},
+    })
+    scr = Scrubber.default(ws_pin="E:\\fake\\ws")
+    mods, lines = parse_dump_full(scr.untext(scrubbed), "ws", "pkg")
+    assert mods == {"t1": ["pkg.a"]}
+    assert lines == {"t1": ["src/pkg/a.py:10"]}
+
+
+def test_dump_script_reports_focused_lines(tmp_path):
+    """The real dump script honors the focus list (live coverage run)."""
+    import json
+    import subprocess
+    import sys
+
+    from chainreaction.testmap import (
+        _DUMP_CODE,
+        file_to_rel,
+        parse_dump_full,
+    )
+
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "a.py").write_text("def f():\n    return 1\n", encoding="utf-8")
+    (tmp_path / "test_a.py").write_text(
+        "from pkg.a import f\ndef test_f():\n    assert f() == 1\n",
+        encoding="utf-8",
+    )
+    env = dict(__import__("os").environ)
+    data_file = tmp_path / ".coverage-focus"
+    env["COVERAGE_FILE"] = str(data_file)
+    subprocess.run(
+        [sys.executable, "-m", "pytest", "test_a.py", "-q", "--tb=no",
+         "-p", "no:cacheprovider", "--cov=pkg", "--cov-context=test",
+         "--cov-report="],
+        cwd=str(tmp_path), capture_output=True, text=True, timeout=300,
+        env=env, check=False)
+    assert data_file.exists()
+    proc = subprocess.run(
+        [sys.executable, "-c", _DUMP_CODE, data_file.name,
+         json.dumps(["pkg/a.py"])],
+        cwd=str(tmp_path), capture_output=True, text=True, timeout=120,
+        check=False)
+    assert proc.returncode == 0, proc.stderr[-500:]
+    raw = json.loads(proc.stdout)
+    assert set(raw) == {"files", "lines"}
+    mods, lines = parse_dump_full(proc.stdout, str(tmp_path), "pkg")
+    assert "pkg.a" in mods["test_a.py::test_f"]
+    assert file_to_rel(str(tmp_path / "pkg" / "a.py"), str(tmp_path),
+                       "pkg") == "pkg/a.py"
+    hits = lines["test_a.py::test_f"]
+    assert "pkg/a.py:2" in hits
+    assert all(h.startswith("pkg/a.py:") for h in hits)
+    # Files outside the focus list contribute no per-line detail.
+    proc = subprocess.run(
+        [sys.executable, "-c", _DUMP_CODE, data_file.name, "[]"],
+        cwd=str(tmp_path), capture_output=True, text=True, timeout=120,
+        check=False)
+    _, no_lines = parse_dump_full(proc.stdout, str(tmp_path), "pkg")
+    assert no_lines == {}
+
+
 def test_parse_dump_handles_foreign_absolute():
     import json
 
@@ -268,6 +343,26 @@ def test_build_map_with_parses_recorded_dump(tmp_path):
     assert lined_map.tests == {"test_a.py::test_f": ["pkg.a"]}
     assert lined_map.line_hits == {
         "test_a.py::test_f": ["pkg/a.py:10", "pkg/a.py:99"]}
+    # Focused dumps: file-level for all, lines for focus files only, and
+    # the focus list travels as stable argv.
+    focused = json.dumps({
+        "files": {f"{target}/pkg/a.py": ["test_a.py::test_f"],
+                  f"{target}/pkg/b.py": ["test_a.py::test_f"]},
+        "lines": {f"{target}/pkg/a.py": {"10": ["test_a.py::test_f"]}},
+    })
+    seen_cmds = []
+
+    def run_focused(cmd, cwd, extra_env=None):
+        if cmd[1] == "-c":
+            seen_cmds.append(cmd)
+            return SimpleNamespace(returncode=0, stdout=focused, stderr="")
+        return SimpleNamespace(returncode=0, stdout=out, stderr="")
+
+    focus_map, _ = build_map_with(run_focused, "py", str(target), "pkg",
+                                  focus_files={"pkg/a.py"})
+    assert focus_map.tests == {"test_a.py::test_f": ["pkg.a", "pkg.b"]}
+    assert focus_map.line_hits == {"test_a.py::test_f": ["pkg/a.py:10"]}
+    assert json.loads(seen_cmds[0][4]) == ["pkg/a.py"]
     # Replay of a V1 recording falls back to the old dump command.
     from chainreaction.runs.context import ReplayMiss
     from chainreaction.testmap import _DUMP_CODE_V1
