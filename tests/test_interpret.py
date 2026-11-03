@@ -389,3 +389,133 @@ def test_interpret_vendor_grounds_config_in_code(tmp_path):
     assert by_symbol["fit.llm.Provider"].source == "code"
     assert by_symbol["fit.llm.Provider"].verified is True
     assert by_symbol["meta.voice"].source == "guide"
+
+
+# -- M3 §3: deterministic extraction beyond NumPy --
+
+def test_normalize_symbol_shapes():
+    from chainreaction.interpret import normalize_symbol, split_symbols
+
+    assert normalize_symbol("np.NaN()", "numpy") == "numpy.NaN"
+    assert normalize_symbol("``jinja2.pass_context``", "jinja2") == \
+        "jinja2.pass_context"
+    assert normalize_symbol("contextfunction", "jinja2") == \
+        "jinja2.contextfunction"
+    assert normalize_symbol("urllib.parse", "werkzeug") == "urllib.parse"
+    assert normalize_symbol("~pkg.mod.fn", "pkg") == "pkg.mod.fn"
+    assert normalize_symbol("pd.DataFrame") == "pandas.DataFrame"
+    assert normalize_symbol("3.6", "pkg") == ""
+    assert normalize_symbol("not a symbol", "pkg") == ""
+    assert split_symbols("old_a, old_b", "pkg") == ["pkg.old_a", "pkg.old_b"]
+    assert split_symbols("np.mat, mat", "numpy") == ["numpy.mat"]
+
+
+def test_extract_table_rows_generic_package():
+    from chainreaction.interpret import extract_table_rows
+
+    page = """<h2>Renamed API</h2>
+<p>The following members were renamed:</p>
+<table><tr><th>Old</th><th>New</th></tr>
+<tr><td>old_a, old_b</td><td>new_a</td></tr>
+</table>
+<h2>Other changes</h2>
+<table><tr><td>unrelated</td><td>stuff</td></tr></table>
+"""
+    rows = extract_table_rows(page, "pkg")
+    assert [(r["symbol"], r["replacement"], r["kind"], r["extraction"])
+            for r in rows] == [
+        ("pkg.old_a", "pkg.new_a", "renamed", "table"),
+        ("pkg.old_b", "pkg.new_a", "renamed", "table"),
+    ]
+
+
+JINJA_NOTES = """\
+## Version 3.1.0
+
+Released 2022-03-24
+
+- `contextfunction` is replaced by `pass_context`.
+- `environmentfilter` and `environmentfunction` are replaced by
+  `pass_environment`.
+- `Markup` and `escape` should be imported from MarkupSafe.
+- Add `items` filter.
+"""
+
+WERKZEUG_NOTES = """\
+## Version 2.3.0
+
+Released 2023-04-25
+
+- Deprecate the `werkzeug.urls` module, except for the `uri_to_iri` and
+  `iri_to_uri` functions. Use the `urllib.parse` library instead.
+- Remove previously deprecated code.
+"""
+
+RST_NOTES = """\
+Version 3.1.0
+-------------
+
+Removals
+--------
+
+- ``old_func`` has been removed, use ``new_func`` instead.
+- ``gone.mod`` was deleted.
+
+Deprecations
+------------
+
+- ``tired`` is deprecated.
+"""
+
+
+def test_extract_pattern_rows_jinja_shape():
+    from chainreaction.interpret import extract_pattern_rows
+
+    rows = extract_pattern_rows(JINJA_NOTES, "jinja2")
+    by_symbol = {r["symbol"]: r for r in rows}
+    assert set(by_symbol) == {
+        "jinja2.contextfunction", "jinja2.environmentfilter",
+        "jinja2.environmentfunction", "jinja2.Markup", "jinja2.escape"}
+    assert by_symbol["jinja2.contextfunction"]["replacement"] == \
+        "jinja2.pass_context"
+    assert by_symbol["jinja2.environmentfilter"]["replacement"] == \
+        "jinja2.pass_environment"
+    assert by_symbol["jinja2.Markup"]["replacement"] is None
+    assert {r["kind"] for r in rows} == {"renamed"}
+    assert {r["extraction"] for r in rows} == {"pattern"}
+    assert all(r["quote"] in JINJA_NOTES for r in rows)
+
+
+def test_extract_pattern_rows_except_clause():
+    from chainreaction.interpret import extract_pattern_rows
+
+    rows = extract_pattern_rows(WERKZEUG_NOTES, "werkzeug")
+    assert [(r["symbol"], r["kind"], r["replacement"]) for r in rows] == [
+        ("werkzeug.urls", "deprecated", "urllib.parse")]
+    assert rows[0]["quote"] in WERKZEUG_NOTES
+
+
+def test_extract_list_rows_rst_sections():
+    from chainreaction.interpret import extract_list_rows
+
+    rows = extract_list_rows(RST_NOTES, "pkg")
+    by_symbol = {r["symbol"]: r for r in rows}
+    assert set(by_symbol) == {"pkg.old_func", "gone.mod", "pkg.tired"}
+    assert by_symbol["pkg.old_func"]["kind"] == "removed"
+    assert by_symbol["pkg.tired"]["kind"] == "deprecated"
+    assert all(r["extraction"] == "list" for r in rows)
+    assert all(r["quote"] in RST_NOTES for r in rows)
+
+
+def test_extract_deterministic_rows_merge_priority():
+    from chainreaction.interpret import extract_deterministic_rows
+
+    rows = extract_deterministic_rows(RST_NOTES, "pkg")
+    by_symbol = {r["symbol"]: r for r in rows}
+    # Every bullet also matches the pattern pass; list wins each merge,
+    # keeping the "use X instead" replacement.
+    assert by_symbol["pkg.old_func"]["extraction"] == "list"
+    assert by_symbol["pkg.old_func"]["replacement"] == "pkg.new_func"
+    assert by_symbol["gone.mod"]["extraction"] == "list"
+    assert by_symbol["pkg.tired"]["extraction"] == "list"
+    assert all(r["quote"] in RST_NOTES for r in rows)

@@ -471,14 +471,59 @@ class FetchedText(str):
         return obj
 
 
-_REMOVED_TABLE_MARKERS = ("members that have been removed:",
-                          "replacements for the removed members:")
-_DEPRECATED_TABLE_MARKER = "presents deprecated members"
+# -- deterministic extraction (M3 §3) --
+
+# Rows are {symbol, quote, replacement, kind, extraction} with
+# extraction in {"table", "list", "pattern"}. Quotes are exact
+# substrings of the source text by construction.
+
+SYMBOL_ALIASES = {"np": "numpy", "pd": "pandas",
+                  "ndarray": "numpy.ndarray"}
+
+_SYMBOL_RE = re.compile(r"^[A-Za-z_]\w*(?:\.\w+)*$")
+
+
+def normalize_symbol(raw: str, package: str = "") -> str:
+    """Canonical symbol from changelog markup ("" when not symbol-like).
+
+    Strips backticks, call/bracket suffixes, and trailing punctuation;
+    expands np./pd. aliases; prefixes a bare name with the package.
+    """
+    text = (raw or "").strip().strip("`").strip().lstrip("~").strip()
+    text = re.split(r"[\(\[]", text, maxsplit=1)[0].strip()
+    text = text.rstrip(".,:;").strip()
+    if not text:
+        return ""
+    parts = text.split(".")
+    if parts[0] in SYMBOL_ALIASES:
+        rest = ".".join(parts[1:])
+        text = SYMBOL_ALIASES[parts[0]] + (f".{rest}" if rest else "")
+    elif package and "." not in text:
+        text = f"{package}.{text}"
+    return text if _SYMBOL_RE.match(text) else ""
+
+
+def split_symbols(raw: str, package: str = "") -> list[str]:
+    """Comma-separated cell → normalized symbols (order preserved)."""
+    seen, out = set(), []
+    for chunk in (raw or "").split(","):
+        symbol = normalize_symbol(chunk, package)
+        if symbol and symbol not in seen:
+            seen.add(symbol)
+            out.append(symbol)
+    return out
+
 
 _TABLE_RE = re.compile(r"<table.*?</table>", re.S)
 _ROW_RE = re.compile(r"<tr[^>]*>\s*<td[^>]*>(.*?)</td>\s*<td[^>]*>(.*?)</td>",
                      re.S)
-_NP_REF_RE = re.compile(r"np\.([A-Za-z_]\w*(?:\.\w+)*)")
+_TH_RE = re.compile(r"<th[^>]*>(.*?)</th>", re.S)
+
+_TABLE_KIND_RES = (
+    ("renamed", re.compile(r"\brenam")),
+    ("removed", re.compile(r"\bremov|\bexpir")),
+    ("deprecated", re.compile(r"\bdeprecat")),
+)
 
 
 def _clean_cell(raw: str) -> str:
@@ -488,27 +533,47 @@ def _clean_cell(raw: str) -> str:
     return html_to_text(raw)
 
 
-def _table_symbol(name: str, method_table: bool) -> str:
-    name = re.sub(r"^(np|numpy)\.", "", name.strip())
-    if not name:
-        return ""
-    if method_table and "." not in name:
-        return f"numpy.ndarray.{name}"
-    return f"numpy.{name}"
+def _table_kind(context: str) -> str | None:
+    for kind, regex in _TABLE_KIND_RES:
+        if regex.search(context):
+            return kind
+    return None
 
 
-def extract_guide_tables(page: str) -> dict:
-    """Deterministic rows from the guide's structured member tables.
+def _table_ref_re(package: str):
+    """Guidance-column reference: `package.x` or an alias spelling."""
+    roots = {package} if package else set()
+    for alias, canonical in SYMBOL_ALIASES.items():
+        if canonical == package or canonical.startswith(package + "."):
+            roots.add(alias)
+    roots = sorted((r for r in roots if r), key=len, reverse=True)
+    return re.compile(r"(?:^|[^\w.])((?:" + "|".join(roots) +
+                      r")\.\w[\w.]*)") if roots else None
 
-    Returns {"removed": [...], "deprecated": [...]} with
-    {symbol, quote, replacement} rows. Tables are recognized by the
-    sentence introducing them (numpy 2.0 migration guide shape: a
-    main-namespace removal table, a deprecated table, and an
-    ndarray-methods removal table); pages without them yield empty
-    lists and the model works prose-only.
+
+def _table_symbols(name: str, package: str,
+                   method_prefix: str | None) -> list[str]:
+    out = []
+    for symbol in split_symbols(name, package):
+        parts = symbol.split(".")
+        if (method_prefix and len(parts) == 2
+                and parts[0] == package):
+            out.append(f"{package}.{method_prefix}.{parts[1]}")
+        else:
+            out.append(symbol)
+    return out
+
+
+def extract_table_rows(page: str, package: str = "numpy") -> list[dict]:
+    """Deterministic rows from structured member tables (any package).
+
+    A table qualifies when its header row or introducing text/heading
+    mentions removed/expired/renamed/deprecated. NumPy's guide keeps
+    its exact rows (same markers, same shapes).
     """
-    removed, deprecated = [], []
+    rows = []
     tables = list(_TABLE_RE.finditer(page))
+    ref_re = _table_ref_re(package)
     for index, match in enumerate(tables):
         prev_end = tables[index - 1].end() if index else 0
         # Markers may wrap across source lines; match collapsed text.
@@ -516,27 +581,301 @@ def extract_guide_tables(page: str) -> dict:
         heads = list(re.finditer(r"<h[1-4][^>]*>(.*?)</h[1-4]>",
                                  page[:match.start()], re.S))
         heading = _clean_cell(heads[-1].group(1)).lower() if heads else ""
-        if _DEPRECATED_TABLE_MARKER in context:
-            dest, method_table = deprecated, False
-        elif any(m in context for m in _REMOVED_TABLE_MARKERS):
-            dest, method_table = removed, "ndarray" in heading
-        else:
+        header = " ".join(_clean_cell(m.group(1))
+                         for m in _TH_RE.finditer(match.group(0)))
+        kind = _table_kind(f"{context} {heading} {header}".lower())
+        if kind is None:
             continue
+        method_prefix = ("ndarray" if package == "numpy"
+                         and "ndarray" in heading else None)
         for row in _ROW_RE.finditer(match.group(0)):
             name = _clean_cell(row.group(1))
             guidance = _clean_cell(row.group(2))
             if not name:
                 continue
-            symbol = _table_symbol(name, method_table)
-            if not symbol:
+            if kind == "renamed":
+                cands = split_symbols(guidance, package)
+                replacement = cands[0] if cands else None
+            else:
+                ref = ref_re.search(guidance) if ref_re else None
+                replacement = (normalize_symbol(ref.group(1), package)
+                               if ref else None)
+            for symbol in _table_symbols(name, package, method_prefix):
+                rows.append({"symbol": symbol,
+                             "quote": f"{name} {guidance}".strip(),
+                             "replacement": replacement or None,
+                             "kind": kind, "extraction": "table"})
+    return rows
+
+
+def extract_guide_tables(page: str) -> dict:
+    """NumPy-flow wrapper: {"removed": [...], "deprecated": [...]}.
+
+    Kept for ctx.fetch and the preset interpreters; rows carry the
+    same fields plus kind/extraction. M3 flows use the flat row list.
+    """
+    rows = extract_table_rows(page, "numpy")
+    return {
+        "removed": [r for r in rows if r["kind"] == "removed"],
+        "deprecated": [r for r in rows if r["kind"] == "deprecated"],
+    }
+
+
+# -- bullet / sentence extraction (Markdown + RST) --
+
+_BULLET_RE = re.compile(r"^(\s*)([-*+]|\d+[.)])\s+")
+_MD_HEADING_RE = re.compile(r"^#{1,6}\s+")
+_RST_UNDERLINE_RE = re.compile(r"^([=\-~^#*\"'])\1{3,}\s*$")
+_LITERAL_RE = re.compile(r"`{1,2}([^`]+?)`{1,2}")
+
+_BREAK_HEADING_RES = (
+    ("renamed", re.compile(r"renam|replac|mov(e|ed|ing)")),
+    ("removed", re.compile(r"remov|break|incompat|expir|delet|drop")),
+    ("deprecated", re.compile(r"deprecat")),
+)
+
+_RENAMED_RES = (
+    re.compile(r"\brenam\w*\s+(?:to|as)\b", re.I),
+    re.compile(r"\breplac\w*\s+by\b", re.I),
+    re.compile(r"\bmov\w*\s+to\b", re.I),
+    re.compile(r"\bimported\s+from\b", re.I),
+)
+_REMOVED_RES = (
+    re.compile(r"\bremov\w*\b", re.I),
+    re.compile(r"\bdelet\w*\b", re.I),
+)
+_DEPRECATED_RES = (re.compile(r"\bdeprecat\w*\b", re.I),)
+_INSTEAD_RE = re.compile(r"\b(?:re)?use\b(.+?)\binstead\b", re.I)
+_REPLACED_WITH_RE = re.compile(r"\breplac\w*\s+(.+?)\s+with\s+(.+)", re.I)
+_EXCEPT_RE = re.compile(r"\bexcept\b|\bother\s+than\b|\bexcluding\b", re.I)
+
+
+def _heading_break_kind(heading: str) -> str | None:
+    lowered = heading.lower()
+    for kind, regex in _BREAK_HEADING_RES:
+        if regex.search(lowered):
+            return kind
+    return None
+
+
+def _parse_blocks(text: str):
+    """(raw, flat, section_kind) blocks: bullets joined, prose by line.
+
+    raw is an exact substring (the quote); flat is whitespace-collapsed
+    (the match surface); section_kind comes from the nearest Markdown
+    heading above the block.
+    """
+    lines = (text or "").splitlines()
+    section = None
+    i, total = 0, len(lines)
+    while i < total:
+        line = lines[i]
+        if _MD_HEADING_RE.match(line):
+            section = _heading_break_kind(line)
+            i += 1
+            continue
+        if (line.strip() and not _BULLET_RE.match(line)
+                and i + 1 < total
+                and _RST_UNDERLINE_RE.match(lines[i + 1])
+                and len(lines[i + 1].strip())
+                >= max(4, len(line.strip()))):
+            section = _heading_break_kind(line)
+            i += 2
+            continue
+        bullet = _BULLET_RE.match(line)
+        if bullet:
+            start = i
+            i += 1
+            while i < total:
+                nxt = lines[i]
+                if (not nxt.strip() or _MD_HEADING_RE.match(nxt)
+                        or _BULLET_RE.match(nxt)):
+                    break
+                i += 1
+            raw = "\n".join(lines[start:i])
+            yield raw, " ".join(raw.split()), section
+            continue
+        if line.strip():
+            yield line, " ".join(line.split()), section
+        i += 1
+
+
+def _literals(flat: str, package: str = "") -> list[str]:
+    out = []
+    for match in _LITERAL_RE.finditer(flat):
+        for symbol in split_symbols(match.group(1), package):
+            if symbol not in out:
+                out.append(symbol)
+    return out
+
+
+def _except_spans(flat: str) -> list:
+    """Ranges whose literals are exclusions, not breakage ("X except Y")."""
+    spans = []
+    for match in _EXCEPT_RE.finditer(flat):
+        end = re.search(r"[.;]", flat[match.end():])
+        stop = match.end() + end.start() if end else len(flat)
+        spans.append((match.start(), stop))
+    instead = _INSTEAD_RE.search(flat)
+    if instead:
+        spans.append((instead.start(1), instead.end(1)))
+    return spans
+
+
+def _olds(flat: str, lits: list[str], package: str = "",
+          extra_stop: int | None = None):
+    """Literals outside except/instead spans (left of extra_stop)."""
+    spans = _except_spans(flat)
+    out = []
+    for symbol in lits:
+        for match in _LITERAL_RE.finditer(flat):
+            if symbol not in split_symbols(match.group(1), package):
                 continue
-            ref = _NP_REF_RE.search(guidance)
-            replacement = (f"numpy.{ref.group(1).rstrip('.')}"
-                           if ref else None)
-            dest.append({"symbol": symbol,
-                         "quote": f"{name} {guidance}".strip(),
-                         "replacement": replacement})
-    return {"removed": removed, "deprecated": deprecated}
+            pos = match.start()
+            if extra_stop is not None and pos > extra_stop:
+                continue
+            if any(start <= pos < stop for start, stop in spans):
+                continue
+            if symbol not in out:
+                out.append(symbol)
+    return out
+
+
+def _instead_replacement(flat: str, lits: list[str], package: str = ""):
+    instead = _INSTEAD_RE.search(flat)
+    if not instead:
+        return None
+    for symbol in lits:
+        for match in _LITERAL_RE.finditer(flat):
+            if (symbol in split_symbols(match.group(1), package)
+                    and instead.start(1)
+                    <= match.start() < instead.end(1)):
+                return symbol
+    return None
+
+
+def extract_list_rows(text: str, package: str = "") -> list[dict]:
+    """Bullets under breaking headings → symbol = code literal.
+
+    Renamed sections take the last literal as the replacement and the
+    rest as old names; other sections emit every literal with no
+    replacement.
+    """
+    rows = []
+    for raw, flat, section in _parse_blocks(text):
+        if section is None or not _BULLET_RE.match(raw):
+            continue
+        all_lits = _literals(flat, package)
+        lits = _olds(flat, all_lits, package)
+        if not lits:
+            continue
+        instead = _instead_replacement(flat, all_lits, package)
+        if section == "renamed" and len(lits) >= 2:
+            for old in lits[:-1]:
+                rows.append({"symbol": old, "quote": raw,
+                             "replacement": lits[-1], "kind": "renamed",
+                             "extraction": "list"})
+        elif section == "renamed":
+            rows.append({"symbol": lits[0], "quote": raw,
+                         "replacement": instead, "kind": "renamed",
+                         "extraction": "list"})
+        else:
+            for symbol in lits:
+                rows.append({"symbol": symbol, "quote": raw,
+                             "replacement": instead, "kind": section,
+                             "extraction": "list"})
+    return rows
+
+
+def _pattern_match(flat: str, lits: list[str], package: str = ""):
+    """(kind, olds, replacement) for trigger sentences, else None."""
+    with_match = _REPLACED_WITH_RE.search(flat)
+    if with_match:
+        olds = [s for s in lits
+                if any(s in split_symbols(m.group(1), package)
+                       for m in _LITERAL_RE.finditer(with_match.group(1)))]
+        news = [s for s in lits
+                if any(s in split_symbols(m.group(1), package)
+                       for m in _LITERAL_RE.finditer(with_match.group(2)))]
+        olds = [s for s in olds
+                if s in set(_olds(flat, lits, package))]
+        if olds:
+            return "renamed", olds, news[0] if news else None
+    for regex in _RENAMED_RES:
+        match = regex.search(flat)
+        if not match:
+            continue
+        olds = _olds(flat, lits, package, extra_stop=match.start())
+        if not olds:
+            continue
+        news = [s for s in lits if s not in olds]
+        repl = news[0] if news else None
+        return "renamed", olds, repl
+    for regex in _REMOVED_RES:
+        if regex.search(flat):
+            olds = _olds(flat, lits, package)
+            if olds:
+                return ("removed", olds,
+                        _instead_replacement(flat, lits, package))
+    for regex in _DEPRECATED_RES:
+        if regex.search(flat):
+            olds = _olds(flat, lits, package)
+            if olds:
+                return ("deprecated", olds,
+                        _instead_replacement(flat, lits, package))
+    return None
+
+
+def extract_pattern_rows(text: str, package: str = "") -> list[dict]:
+    """Trigger-sentence pass over every block (low confidence).
+
+    Catches breaking bullets that sit directly under version headings
+    with no breaking subsection (the jinja/werkzeug shape).
+    """
+    rows = []
+    for raw, flat, _ in _parse_blocks(text):
+        lits = _literals(flat, package)
+        if not lits:
+            continue
+        matched = _pattern_match(flat, lits, package)
+        if matched is None:
+            continue
+        kind, olds, repl = matched
+        for symbol in olds:
+            rows.append({"symbol": symbol, "quote": raw,
+                         "replacement": repl, "kind": kind,
+                         "extraction": "pattern"})
+    return rows
+
+
+_EXTRACTION_PRIORITY = {"table": 0, "list": 1, "pattern": 2}
+
+
+def extract_deterministic_rows(text: str, package: str = "",
+                               page_html: str | None = None) -> list[dict]:
+    """Combined deterministic rows, deduped by symbol (table wins).
+
+    A winner with no replacement adopts one from a lower-priority row
+    for the same symbol.
+    """
+    rows = []
+    if page_html:
+        rows += extract_table_rows(page_html, package or "numpy")
+    rows += extract_list_rows(text, package)
+    rows += extract_pattern_rows(text, package)
+    merged: dict[str, dict] = {}
+    for row in rows:
+        prior = merged.get(row["symbol"])
+        if prior is None:
+            merged[row["symbol"]] = dict(row)
+        else:
+            if (_EXTRACTION_PRIORITY[row["extraction"]]
+                    < _EXTRACTION_PRIORITY[prior["extraction"]]):
+                row, prior = prior, row
+            if not prior["replacement"] and row["replacement"]:
+                prior["replacement"] = row["replacement"]
+            merged[row["symbol"]] = prior
+    return list(merged.values())
 
 
 def fetch_text(url: str, timeout: int = 60) -> str:
