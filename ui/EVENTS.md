@@ -9,9 +9,11 @@ renders it. Envelope (see `RunContext.emit`):
 ```
 
 `stage` is the emitting stage; views filter the log by their stage.
-`EventSource` resumes with `Last-Event-ID` after a drop; the server
-replays missed events, then closes the stream once the manifest is
-terminal (the client stops reconnecting when the snapshot is terminal).
+The client (`src/sse.js`, fetch-based — `EventSource` cannot see named
+events or unknown future types) resumes with `?from=<last id>` after a
+drop; the server replays missed events, then closes the stream once the
+manifest is terminal (the client stops reconnecting when the snapshot
+is terminal).
 
 | type | data | produced by | consumed by |
 |---|---|---|---|

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { RUN_VIEWS } from '../router'
 import { Chip, Sheet, Status, TitleBlock } from '../components'
-import { STAGES, STAGE_VIEW, VIEW_STAGE, stageStates, useRun } from '../useRun'
+import { STAGES, STAGE_VIEW, VIEW_STAGE, stageStates } from '../stages'
+import { useRun } from '../useRun'
 import '../run.css'
 
 const VIEW_TITLES = {
@@ -255,7 +256,7 @@ export default function Run({ id, view }) {
       </div>
     )
   }
-  const states = stageStates(STAGES, events, snapshot)
+  const states = stageStates(STAGES, events, snapshot, stream === 'closed')
   return (
     <div className="run-page">
       <RunHeader snapshot={snapshot} view={view} />

@@ -23,8 +23,8 @@ python -m chainreaction serve   # API + prebuilt UI on http://localhost:8000
 
 ```sh
 cd ui
-npm run build       # rebuild dist/
-npm run check-dist  # fails if dist/ is older than src/
+npm run build       # rebuild dist/ + write its content hash
+npm run check-dist  # fails if dist/ content is stale
 ```
 
 ## Layout

@@ -58,6 +58,9 @@
   padding: 48px 0 32px;
   align-items: start;
 }
+/* Grid children must not size to the longest code line: the scroll
+ * stays inside .code-lines instead of widening the page. */
+.hero-copy, .hero-drawing, .code-drawing, .code-sheet { min-width: 0; max-width: 100%; }
 .hero-copy h1 {
   font-size: 72px;
   font-weight: 700;

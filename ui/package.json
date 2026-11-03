@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/dist-hash.js --write",
     "preview": "vite preview",
-    "check-dist": "node scripts/check-dist.js"
+    "check-dist": "node scripts/dist-hash.js"
   },
   "dependencies": {
     "cytoscape": "^3.28.0",
