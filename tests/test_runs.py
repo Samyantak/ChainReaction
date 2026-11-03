@@ -643,7 +643,7 @@ def _after_runner(outputs):
 
     calls = []
 
-    def run(cmd, cwd):
+    def run(cmd, cwd, extra_env=None):
         calls.append(cmd)
         return SimpleNamespace(stdout=outputs[len(calls) - 1],
                                timed_out=False)
@@ -693,7 +693,7 @@ def test_after_suite_timeout_raises_without_escalation():
 
     calls = []
 
-    def run(cmd, cwd):
+    def run(cmd, cwd, extra_env=None):
         calls.append(cmd)
         return SimpleNamespace(stdout="", timed_out=True)
 
@@ -701,6 +701,25 @@ def test_after_suite_timeout_raises_without_escalation():
         stages_mod._run_after_suite(run, "py", "/t", "ws", None,
                                     lambda *a: None)
     assert len(calls) == 1
+
+
+def test_recording_before_pytests_drives_replay_decision():
+    from types import SimpleNamespace
+
+    cov = {"env_name": "k/before",
+           "cmd": ["<env-python>", "-m", "pytest", ".", "--cov=p"]}
+    plain = {"env_name": "k/before",
+             "cmd": ["<env-python>", "-m", "pytest", ".", "-q"]}
+    after = {"env_name": "k/after",
+             "cmd": ["<env-python>", "-m", "pytest", ".", "-q"]}
+    ctx = SimpleNamespace(_cmd_recs=[cov])
+    assert stages_mod._recording_before_pytests(ctx) == (True, False)
+    ctx = SimpleNamespace(_cmd_recs=[plain])
+    assert stages_mod._recording_before_pytests(ctx) == (False, True)
+    ctx = SimpleNamespace(_cmd_recs=[cov, plain])
+    assert stages_mod._recording_before_pytests(ctx) == (True, True)
+    ctx = SimpleNamespace(_cmd_recs=[after])
+    assert stages_mod._recording_before_pytests(ctx) == (False, False)
 
 
 def test_replay_manifest_carries_generic_provenance(tmp_runs):

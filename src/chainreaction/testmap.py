@@ -25,11 +25,21 @@ class TestMap:
     built_with: str  # e.g. "numpy1 (numpy 1.26.4)"
     tests: dict[str, list[str]] = field(default_factory=dict)
     collected: int = 0  # tests collected at build (mapped <= collected)
+    # Per-test executed break-candidate lines ("relpath:line"), repo-relative
+    # posix matching graph edge file:line. Empty for old recordings (file
+    # maps only) — prediction falls back to module covering then.
+    line_hits: dict[str, list[str]] = field(default_factory=dict)
 
     def covering(self, modules: set[str]) -> list[str]:
         """Sorted ids of tests executing any of the given modules."""
         want = set(modules)
         return sorted(t for t, ms in self.tests.items() if want & set(ms))
+
+    def hitting(self, lines: set[str]) -> list[str]:
+        """Sorted ids of tests executing any of the given file:line hits."""
+        want = set(lines)
+        return sorted(t for t, hs in self.line_hits.items()
+                      if want & set(hs))
 
     def save(self, path: str | Path) -> None:
         Path(path).write_text(json.dumps(asdict(self), indent=2),
@@ -39,7 +49,45 @@ class TestMap:
     def load(path: str | Path) -> "TestMap":
         d = json.loads(Path(path).read_text(encoding="utf-8"))
         return TestMap(d["target"], d["package"], d["built_with"], d["tests"],
-                       d.get("collected", len(d["tests"])))
+                       d.get("collected", len(d["tests"])),
+                       d.get("line_hits", {}))
+
+
+def _split_foreign(path_text: str) -> list[str]:
+    """Path segments tolerant of foreign separators and drives.
+
+    Recordings carry the live machine's absolute paths (Windows
+    backslashes on a Linux replay, doubled by JSON escaping); splitting
+    on both separators and dropping empties/drives recovers the tail.
+    """
+    text = str(path_text).replace("\\", "/")
+    if "<ws>" in text:
+        text = text.split("<ws>", 1)[1]
+    segs = [s for s in text.split("/") if s not in ("", ".")]
+    if segs and len(segs[0]) == 2 and segs[0][1] == ":":
+        segs = segs[1:]
+    return segs
+
+
+def _foreign_package_parts(path_text: str, package: str) -> list[str] | None:
+    """Package-relative parts from a foreign absolute path, else None.
+
+    Finds ``/src/<package>/...`` or ``/<package>/...`` in the tail so a
+    Windows recording replays on Linux (and vice versa).
+    """
+    segs = _split_foreign(path_text)
+    for i, seg in enumerate(segs):
+        if seg != package:
+            continue
+        # src/<package>/... (layout marker) or a top-level <package>/...
+        # hit; the file suffix check happens in the caller.
+        tail = segs[i:]
+        if tail and tail[-1].endswith(".py"):
+            # Skip hits inside site-packages (installed copy, not repo).
+            if "site-packages" in segs[:i]:
+                continue
+            return tail
+    return None
 
 
 def file_to_module(path: str | Path, target: str | Path, package: str
@@ -49,15 +97,35 @@ def file_to_module(path: str | Path, target: str | Path, package: str
     Test files map to None: every test covers its own file, which would
     make covering() trivially select everything. conftest.py stays
     mapped (only fixture users cover it). src/ layouts are unwrapped.
+    Foreign absolute paths (a Windows recording replayed on Linux)
+    resolve by package-tail match, never by relpath.
     """
-    try:
-        rel = Path(os.path.relpath(path, target))
-    except ValueError:
+    text = str(path)
+    # Placeholder and foreign forms first: relpath cannot span machines.
+    if "<ws>" in text or "\\" in text:
+        tail = _foreign_package_parts(text, package)
+        if tail is None:
+            return None
+        parts: list[str] = list(tail)
+    else:
+        try:
+            rel = Path(os.path.relpath(text, str(target)))
+        except ValueError:
+            return None
+        # A relpath that escapes the target is either out of package or
+        # a foreign absolute in disguise — try the tail match.
+        if str(rel).startswith(".."):
+            tail = _foreign_package_parts(text, package)
+            if tail is None:
+                return None
+            parts = list(tail)
+        else:
+            parts = list(rel.parts)
+            if parts and parts[0] == "src":
+                parts = parts[1:]
+    if not parts or parts[0] != package:
         return None
-    parts = list(rel.parts)
-    if parts and parts[0] == "src":
-        parts = parts[1:]
-    if rel.suffix != ".py" or not parts or parts[0] != package:
+    if not parts[-1].endswith(".py"):
         return None
     if "tests" in parts or Path(parts[-1]).name.startswith("test_"):
         return None
@@ -76,26 +144,39 @@ def _strip_target_prefix(tid: str, target: str | Path) -> str:
     return tid[len(prefix):] if tid.startswith(prefix) else tid
 
 
-def parse_coverage(data_file: str | Path, target: str | Path, package: str
-                   ) -> dict[str, list[str]]:
-    """Invert coverage contexts: test node id -> sorted executed modules."""
+def parse_coverage_full(data_file: str | Path, target: str | Path,
+                        package: str
+                        ) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """Invert coverage contexts: (test->modules, test->file:line hits)."""
     cov = Coverage(data_file=str(data_file))
     cov.load()
     data = cov.get_data()
-    out: dict[str, set[str]] = {}
+    mods: dict[str, set[str]] = {}
+    lines: dict[str, set[str]] = {}
     for fname in data.measured_files():
         mod = file_to_module(fname, target, package)
-        if mod is None:
+        rel = file_to_rel(fname, target, package)
+        if mod is None and rel is None:
             continue
-        ids = set()
-        for names in data.contexts_by_lineno(fname).values():
+        for lineno, names in data.contexts_by_lineno(fname).items():
             for raw in names:
                 tid = raw.split("|")[0]
-                if tid:  # "" is collection-time code, unattributed to a test
-                    ids.add(_strip_target_prefix(tid, target))
-        for tid in ids:
-            out.setdefault(tid, set()).add(mod)
-    return {t: sorted(ms) for t, ms in out.items()}
+                if not tid:  # "" is collection-time, unattributed to a test
+                    continue
+                tid = _strip_target_prefix(tid, target)
+                if mod is not None:
+                    mods.setdefault(tid, set()).add(mod)
+                if rel is not None:
+                    lines.setdefault(tid, set()).add(f"{rel}:{lineno}")
+    return ({t: sorted(ms) for t, ms in mods.items()},
+            {t: sorted(hs) for t, hs in lines.items()})
+
+
+def parse_coverage(data_file: str | Path, target: str | Path, package: str
+                   ) -> dict[str, list[str]]:
+    """Invert coverage contexts: test node id -> sorted executed modules."""
+    mods, _ = parse_coverage_full(data_file, target, package)
+    return mods
 
 
 def parse_failures(output: str, target: str | Path
@@ -112,6 +193,61 @@ def parse_failures(output: str, target: str | Path
                                          target)
             (failed if "::" in entry else errfiles).add(entry)
     return failed, errfiles
+
+
+def parse_failure_messages(output: str, target: str | Path
+                           ) -> dict[str, str]:
+    """Test id -> short-summary error message ("" when the line has none).
+
+    Reads FAILED and ERROR-with-test lines from a -rfE summary. Messages
+    truncate at the terminal width, so suites run with COLUMNS=200 to
+    keep them useful; grouping still tolerates truncation.
+    """
+    out: dict[str, str] = {}
+    for line in (output or "").splitlines():
+        if line.startswith("FAILED "):
+            rest = line[7:]
+        elif line.startswith("ERROR ") and "::" in line:
+            rest = line[6:]
+        else:
+            continue
+        tid, sep, msg = rest.partition(" - ")
+        tid = _strip_target_prefix(tid.strip(), target)
+        if not tid:
+            continue
+        out[tid] = msg.strip() if sep else ""
+    return out
+
+
+def _normalize_failure_message(msg: str) -> str:
+    """Group key for a summary message: collapsed, truncation-tolerant."""
+    text = " ".join(str(msg or "").split())
+    if not text:
+        return "other"
+    # Truncated lines end with ... mid-word (AttributeErro...): keep the
+    # prefix as the key so equal truncations group together.
+    return text[:200]
+
+
+def failure_groups(new_failed: set[str], after_output: str,
+                   target: str | Path) -> list[dict]:
+    """New failures grouped by error message, largest first.
+
+    Each group is {message, count, examples}: message is the normalized
+    -rfE message (or "other" when the line carries none), examples are
+    up to three sorted test ids. Tells the user what the decision
+    actually caused versus collateral breakage.
+    """
+    messages = parse_failure_messages(after_output, target)
+    buckets: dict[str, list[str]] = {}
+    for tid in set(new_failed or ()):
+        key = _normalize_failure_message(messages.get(tid, ""))
+        buckets.setdefault(key, []).append(tid)
+    groups = [{"message": msg, "count": len(tids),
+               "examples": sorted(tids)[:3]}
+              for msg, tids in buckets.items()]
+    groups.sort(key=lambda g: (-g["count"], g["message"]))
+    return groups
 
 
 @dataclass
@@ -185,23 +321,95 @@ def _enclosing_module(g, node: str) -> str | None:
     return None
 
 
-def predicted_failing(testmap: TestMap, g, hard: set[str],
-                      target: str | Path, at_risk=None) -> set[str]:
-    """Tests covering impacted modules, plus tests in files importing them.
+def break_lines(g, broken: set[str], target: str | Path
+                ) -> set[str]:
+    """Repo-relative file:line hits using a removed symbol.
 
-    Coverage spans HARD and AT_RISK modules (in-function breaks only
-    flag callers AT_RISK, but their tests still fail). The import-file
-    expansion stays HARD-only: importing a module whose breaks are all
-    in-function does not fail at import. Imports run at collection
-    (unattributed to any test context), so a test file importing a
-    HARD module fails even when its covered code is healthy.
+    Every USES_EXTERNAL edge whose target is (or nests under) a broken
+    symbol is a call-time failure site; tests executing one are predicted
+    to fail. Files normalize against target so graph and coverage agree.
     """
-    modules = set(hard)
-    for node in at_risk or ():
-        mod = _enclosing_module(g, node)
-        if mod is not None:
-            modules.add(mod)
-    pred = set(testmap.covering(modules))
+    from chainreaction.propagate import matches_symbol
+
+    out: set[str] = set()
+    for _u, v, d in g.edges(data=True):
+        if d.get("kind") != "USES_EXTERNAL":
+            continue
+        if matches_symbol(v, set(broken or ())) is None:
+            continue
+        try:
+            rel = relative_posix(d.get("file", ""), target)
+        except Exception:
+            continue
+        line = d.get("line")
+        if rel and line:
+            out.add(f"{rel}:{int(line)}")
+    return out
+
+
+def test_call_chain(testmap: TestMap, g, actual_new: set[str],
+                    broken: set[str], target: str | Path
+                    ) -> tuple[str, str, str, str, int] | None:
+    """One failing-test call chain: (test, func, symbol, file, line).
+
+    Picks the first sorted new failure whose line hits reach a removed
+    symbol, like the SponsorFit call path. None without line data or
+    when no failure hits a break site.
+    """
+    from chainreaction.propagate import matches_symbol
+
+    hits = getattr(testmap, "line_hits", None) or {}
+    if not hits or not actual_new or not broken:
+        return None
+    sites: dict[str, tuple[str, str, str, int]] = {}
+    for u, v, d in g.edges(data=True):
+        if d.get("kind") != "USES_EXTERNAL":
+            continue
+        sym = matches_symbol(v, set(broken))
+        if sym is None:
+            continue
+        try:
+            rel = relative_posix(d.get("file", ""), target)
+        except Exception:
+            continue
+        line = d.get("line")
+        if not rel or not line:
+            continue
+        key = f"{rel}:{int(line)}"
+        cand = (str(u), str(v), rel, int(line))
+        if key not in sites or cand < sites[key]:
+            sites[key] = cand
+    for tid in sorted(set(actual_new)):
+        for hit in sorted(hits.get(tid, ())):
+            if hit in sites:
+                user, sym_used, rel, line = sites[hit]
+                return (tid, user, sym_used, rel, line)
+    return None
+
+
+def predicted_failing(testmap: TestMap, g, hard: set[str],
+                      target: str | Path, at_risk=None,
+                      broken: set[str] | None = None) -> set[str]:
+    """Tests hitting removed-symbol lines, plus tests importing HARD files.
+
+    Call-time failures are line-precise: a test is predicted to fail when
+    its coverage hits a line that uses a removed symbol. Without line
+    data (old recordings) or without a broken set, fall back to covering
+    HARD and AT_RISK modules. The import-file expansion stays HARD-only:
+    importing a module whose breaks are all in-function does not fail at
+    import. Imports run at collection (unattributed to any test context),
+    so a test file importing a HARD module fails even when its covered
+    code is healthy.
+    """
+    if broken is not None and getattr(testmap, "line_hits", None):
+        pred = set(testmap.hitting(break_lines(g, set(broken), target)))
+    else:
+        modules = set(hard)
+        for node in at_risk or ():
+            mod = _enclosing_module(g, node)
+            if mod is not None:
+                modules.add(mod)
+        pred = set(testmap.covering(modules))
     for u, v, d in g.edges(data=True):
         if d.get("kind") != "IMPORTS" or v not in hard:
             continue
@@ -228,6 +436,7 @@ def build_map(python: str, target: str | Path, package: str,
         data_file.unlink()
     env = dict(os.environ)
     env["COVERAGE_FILE"] = str(data_file)
+    env["COLUMNS"] = "200"
     proc = subprocess.run(
         [python, "-m", "pytest", tests_rel, "-q", "--tb=no",
          "-p", "no:cacheprovider", "--continue-on-collection-errors",
@@ -238,21 +447,47 @@ def build_map(python: str, target: str | Path, package: str,
     try:
         if not data_file.exists():
             raise RuntimeError(f"coverage produced no data in {target}")
-        tests = parse_coverage(data_file, target, package)
+        tests, lines = parse_coverage_full(data_file, target, package)
     finally:
         for stale in target_p.glob(".coverage-chainreaction*"):
             stale.unlink(missing_ok=True)
     collected = sum(int(n) for n, _ in COUNT_RE.findall(proc.stdout))
     return TestMap(target=str(target), package=package,
-                   built_with=built_with, tests=tests, collected=collected)
+                   built_with=built_with, tests=tests, collected=collected,
+                   line_hits=lines)
 
 
 COVERAGE_DATA_NAME = ".coverage-chainreaction"
 
-# Coverage contexts dumped to stdout (recorded): {file: [test ids]}.
+# Coverage contexts dumped to stdout (recorded): {file: {line: [test ids]}}.
 # The .coverage file itself never leaves the live machine, so replay
-# rebuilds the identical map from the recording.
+# rebuilds the identical map from the recording. Old recordings carry
+# {file: [test ids]}; parse_dump_full reads both.
 _DUMP_CODE = (
+    "import json, sys\n"
+    "from coverage import Coverage\n"
+    "cov = Coverage(data_file=sys.argv[1])\n"
+    "cov.load()\n"
+    "data = cov.get_data()\n"
+    "out = {}\n"
+    "for fname in data.measured_files():\n"
+    "    per_line = {}\n"
+    "    for lineno, names in data.contexts_by_lineno(fname).items():\n"
+    "        tids = set()\n"
+    "        for raw in names:\n"
+    "            tid = raw.split('|')[0]\n"
+    "            if tid:\n"
+    "                tids.add(tid)\n"
+    "        if tids:\n"
+    "            per_line[str(lineno)] = sorted(tids)\n"
+    "    if per_line:\n"
+    "        out[fname] = per_line\n"
+    "print(json.dumps(out))\n"
+)
+
+# File-level dump (pre-line-hits recordings): replay falls back to this
+# command when the recording predates per-line dumps.
+_DUMP_CODE_V1 = (
     "import json, sys\n"
     "from coverage import Coverage\n"
     "cov = Coverage(data_file=sys.argv[1])\n"
@@ -272,25 +507,100 @@ _DUMP_CODE = (
 )
 
 
-def parse_dump(text: str, target: str | Path, package: str,
-               strip_prefix: str = "") -> dict[str, list[str]]:
-    """Invert a coverage dump: test node id -> sorted executed modules."""
+def file_to_rel(path_text: str | Path, target: str | Path, package: str
+                ) -> str | None:
+    """Repo-relative posix path for a measured file, else None.
+
+    Matches graph edge file form (``src/pkg/x.py`` or ``pkg/x.py``) on
+    every machine: local paths relativize, foreign absolutes and <ws>
+    forms match by package tail.
+    """
+    text = str(path_text)
+    if "<ws>" in text or "\\" in text:
+        segs = _split_foreign(text)
+        for i, seg in enumerate(segs):
+            if seg != package:
+                continue
+            if "site-packages" in segs[:i]:
+                continue
+            tail = segs[i:]
+            if not tail or not tail[-1].endswith(".py"):
+                continue
+            # Preserve a src/ layout marker when present.
+            if i > 0 and segs[i - 1] == "src":
+                tail = ["src", *tail]
+            return "/".join(tail)
+        return None
+    try:
+        rel = relative_posix(text, target)
+    except Exception:
+        return None
+    if not rel.endswith(".py"):
+        return None
+    head = rel.split("/")[0]
+    if head not in (package, "src"):
+        return None
+    return rel
+
+
+def _strip_tid(tid: str, strip_prefix: str) -> str:
+    if strip_prefix and tid.startswith(strip_prefix):
+        return tid[len(strip_prefix):]
+    return tid
+
+
+def parse_dump_full(text: str, target: str | Path, package: str,
+                    strip_prefix: str = ""
+                    ) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """Invert a coverage dump: (test->modules, test->file:line hits).
+
+    Reads per-line dumps ({file: {line: [ids]}}) and old file dumps
+    ({file: [ids]}); old dumps yield empty line hits.
+    """
     try:
         raw = json.loads(text)
     except ValueError:
-        return {}
+        return {}, {}
     if not isinstance(raw, dict):
-        return {}
-    out: dict[str, set[str]] = {}
-    for fname, tids in raw.items():
+        return {}, {}
+    mods: dict[str, set[str]] = {}
+    lines: dict[str, set[str]] = {}
+    for fname, payload in raw.items():
         mod = file_to_module(fname, target, package)
-        if mod is None:
-            continue
-        for tid in tids or []:
-            if strip_prefix and tid.startswith(strip_prefix):
-                tid = tid[len(strip_prefix):]
-            out.setdefault(tid, set()).add(mod)
-    return {t: sorted(ms) for t, ms in out.items()}
+        rel = file_to_rel(fname, target, package)
+        if isinstance(payload, dict):
+            if mod is None and rel is None:
+                continue
+            for lineno, tids in payload.items():
+                try:
+                    line = int(lineno)
+                except (TypeError, ValueError):
+                    continue
+                for tid in tids or []:
+                    tid = _strip_tid(tid, strip_prefix)
+                    if not tid:
+                        continue
+                    if mod is not None:
+                        mods.setdefault(tid, set()).add(mod)
+                    if rel is not None:
+                        lines.setdefault(tid, set()).add(f"{rel}:{line}")
+        else:
+            if mod is None:
+                continue
+            for tid in payload or []:
+                tid = _strip_tid(tid, strip_prefix)
+                if not tid:
+                    continue
+                mods.setdefault(tid, set()).add(mod)
+    return ({t: sorted(ms) for t, ms in mods.items()},
+            {t: sorted(hs) for t, hs in lines.items()})
+
+
+def parse_dump(text: str, target: str | Path, package: str,
+               strip_prefix: str = "") -> dict[str, list[str]]:
+    """Invert a coverage dump: test node id -> sorted executed modules."""
+    mods, _ = parse_dump_full(text, target, package, strip_prefix)
+    return mods
 
 
 def build_map_with(run, python: str, target: str | Path, package: str,
@@ -314,17 +624,27 @@ def build_map_with(run, python: str, target: str | Path, package: str,
          "-p", "no:cacheprovider", "--continue-on-collection-errors",
          "-rfE", f"--cov={package}", "--cov-context=test",
          "--cov-report="],
-        cwd, extra_env={"COVERAGE_FILE": data_name})
+        cwd, extra_env={"COVERAGE_FILE": data_name, "COLUMNS": "200"})
     if getattr(proc, "timed_out", False):
         raise RuntimeError(f"test suite timed out in {target}")
     output = proc.stdout
     try:
-        dumped = run([python, "-c", _DUMP_CODE, data_name], cwd)
+        try:
+            dumped = run([python, "-c", _DUMP_CODE, data_name], cwd)
+        except Exception as exc:
+            # Replay of a pre-line-hits recording: the recorded dump
+            # command carries the old file-level code.
+            from chainreaction.runs.context import ReplayMiss
+
+            if not isinstance(exc, ReplayMiss):
+                raise
+            dumped = run([python, "-c", _DUMP_CODE_V1, data_name], cwd)
         if dumped.returncode != 0:
             raise RuntimeError(
                 f"coverage dump failed in {target}: "
                 f"{(dumped.stderr or '').strip().splitlines()[-1:]}")
-        tests = parse_dump(dumped.stdout, target, package, id_prefix)
+        tests, lines = parse_dump_full(dumped.stdout, target, package,
+                                       id_prefix)
     finally:
         data_path.unlink(missing_ok=True)
     if not tests:
@@ -332,5 +652,5 @@ def build_map_with(run, python: str, target: str | Path, package: str,
     collected = sum(int(n) for n, _ in COUNT_RE.findall(output))
     return (TestMap(target=str(target), package=package,
                     built_with=built_with, tests=tests,
-                    collected=collected),
+                    collected=collected, line_hits=lines),
             output)

@@ -106,7 +106,36 @@ def _float_spellings(value: float) -> set[str]:
     }
 
 
-def _report_numbers(report: Report) -> set[str]:
+def _test_numbers(extra: dict | None) -> set[str]:
+    """Test-suite counts the generic narrative may cite ({} without scores)."""
+    scores = (extra or {}).get("scores") or {}
+    if not scores:
+        return set()
+    nums = {
+        str(len(scores.get("actual_new") or [])),
+        str(len(scores.get("predicted_failing") or [])),
+        str(len(scores.get("baseline_failed") or [])),
+        str(scores.get("testmap_tests") or 0),
+        str(scores.get("testmap_collected") or 0),
+    }
+    for counts in (scores.get("baseline_counts") or {},
+                   scores.get("after_counts") or {}):
+        nums.update(str(v) for v in counts.values())
+    for value in (scores.get("test_precision"), scores.get("test_recall")):
+        if value is not None:
+            try:
+                nums.update(_float_spellings(float(value)))
+            except (TypeError, ValueError):
+                pass
+    for grp in scores.get("failure_groups") or []:
+        nums.add(str(grp.get("count", 0)))
+    chain = scores.get("test_chain") or {}
+    if chain.get("line"):
+        nums.add(str(int(chain["line"])))
+    return nums
+
+
+def _report_numbers(report: Report, extra: dict | None = None) -> set[str]:
     """Every number the narrative may legitimately cite.
 
     Membership set only: a number passes when it equals ANY count here,
@@ -172,17 +201,19 @@ def _report_numbers(report: Report) -> set[str]:
                           detail.note or ""])
     for blob in blobs:
         nums.update(_NUMBER_RE.findall(blob or ""))
+    nums.update(_test_numbers(extra))
     return nums
 
 
-def _narrative_violations_by_kind(report: Report, text: str
+def _narrative_violations_by_kind(report: Report, text: str,
+                                  extra: dict | None = None
                                 ) -> dict[str, list[str]]:
     """Narrative violations grouped by claim kind.
 
     Kinds are "module" (unknown dotted names), "evidence" (file:line
-    with no matching spine hop, layer failure site, or code-grounded
-    config item), and "number" (not in the report's number set). Bare
-    *.py filenames are stripped, not verified.
+    with no matching spine hop, layer failure site, code-grounded
+    config item, or test call chain), and "number" (not in the report's
+    number set). Bare *.py filenames are stripped, not verified.
     """
     # Blank URLs, file:line spans, then bare filenames, so their
     # fragments (github.com, __init__.py, line numbers, casting.py)
@@ -202,6 +233,11 @@ def _narrative_violations_by_kind(report: Report, text: str
              | set(report.deprecated_symbols) | set(report.changed_symbols)
              | {i.symbol for i in report.change_items}
              | {report.package})
+    chain = ((extra or {}).get("scores") or {}).get("test_chain") or {}
+    if chain.get("func"):
+        known.add(chain["func"])
+    if chain.get("symbol"):
+        known.add(chain["symbol"])
     for layer in report.layers:
         known.update(layer.actual)
     for item in report.change_items:
@@ -233,6 +269,8 @@ def _narrative_violations_by_kind(report: Report, text: str
         code_line = getattr(item, "code_line", 0)
         if getattr(item, "source", "") == "code" and code_file and code_line:
             evidence.append((_norm_path(code_file), int(code_line)))
+    if chain.get("file") and chain.get("line"):
+        evidence.append((_norm_path(chain["file"]), int(chain["line"])))
     cites: list[str] = []
     for path, line in cited:
         norm = _norm_path(path)
@@ -247,7 +285,7 @@ def _narrative_violations_by_kind(report: Report, text: str
             cites.append(
                 f"narrative cites unverified evidence: {path}:{line}")
 
-    allowed = _report_numbers(report)
+    allowed = _report_numbers(report, extra)
     numbers: list[str] = []
     seen_numbers: set[str] = set()
     for number in _NUMBER_RE.findall(redacted):
@@ -257,7 +295,8 @@ def _narrative_violations_by_kind(report: Report, text: str
     return {"module": modules, "evidence": cites, "number": numbers}
 
 
-def check_narrative(report: Report, narrative: str | None = None
+def check_narrative(report: Report, narrative: str | None = None,
+                    extra: dict | None = None
                     ) -> list[str]:
     """Verify narrative claims against the report; return violations.
 
@@ -274,7 +313,7 @@ def check_narrative(report: Report, narrative: str | None = None
     text = report.narrative if narrative is None else narrative
     if not text:
         return []
-    grouped = _narrative_violations_by_kind(report, text)
+    grouped = _narrative_violations_by_kind(report, text, extra)
     return grouped["module"] + grouped["evidence"] + grouped["number"]
 
 
@@ -456,14 +495,27 @@ def _generic_test_lines(extra: dict) -> list[str]:
     lines += [f"- before: {fmt(before)}", f"- after: {fmt(after)}"]
     new = scores.get("actual_new") or []
     lines.append(f"- new failures ({len(new)}): "
-                 + (", ".join(f"`{t}`" for t in new) or "none"))
+                 + (", ".join(f"`{t}`" for t in new[:20])
+                    + (f", +{len(new) - 20} more" if len(new) > 20 else "")
+                    or "none"))
+    for grp in (scores.get("failure_groups") or [])[:8]:
+        msg = grp.get("message", "other")
+        lines.append(f"  - {grp.get('count', 0)} x {msg}")
     if scores.get("test_precision") is not None:
         pred = scores.get("predicted_failing") or []
         lines += [f"- predicted failing ({len(pred)}): "
-                  + (", ".join(f"`{t}`" for t in pred) or "none"),
+                  + (", ".join(f"`{t}`" for t in pred[:20])
+                     + (f", +{len(pred) - 20} more" if len(pred) > 20 else "")
+                     or "none"),
                   f"- test precision/recall: "
                   f"{scores['test_precision']:.2f}/"
                   f"{scores['test_recall']:.2f}"]
+    chain = scores.get("test_chain")
+    if chain:
+        lines.append(
+            f"- example failure: `{chain['test']}` runs `{chain['func']}` "
+            f"which uses `{chain['symbol']}` "
+            f"(`{chain['file']}:{chain['line']}`)")
     if scores.get("unhealthy_baseline"):
         lines.append("- baseline is unhealthy (>20% failing before the "
                      "decision); treat scores with care")
@@ -601,15 +653,16 @@ def render_markdown(report: Report, extra: dict | None = None) -> str:
         "",
         report.narrative or "_Pending Muse Spark (MODEL_API_KEY not configured)._",
         "",
-        *_narrative_check_lines(report),
+        *_narrative_check_lines(report, extra),
     ]
     return "\n".join(lines)
 
 
-def _narrative_check_lines(report: Report) -> list[str]:
+def _narrative_check_lines(report: Report, extra: dict | None = None
+                           ) -> list[str]:
     if not report.narrative:
         return ["Claim check: _pending (no narrative yet)._", ""]
-    violations = check_narrative(report)
+    violations = check_narrative(report, extra=extra)
     if not violations:
         return ["Claim check: ✓ clean", ""]
     return ["Claim check: ✗ "
@@ -634,7 +687,47 @@ beyond the brief. Make no claims about past runs or general reliability
 — describe only this brief. Keep it under 300 words."""
 
 
-def narrative_brief(report: Report) -> str:
+def _test_brief_lines(report: Report, extra: dict | None) -> list[str]:
+    """Test-suite facts for generic runs; [] without usable scores."""
+    scores = (extra or {}).get("scores") or {}
+    if not scores or (extra or {}).get("untouched"):
+        return []
+    if not (extra or {}).get("has_suite", True):
+        return ["Test suites: this repo has no test suite."]
+    if scores.get("suites") == "skipped-no-coverage":
+        return ["Test suites: coverage was unavailable, "
+                "so no test-level prediction was scored."]
+    before = scores.get("baseline_counts") or {}
+    after = scores.get("after_counts") or {}
+    fmt = lambda c: ", ".join(f"{v} {k}" for k, v in sorted(c.items())) \
+        or "none"
+    new = scores.get("actual_new") or []
+    lines = [f"Test suites: before ({fmt(before)}); after ({fmt(after)}); "
+             f"{len(new)} new failures caused by the decision."]
+    if scores.get("test_precision") is not None:
+        pred = scores.get("predicted_failing") or []
+        lines.append(
+            f"Test prediction: {len(pred)} tests predicted to fail, "
+            f"precision {scores['test_precision']:.2f}, recall "
+            f"{scores['test_recall']:.2f}.")
+    groups = scores.get("failure_groups") or []
+    if groups:
+        lines.append("Failure causes: " + "; ".join(
+            f"{g['count']} x {g['message']}" for g in groups[:4]) + ".")
+    chain = scores.get("test_chain")
+    if chain:
+        lines.append(
+            f"Example test failure: {chain['test']} runs {chain['func']} "
+            f"which uses {chain['symbol']} "
+            f"({chain['file']}:{chain['line']}).")
+    if not report.spine and new:
+        lines.append("The import chain is clean, but tests fail at call "
+                     "time via the example above; fix the removed-symbol "
+                     "line first.")
+    return lines
+
+
+def narrative_brief(report: Report, extra: dict | None = None) -> str:
     """Human-readable facts for the narrator (no raw JSON keys)."""
     versions = (f"tested under NumPy {report.numpy_version}"
                 + (f" (previously {report.before_numpy})"
@@ -744,10 +837,12 @@ def narrative_brief(report: Report) -> str:
                 "The chain modules above are importers, not edit sites: "
                 "fixing each site in order unblocks its chain in one step; "
                 "do not edit the importers.")
+    lines.extend(_test_brief_lines(report, extra))
     return "\n".join(lines)
 
 
-def generate_narrative(report: Report, chat_fn=None) -> str:
+def generate_narrative(report: Report, chat_fn=None,
+                       extra: dict | None = None) -> str:
     """Summarize a Report with Muse Spark (needs MODEL_API_KEY).
 
     chat_fn defaults to llm.chat; the run store injects ctx.llm so the
@@ -755,5 +850,6 @@ def generate_narrative(report: Report, chat_fn=None) -> str:
     """
     chat_fn = chat_fn or chat
     return chat_fn(NARRATE_SYSTEM_PROMPT,
-                   f"Upgrade-impact brief:\n{narrative_brief(report)}\n",
+                   f"Upgrade-impact brief:\n"
+                   f"{narrative_brief(report, extra)}\n",
                    max_tokens=8000)

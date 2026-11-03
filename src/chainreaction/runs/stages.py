@@ -46,7 +46,7 @@ from chainreaction.interpret import (
 from chainreaction.pipeline import build_layers, build_report, spine_for_scenario
 from chainreaction.propagate import predicted_chain, probe_entries, propagate
 from chainreaction.scorer import used_breaking_symbols
-from chainreaction.runs.context import CommitMismatch
+from chainreaction.runs.context import CommitMismatch, ReplayMiss
 from chainreaction.runs.scrub import ROOT
 from chainreaction.verifier import run_import_probe, run_snippet_probe
 
@@ -475,7 +475,8 @@ def _run_after_suite(after_run, after_py: str, target_abs: str, ws_rel: str,
     base = [after_py, "-m", "pytest", ".", "-q", "--tb=no",
             "-p", "no:cacheprovider", "--continue-on-collection-errors",
             "-rfE"]
-    res = after_run(base, target_abs)
+    wide = {"COLUMNS": "200"}
+    res = after_run(base, target_abs, extra_env=wide)
     if res.timed_out:
         raise RuntimeError("after suite timed out after 1200s") from None
     after = parse_suite(res.stdout, ws_rel, testmap)
@@ -483,7 +484,8 @@ def _run_after_suite(after_run, after_py: str, target_abs: str, ws_rel: str,
         emit("log", {"message":
                      "verify: after suite collected nothing with the "
                      "repo conftest; retrying with --noconftest"})
-        res = after_run([*base, "--noconftest"], target_abs)
+        res = after_run([*base, "--noconftest"], target_abs,
+                        extra_env=wide)
         if res.timed_out:
             raise RuntimeError(
                 "after suite timed out after 1200s") from None
@@ -497,10 +499,51 @@ def _run_after_suite(after_run, after_py: str, target_abs: str, ws_rel: str,
     return after, res.stdout, False
 
 
+def _recording_before_pytests(ctx) -> tuple[bool, bool]:
+    """(has_cov, has_plain) among the recording's before-env pytests.
+
+    Replay-only: the coverage-vs-plain decision comes from the recording,
+    never from local state. A live run that fell back to plain records
+    both commands; a clean coverage run records only the coverage one.
+    """
+    has_cov = has_plain = False
+    for rec in getattr(ctx, "_cmd_recs", []) or []:
+        if not str(rec.get("env_name") or "").endswith("/before"):
+            continue
+        cmd = rec.get("cmd") or []
+        if len(cmd) < 3 or cmd[1] != "-m" or cmd[2] != "pytest":
+            continue
+        if any(str(a).startswith("--cov") for a in cmd):
+            has_cov = True
+        else:
+            has_plain = True
+    return has_cov, has_plain
+
+
+def _run_plain_before(before_run, before_py: str, target_abs: str,
+                      ws_rel: str):
+    """Plain before suite (no coverage); returns (SuiteResult, stdout)."""
+    from chainreaction.generic import InstallFailed
+    from chainreaction.testmap import parse_suite
+
+    plain = before_run(
+        [before_py, "-m", "pytest", ".", "-q", "--tb=no",
+         "-p", "no:cacheprovider", "--continue-on-collection-errors",
+         "-rfE"], target_abs, extra_env={"COLUMNS": "200"})
+    if plain.timed_out:
+        raise RuntimeError("before suite timed out after 1200s") from None
+    if "No module named pytest" in (plain.stdout + plain.stderr):
+        raise InstallFailed(
+            "before env has no pytest; delete "
+            f"envs/{ws_rel.removeprefix('workspaces/')}/before and re-run"
+            if ws_rel.startswith("workspaces/") else
+            "before env has no pytest")
+    return parse_suite(plain.stdout, ws_rel, None), plain.stdout
+
+
 def _stage_verify_generic(ctx) -> None:
     from chainreaction import testmap as testmap_mod
     from chainreaction.generic import (
-        InstallFailed,
         log_tail,
         new_failures,
         test_precision_recall,
@@ -522,7 +565,8 @@ def _stage_verify_generic(ctx) -> None:
                           "suites skipped\n")
         scores = {"suites": "skipped-untouched", "test_precision": None,
                   "test_recall": None, "predicted_failing": [],
-                  "actual_new": [], "baseline_failed": [],
+                  "actual_new": [], "failure_groups": [], "test_chain": None,
+                  "baseline_failed": [],
                   "baseline_counts": {}, "after_counts": {},
                   "unhealthy_baseline": False, "testmap_tests": 0,
                   "after_escalated": False, "conflict": None}
@@ -536,34 +580,50 @@ def _stage_verify_generic(ctx) -> None:
     outputs: dict = {}
     testmap = None
     if info.has_suite:
-        try:
-            testmap, cov_output = testmap_mod.build_map_with(
-                before_run, before_py, target_abs, info.package, ".",
-                timeout=1200, built_with=scen.before_env,
-                id_prefix=ws_rel + "/")
-            before = parse_suite(cov_output, ws_rel, testmap)
-            outputs["before"] = cov_output
-            testmap.target = ws_rel
-        except RuntimeError as exc:
-            if "timed out" in str(exc):
-                raise
+        # Replay follows the recording's coverage decision: a coverage
+        # parse failure on a machine without the envs must not silently
+        # fall back to a plain run the recording never made (ReplayMiss).
+        if ctx.mode == "replay":
+            has_cov, has_plain = _recording_before_pytests(ctx)
+            use_cov = has_cov or not has_plain
+        else:
+            use_cov, has_plain = True, True
+        if use_cov:
+            try:
+                testmap, cov_output = testmap_mod.build_map_with(
+                    before_run, before_py, target_abs, info.package, ".",
+                    timeout=1200, built_with=scen.before_env,
+                    id_prefix=ws_rel + "/")
+                before = parse_suite(cov_output, ws_rel, testmap)
+                outputs["before"] = cov_output
+                testmap.target = ws_rel
+                if ctx.mode == "live":
+                    ctx.set_manifest(coverage_used=True)
+            except RuntimeError as exc:
+                if "timed out" in str(exc):
+                    raise
+                if ctx.mode == "replay" and not has_plain:
+                    # The recording ran coverage and never fell back: a
+                    # parse failure here is a replay bug, not a plain run.
+                    raise RuntimeError(
+                        f"coverage replay failed ({exc}); the recording "
+                        "ran the before suite under coverage") from exc
+                testmap = None
+                ctx.emit("log", {"message":
+                                 f"verify: coverage unavailable ({exc}); "
+                                 "test-level scoring skipped"})
+                before, outputs["before"] = _run_plain_before(
+                    before_run, before_py, target_abs, ws_rel)
+                if ctx.mode == "live":
+                    ctx.set_manifest(coverage_used=False)
+        else:
+            # Recording ran plain (no coverage): skip straight to it.
             testmap = None
             ctx.emit("log", {"message":
-                             f"verify: coverage unavailable ({exc}); "
-                             "test-level scoring skipped"})
-            plain = before_run(
-                [before_py, "-m", "pytest", ".", "-q", "--tb=no",
-                 "-p", "no:cacheprovider", "--continue-on-collection-errors",
-                 "-rfE"], target_abs)
-            if plain.timed_out:
-                raise RuntimeError(
-                    "before suite timed out after 1200s") from None
-            if "No module named pytest" in (plain.stdout + plain.stderr):
-                raise InstallFailed(
-                    "before env has no pytest; delete "
-                    f"envs/{scen.before_env} and re-run") from None
-            before = parse_suite(plain.stdout, ws_rel, None)
-            outputs["before"] = plain.stdout
+                             "verify: recording ran the before suite "
+                             "without coverage; test-level scoring skipped"})
+            before, outputs["before"] = _run_plain_before(
+                before_run, before_py, target_abs, ws_rel)
     else:
         before = None
         ctx.emit("log", {"message":
@@ -603,13 +663,28 @@ def _stage_verify_generic(ctx) -> None:
     predicted: set = set()
     actual_new: set = set()
     precision = recall = None
+    groups: list = []
+    chain: dict | None = None
     if before is not None and after is not None:
         actual_new = new_failures(before.failed, after.failed)
         if testmap is not None and ctx.state.get("graph") is not None:
             predicted = predicted_failing(
                 testmap, ctx.state["graph"], set(ctx.state.get("hard", [])),
-                scen.target, set(ctx.state.get("at_risk", [])))
+                scen.target, set(ctx.state.get("at_risk", [])),
+                set(ctx.state.get("symbols", set())))
             precision, recall = test_precision_recall(predicted, actual_new)
+            from chainreaction.testmap import test_call_chain as _chain
+
+            hit = _chain(testmap, ctx.state["graph"], actual_new,
+                         set(ctx.state.get("symbols", set())), scen.target)
+            if hit is not None:
+                tid, func, sym, path, line = hit
+                chain = {"test": tid, "func": func, "symbol": sym,
+                         "file": path, "line": line}
+        if actual_new and outputs.get("after"):
+            from chainreaction.testmap import failure_groups as _groups
+
+            groups = _groups(actual_new, outputs["after"], ws_rel)
     unhealthy = bool(before is not None and before.total
                      and len(before.failed) / before.total > 0.2)
     if unhealthy:
@@ -626,6 +701,8 @@ def _stage_verify_generic(ctx) -> None:
         "test_precision": precision, "test_recall": recall,
         "predicted_failing": sorted(predicted),
         "actual_new": sorted(actual_new),
+        "failure_groups": groups,
+        "test_chain": chain,
         "baseline_failed": sorted(before.failed) if before else [],
         "baseline_counts": before.counts if before else {},
         "after_counts": after.counts if after else {},
@@ -718,15 +795,35 @@ def _stage_report_generic(ctx) -> None:
                           probes[0][1].numpy_version, before_numpy,
                           grep_count, ruff_count,
                           ctx.state.get("interpret_stats"))
+    scores = ctx.state.get("scores") or {}
+    extra = {
+        "scores": scores,
+        "collateral": (ctx.state.get("envs") or {}).get("collateral", {}),
+        "conflict": ctx.state.get("dependency_conflict"),
+        "untouched": ctx.state.get("untouched", False),
+        "has_suite": ctx.state.get("project").has_suite
+        if ctx.state.get("project") else True,
+    }
     if ctx.mode == "replay":
         want_narrative = (ctx.manifest.get("narrative_source")
                           == "muse-spark")
     else:
         want_narrative = llm_mod.has_key()
     if want_narrative:
-        report.narrative = generate_narrative(report, chat_fn=ctx.llm)
+        used_extra: dict | None = extra
+        try:
+            report.narrative = generate_narrative(report, chat_fn=ctx.llm,
+                                                 extra=extra)
+        except ReplayMiss:
+            # Pre-test-brief recordings: the recorded prompt lacks the
+            # test-suite lines, so replay the old brief verbatim.
+            if ctx.mode != "replay":
+                raise
+            report.narrative = generate_narrative(report, chat_fn=ctx.llm,
+                                                 extra=None)
+            used_extra = None
         ctx.set_manifest(narrative_source="muse-spark")
-        violations = check_narrative(report)
+        violations = check_narrative(report, extra=used_extra)
         if violations:
             shown = "; ".join(violations[:5])
             ctx.emit("log", {"message":
@@ -742,15 +839,6 @@ def _stage_report_generic(ctx) -> None:
         else:
             ctx.emit("log", {"message":
                              "narrative: skipped (not in recording)"})
-    scores = ctx.state.get("scores") or {}
-    extra = {
-        "scores": scores,
-        "collateral": (ctx.state.get("envs") or {}).get("collateral", {}),
-        "conflict": ctx.state.get("dependency_conflict"),
-        "untouched": ctx.state.get("untouched", False),
-        "has_suite": ctx.state.get("project").has_suite
-        if ctx.state.get("project") else True,
-    }
     ctx.save_artifact("report.json", asdict(report))
     ctx.save_artifact("report.md", render_markdown(report, extra))
     stats = ""

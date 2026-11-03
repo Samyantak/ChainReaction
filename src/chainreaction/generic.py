@@ -831,13 +831,25 @@ def _is_resolver_conflict(stderr: str) -> bool:
     return "unsatisfiable" in text or "resolutionimpossible" in text
 
 
+def _tooling_names() -> set[str]:
+    """Lowercase package names of ChainReaction's own test tooling."""
+    return {_pin_name(spec) for spec in TEST_TOOLING}
+
+
 def collateral_diff(before: dict, after: dict,
-                    decided_package: str) -> dict:
-    """{name: {before, after}} for non-decision packages that moved."""
-    decided = decided_package.lower()
+                    decided_package: str, repo_package: str = "") -> dict:
+    """{name: {before, after}} for non-decision packages that moved.
+
+    Skips the decided package, the repo package under test (its rebuilt
+    version string always drifts), and ChainReaction's own tooling
+    (coverage/pytest-cov are dropped from the after env on purpose).
+    """
+    skip = {_pin_name(decided_package), (repo_package or "").lower()}
+    skip |= _tooling_names()
+    skip.discard("")
     out = {}
     for name in sorted(set(before) | set(after)):
-        if name == decided:
+        if name.lower() in skip:
             continue
         old, new = before.get(name), after.get(name)
         if old != new:
@@ -1404,7 +1416,7 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
                                 "skipped": after_skipped}),
                     encoding="utf-8")
     collateral = collateral_diff(before_freeze, after_freeze,
-                                 decision.package)
+                                 decision.package, info.package)
     if collateral:
         ctx.emit("log", {"message":
                          f"setup: {len(collateral)} collateral upgrade(s): "

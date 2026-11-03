@@ -112,6 +112,7 @@ def create_run(req: RunRequest) -> str:
             "guide_proposal_fetched": source.get(
                 "guide_proposal_fetched", False),
             "env_provenance": source.get("env_provenance", {}),
+            "coverage_used": source.get("coverage_used", True),
             "mode": "replay",
             "replay_from": label,
             "model": source.get("model", ""),

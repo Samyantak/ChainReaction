@@ -186,6 +186,22 @@ def test_fetch_workspace_clones_and_verifies(tmp_path, monkeypatch):
     assert calls[0][-1] == f"workspaces/acme__demo@{sha[:12]}"
 
 
+def test_fetch_default_includes_generic_presets(tmp_path, monkeypatch):
+    import json as json_mod
+
+    sha = "e" * 40
+    preset = tmp_path / "runs" / "presets" / "demo-generic"
+    preset.mkdir(parents=True)
+    (preset / "manifest.json").write_text(json_mod.dumps({
+        "preset": None, "repo_url": "https://github.com/acme/demo",
+        "resolved_commit": sha}), encoding="utf-8")
+    monkeypatch.setattr(fetch_targets, "ROOT", tmp_path)
+    # Default id list (no argv) must include the generic preset workspace.
+    assert "demo-generic" in fetch_targets._default_ids()
+    assert fetch_targets._generic_pin("demo-generic") == (
+        "https://github.com/acme/demo", sha)
+
+
 def test_record_preset_parses_fresh_flag():
     assert record_preset.parse_args(["prog", "x"]) == ("x", False)
     assert record_preset.parse_args(["prog", "x", "--fresh"]) == ("x", True)

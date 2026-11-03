@@ -165,6 +165,31 @@ def _narrative_report():
     )
 
 
+def test_narrative_brief_includes_test_results():
+    report = _narrative_report()
+    report.spine = []
+    report.spine_evidence = []
+    extra = {"has_suite": True, "scores": {
+        "baseline_counts": {"passed": 10}, "after_counts": {"failed": 3},
+        "actual_new": ["t.py::a", "t.py::b"],
+        "predicted_failing": ["t.py::a"],
+        "test_precision": 0.5, "test_recall": 0.5,
+        "failure_groups": [{"message": "AttributeError: x", "count": 2,
+                            "examples": []}],
+        "test_chain": {"test": "t.py::a", "func": "demo.fn",
+                       "symbol": "numpy.NaN", "file": "demo/x.py",
+                       "line": 10},
+    }}
+    brief = explain.narrative_brief(report, extra)
+    assert "2 new failures" in brief
+    assert "precision 0.50" in brief
+    assert "t.py::a runs demo.fn" in brief
+    assert "import chain is clean" in brief
+    report.narrative = ("2 new failures with precision 0.50. Example: "
+                        "t.py::a runs demo.fn at demo/x.py:10.")
+    assert check_narrative(report, extra=extra) == []
+
+
 def test_narrative_checker_passes_grounded_claims():
     report = _narrative_report()
     report.narrative = (

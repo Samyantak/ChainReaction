@@ -590,6 +590,13 @@ def test_env_build_pure_helpers():
         constraints_for(freeze, "numpy", "PyTest")
     assert collateral_diff({"a": "1", "n": "1"}, {"a": "2", "n": "9"},
                            "n") == {"a": {"before": "1", "after": "2"}}
+    # The package under test (rebuild version-string drift) and our own
+    # tooling (coverage dropped on purpose) are not collateral.
+    assert collateral_diff(
+        {"anndata": "0.11+gabc", "coverage": "7.5", "numba": "0.59"},
+        {"anndata": "0.11+gabc1", "numba": "0.68"},
+        "numpy", repo_package="anndata") == {
+        "numba": {"before": "0.59", "after": "0.68"}}
     err = "Because demopkg depends on scipy==1.11 and scipy==1.11 fails"
     assert find_conflicting_pin(err, ["scipy", "pytest"]) == "scipy"
     assert find_conflicting_pin("mysterious failure", ["scipy"]) is None

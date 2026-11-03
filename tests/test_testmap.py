@@ -27,6 +27,23 @@ def test_file_to_module():
     assert file_to_module("t/nibabel/data.bin", "t", "nibabel") is None
 
 
+def test_file_to_module_handles_foreign_absolute():
+    # Windows recording replayed on Linux: backslashes, drive prefix,
+    # doubled separators from JSON-escaped dump text.
+    win = ("E:\\ChainReaction\\workspaces\\scverse__anndata@1461fecd1712"
+           "\\src\\anndata\\compat\\exceptiongroups.py")
+    assert file_to_module(win, "workspaces/scverse__anndata@1461fecd1712",
+                          "anndata") == "anndata.compat.exceptiongroups"
+    doubled = win.replace("\\", "\\\\")
+    assert file_to_module(doubled, "workspaces/scverse__anndata@1461fecd1712",
+                          "anndata") == "anndata.compat.exceptiongroups"
+    # Scrubbed placeholder form.
+    assert file_to_module("<ws>/src/anndata/x.py", "ws", "anndata") == \
+        "anndata.x"
+    # Out-of-package foreign paths stay None.
+    assert file_to_module("E:\\other\\pkg\\x.py", "ws", "anndata") is None
+
+
 def test_covering_and_roundtrip(tmp_path):
     m = TestMap("t", "pkg", "env", {"t1": ["pkg.a"], "t2": ["pkg.b"]})
     assert m.covering({"pkg.a", "pkg.zz"}) == ["t1"]
@@ -123,6 +140,47 @@ def test_parse_dump_inverts_and_strips(tmp_path):
     assert parse_dump("[]", str(tmp_path), "pkg") == {}
 
 
+def test_call_chain_links_test_to_break_line():
+    import networkx as nx
+
+    from chainreaction.testmap import test_call_chain
+
+    g = nx.DiGraph()
+    g.add_node("pkg.r", kind="module", file="pkg/r.py")
+    g.add_node("pkg.r.fn", kind="function", file="pkg/r.py", line=3)
+    g.add_edge("pkg.r.fn", "numpy.NaN", kind="USES_EXTERNAL",
+               file="pkg/r.py", line=10)
+    m = TestMap("t", "pkg", "", {"t1": ["pkg.r"]},
+                line_hits={"t1": ["pkg/r.py:10"]})
+    chain = test_call_chain(m, g, {"t1"}, {"numpy.NaN"}, "t")
+    assert chain == ("t1", "pkg.r.fn", "numpy.NaN", "pkg/r.py", 10)
+    assert test_call_chain(m, g, {"t9"}, {"numpy.NaN"}, "t") is None
+
+
+def test_failure_groups_attribute_by_message():
+    from chainreaction.testmap import failure_groups
+
+    out = ("FAILED a.py::t1 - AttributeError: `np.NaN` was removed\n"
+           "FAILED a.py::t2 - AttributeError: `np.NaN` was removed\n"
+           "FAILED b.py::t3 - ValueError: bad shape\n"
+           "FAILED c.py::t4\n"
+           "1 failed\n")
+    groups = failure_groups({"a.py::t1", "a.py::t2", "b.py::t3", "c.py::t4"},
+                            out, "t")
+    assert groups[0]["count"] == 2
+    assert "np.NaN" in groups[0]["message"]
+    assert groups[0]["examples"] == ["a.py::t1", "a.py::t2"]
+    assert any(g["message"] == "other" and g["count"] == 1 for g in groups)
+
+
+def test_parse_dump_handles_foreign_absolute():
+    import json
+
+    win = ("E:\\ChainReaction\\workspaces\\k\\src\\pkg\\a.py")
+    text = json.dumps({win: ["t1"]})
+    assert parse_dump(text, "workspaces/k", "pkg") == {"t1": ["pkg.a"]}
+
+
 def test_failing_tests_accepts_injected_runner():
     from types import SimpleNamespace
 
@@ -157,6 +215,22 @@ def test_predicted_failing_spans_at_risk_modules():
                              {"pkg.r.fn"}) == {"t1.py::a", "t2.py::b"}
 
 
+def test_predicted_failing_uses_break_lines_when_available():
+    import networkx as nx
+
+    g = nx.DiGraph()
+    g.add_node("pkg.r", kind="module", file="pkg/r.py")
+    g.add_node("pkg.r.fn", kind="function", file="pkg/r.py", line=3)
+    g.add_edge("pkg.r.fn", "numpy.NaN", kind="USES_EXTERNAL",
+               file="pkg/r.py", line=10)
+    # Both tests cover the at-risk module, but only t1 hits the break line.
+    m = TestMap("t", "pkg", "", {"t1": ["pkg.r"], "t2": ["pkg.r"]},
+                line_hits={"t1": ["pkg/r.py:10"], "t2": ["pkg/r.py:99"]})
+    pred = predicted_failing(m, g, set(), "t", {"pkg.r.fn"},
+                             {"numpy.NaN"})
+    assert pred == {"t1"}
+
+
 def test_build_map_with_parses_recorded_dump(tmp_path):
     import json
     from types import SimpleNamespace
@@ -171,14 +245,44 @@ def test_build_map_with_parses_recorded_dump(tmp_path):
         if cmd[1] == "-c":
             assert extra_env is None
             return SimpleNamespace(returncode=0, stdout=dump, stderr="")
-        assert extra_env == {"COVERAGE_FILE": ".coverage-chainreaction"}
+        assert extra_env == {"COVERAGE_FILE": ".coverage-chainreaction",
+                             "COLUMNS": "200"}
         assert "--cov-context=test" in cmd
         return SimpleNamespace(returncode=0, stdout=out, stderr="")
 
     testmap, output = build_map_with(run, "py", str(target), "pkg")
     assert output == out
     assert testmap.tests == {"test_a.py::test_f": ["pkg.a"]}
+    assert testmap.line_hits == {}  # old file dump carries no lines
     assert not (target / ".coverage-chainreaction").exists()
+    # Per-line dumps populate both maps.
+    lined = json.dumps({f"{target}/pkg/a.py": {"10": ["test_a.py::test_f"],
+                                                "99": ["test_a.py::test_f"]}})
+
+    def run_lined(cmd, cwd, extra_env=None):
+        if cmd[1] == "-c":
+            return SimpleNamespace(returncode=0, stdout=lined, stderr="")
+        return SimpleNamespace(returncode=0, stdout=out, stderr="")
+
+    lined_map, _ = build_map_with(run_lined, "py", str(target), "pkg")
+    assert lined_map.tests == {"test_a.py::test_f": ["pkg.a"]}
+    assert lined_map.line_hits == {
+        "test_a.py::test_f": ["pkg/a.py:10", "pkg/a.py:99"]}
+    # Replay of a V1 recording falls back to the old dump command.
+    from chainreaction.runs.context import ReplayMiss
+    from chainreaction.testmap import _DUMP_CODE_V1
+
+    def run_old(cmd, cwd, extra_env=None):
+        if cmd[1] == "-c":
+            if cmd[2] == _DUMP_CODE_V1:
+                return SimpleNamespace(returncode=0, stdout=dump,
+                                       stderr="")
+            raise ReplayMiss("no recorded cmd call")
+        return SimpleNamespace(returncode=0, stdout=out, stderr="")
+
+    old_map, _ = build_map_with(run_old, "py", str(target), "pkg")
+    assert old_map.tests == {"test_a.py::test_f": ["pkg.a"]}
+    assert old_map.line_hits == {}
 
     def empty(cmd, cwd, extra_env=None):
         if cmd[1] == "-c":

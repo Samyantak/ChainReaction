@@ -51,9 +51,10 @@ def canonical_line(obj) -> str:
 
 
 def _loose_pattern(needle: str):
-    # Match the path regardless of separator mix (E:\a/b matches E:/a\b).
+    # Match the path regardless of separator mix (E:\a/b matches E:/a\b)
+    # and doubling (JSON-escaped dump text carries E:\\a\\b).
     return re.compile("".join(
-        r"[\\/]" if ch in "\\/" else re.escape(ch) for ch in needle))
+        r"[\\/]+" if ch in "\\/" else re.escape(ch) for ch in needle))
 
 
 def _replace_path_token(value: str, needle: str, repl: str) -> str:

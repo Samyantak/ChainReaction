@@ -109,8 +109,28 @@ def _generic_pin(preset: str):
     return data["repo_url"], sha
 
 
+def _generic_presets() -> list[str]:
+    """Committed generic preset ids (manifest with repo_url, no scenario)."""
+    presets_dir = ROOT / "runs" / "presets"
+    if not presets_dir.is_dir():
+        return []
+    out = []
+    for child in sorted(p.name for p in presets_dir.iterdir()
+                        if p.is_dir()):
+        if child in scenarios.SCENARIOS:
+            continue
+        if _generic_pin(child) is not None:
+            out.append(child)
+    return out
+
+
+def _default_ids() -> list[str]:
+    """Scenario presets plus generic preset workspaces (judge replay)."""
+    return sorted(scenarios.SCENARIOS) + _generic_presets()
+
+
 def main(argv) -> int:
-    ids = argv[1:] or sorted(scenarios.SCENARIOS)
+    ids = argv[1:] or _default_ids()
     for preset in ids:
         try:
             scen = scenarios.get(preset)
