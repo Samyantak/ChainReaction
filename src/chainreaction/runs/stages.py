@@ -361,8 +361,11 @@ def _stage_interpret_m3(ctx, scen, parsed, decision) -> None:
                          f"{blind_recall:.2f} below 0.50"})
     changeset, oop_dropped = split_out_of_package(changeset, scen.package)
     changeset.dropped.extend(oop_dropped)
-    ctx.set_manifest(changeset_source="muse-spark", interpret_flow="m3",
-                     guide_url=changeset.source_url)
+    # manifest guide_url stays the user's --guide (discovery INPUT):
+    # writing the discovered URL back would make replay take the
+    # guide shortcut instead of live's search path. The discovered
+    # sources live in sources.json and changeset.source_url.
+    ctx.set_manifest(changeset_source="muse-spark", interpret_flow="m3")
     ctx.state["interpret_stats"] = stats
     symbols = sorted(i.symbol for i in changeset.items)
     chain = " → ".join([from_version or "?"] + stats["releases"])

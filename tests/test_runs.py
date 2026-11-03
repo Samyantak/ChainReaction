@@ -200,6 +200,76 @@ def test_suite_builders_emit_short_tracebacks():
     assert [c for c in seen if "--tb=short" in c] == seen
 
 
+def test_m3_interpret_keeps_guide_url_a_user_input(tmp_runs):
+    """The discovered URL must not land in manifest guide_url.
+
+    manifest guide_url is discovery INPUT (the user's --guide). When
+    the M3 stage writes the discovered URL back into it, replay takes
+    the guide shortcut instead of live's search path, the notes
+    differ, and the first interpret prompt misses its recording.
+    """
+    import json
+    from types import SimpleNamespace
+
+    pad = ("padding prose to exceed the minimum usable length "
+           "threshold for discovery sources. " * 6)
+    page31 = "https://github.com/org/pkg/blob/main/CHANGES-3.1.md"
+    page30 = "https://github.com/org/pkg/blob/main/CHANGES-3.0.md"
+    pypi = "https://pypi.org/pypi/pkg/json"
+    fetch_map = {
+        pypi: (200, json.dumps({
+            "info": {"home_page": "https://github.com/org/pkg",
+                     "project_urls": {"Changelog": page30}},
+            "releases": {"3.0.0": [], "3.0.1": [], "3.1.0": []},
+        }).encode()),
+        page31: (200, (f"# Changes\n\n## 3.1.0\n\n"
+                       f"- `contextfunction` replaced by `pass_context`. "
+                       f"{pad}\n").encode()),
+        page30: (200, (f"# Changes\n\n## 3.0.1\n\n"
+                       f"- `oldthing` was removed, use `newthing` instead. "
+                       f"{pad}\n").encode()),
+    }
+
+    def live_fetch(url, timeout):
+        return fetch_map.get(url, (404, b""))
+
+    def live_search(query):
+        return llm_mod.WebSearchResult(
+            "reply", [llm_mod.WebCitation(page31, "C", "s")],
+            1, "fake-model", None, False, None)
+
+    def live_llm(system, user, max_tokens, response_format):
+        return llm_mod.ChatResult('{"items": []}', llm_mod.model_name(),
+                                  None, "stop", False, None)
+
+    def make_ctx(run_id, manifest, mode, source_dir=None):
+        return RunContext(run_id=run_id, manifest=manifest, mode=mode,
+                          live_fetch=live_fetch, live_search=live_search,
+                          live_llm=live_llm, source_dir=source_dir)
+
+    scen = SimpleNamespace(package="pkg")
+    parsed = SimpleNamespace(package="pkg", from_version="3.0.0",
+                             to_version="3.1.0")
+    decision = "upgrade pkg to 3.1"
+    live = make_ctx("u1", _live_manifest("u1"), "live")
+    stages_mod._stage_interpret_m3(live, scen, parsed, decision)
+    assert live.manifest.get("guide_url") in (None, "")
+    live_symbols = {i.symbol for i in live.state["changeset"].items}
+    assert live_symbols  # deterministic rows complete the empty model pass
+    assert live.state["interpret_stats"]["releases"] == ["3.0.1", "3.1.0"]
+
+    # Replay from the persisted manifest (what the preset carries).
+    persisted = store.read_json(store.run_dir("u1") / store.MANIFEST)
+    persisted.update(run_id="u2", mode="replay", status="running")
+    store.write_json(store.run_dir("u2") / store.MANIFEST, persisted)
+    replay = make_ctx("u2", persisted, "replay",
+                      source_dir=store.run_dir("u1"))
+    stages_mod._stage_interpret_m3(replay, scen, parsed, decision)
+    assert {i.symbol for i in replay.state["changeset"].items} == \
+        live_symbols
+    assert replay.replay_warnings() == []
+
+
 def test_probe_adapter_parses_modules_through_scrub(tmp_runs, tmp_path):
     from chainreaction.verifier import run_snippet_probe
 
