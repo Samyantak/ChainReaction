@@ -37,9 +37,12 @@ export function sourceHash() {
       files.push(name)
     }
   }
-  files.sort()
+  // Normalize to forward slashes: path.join gives backslashes on
+  // Windows but slashes on Linux, and the hash must match on both.
+  const normalized = files.map((rel) => rel.split(path.sep).join('/'))
+  normalized.sort()
   const hash = crypto.createHash('sha256')
-  for (const rel of files) {
+  for (const rel of normalized) {
     hash.update(rel)
     hash.update('\0')
     // Normalize line endings: a Windows checkout (CRLF) must hash the

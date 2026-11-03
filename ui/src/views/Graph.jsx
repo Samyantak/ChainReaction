@@ -127,8 +127,9 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
             'text-wrap': 'wrap',
             'text-max-width': 180,
             padding: '8px',
-            'text-valign': 'center',
+            'text-valign': 'bottom',
             'text-halign': 'center',
+            'text-margin-y': 8,
           },
         },
         {
@@ -183,8 +184,8 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
         // sits on top, the package root at the bottom.
         rankDir: 'BT',
         ranker: 'longest-path',
-        nodeSep: 30,
-        rankSep: 60,
+        nodeSep: 40,
+        rankSep: 80,
         animate: false,
       },
     })
@@ -192,16 +193,24 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
     // hooks stay: whichever fires last wins, so a sync layout that
     // finishes before ready still ends fitted to the viewport.
     // Whole-fit can shrink labels below reading size, so never zoom
-    // out past 0.75 (chain labels still render ~10px) — the chain
-    // stays centered and the rest is a pan away.
+    // out past 0.75 (chain labels still render ~10px) — instead fit
+    // the chain itself so it lands fully inside the canvas at a
+    // readable zoom, and the rest is a pan away.
     const fitVisible = () => {
       const shown = cy.elements(':visible')
       if (shown.length > 0) cy.fit(shown, 30)
       if (cy.zoom() < 0.75) {
-        cy.zoom(0.75)
         const chain = cy.nodes('.chain:visible')
-        if (chain.length > 0) cy.center(chain)
-        else cy.center()
+        if (chain.length > 0) {
+          cy.fit(chain, 30)
+          if (cy.zoom() < 0.75) {
+            cy.zoom(0.75)
+            cy.center(chain)
+          }
+        } else {
+          cy.zoom(0.75)
+          cy.center()
+        }
       }
     }
     cy.ready(fitVisible)

@@ -80,7 +80,7 @@ export function RedCircle({ children, className = '' }) {
           position: 'absolute',
           top: '50%',
           left: '-6px',
-          right: '-12px',
+          width: 'calc(100% + 18px)',
           height: '2.4em',
           transform: 'translateY(-50%)',
           pointerEvents: 'none',

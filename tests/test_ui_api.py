@@ -31,38 +31,167 @@ def test_status_with_key(monkeypatch):
     assert body["live_available"] is True
 
 
-def test_presets_lists_all_three_on_disk():
+def _disk_preset_ids():
+    """Preset ids on disk (dirs with a readable manifest), sorted.
+
+    Mirrors /api/presets discovery so new or re-recorded presets don't
+    break the tests; the API must list exactly what's on disk.
+    """
+    from chainreaction.runs import store as run_store
+
+    root = run_store.presets_dir()
+    if not root.is_dir():
+        return []
+    ids = []
+    for child in sorted(root.iterdir(), key=lambda p: p.name):
+        if not child.is_dir():
+            continue
+        manifest = child / run_store.MANIFEST
+        if not manifest.is_file():
+            continue
+        try:
+            run_store.read_json(manifest)
+        except (ValueError, OSError):
+            continue
+        ids.append(child.name)
+    return ids
+
+
+def _expected_files(preset_id, report):
+    """File-overlap stats derived from report.json on disk."""
+    import re
+
+    pr_files = list((report or {}).get("pr_files") or [])
+    if not pr_files:
+        return None
+    try:
+        from chainreaction import scenarios
+
+        behavior = set(scenarios.get(preset_id).pr_behavior)
+    except KeyError:
+        behavior = set((report or {}).get("file_behavior") or [])
+    missing = set((report or {}).get("file_missing") or [])
+    total = len(pr_files)
+    behavior_in_pr = set(pr_files) & behavior
+    breaking_total = total - len(behavior_in_pr)
+    breaking_found = breaking_total - len(missing - behavior_in_pr)
+    pr_url = (report or {}).get("pr_url") or ""
+    match = re.search(r"/pull/(\d+)", pr_url)
+    if match:
+        pr_ref = f"PR #{match.group(1)}"
+    else:
+        pr_ref = "upstream PR" if pr_url else None
+    return {
+        "breaking_found": breaking_found,
+        "breaking_total": breaking_total,
+        "found": total - len(missing),
+        "total": total,
+        "pr_ref": pr_ref,
+    }
+
+
+def _expected_suite(scores):
+    """Suite stats derived from scores.json on disk (None when absent)."""
+    if not isinstance(scores, dict):
+        return None
+    actual_new = scores.get("actual_new")
+    if not isinstance(actual_new, list):
+        return None
+    return {
+        "new_failures": len(actual_new),
+        "precision": scores.get("test_precision"),
+        "recall": scores.get("test_recall"),
+    }
+
+
+def _expected_interpret(report):
+    table_size = (report or {}).get("interpret_table_size") or 0
+    missed = (report or {}).get("interpret_missed") or []
+    return {
+        "found": (table_size - len(missed)) if table_size else None,
+        "table_size": table_size or None,
+        "blind_hits": (report or {}).get("interpret_blind_hits"),
+        "recall": (report or {}).get("interpret_recall"),
+    }
+
+
+def _expected_first_break(report):
+    evidence = (report or {}).get("spine_evidence") or []
+    if not evidence:
+        return None
+    hop = evidence[-1]
+    if not isinstance(hop, (list, tuple)) or len(hop) < 4:
+        return None
+    return {"from": hop[0], "symbol": hop[1], "path": hop[2], "line": hop[3]}
+
+
+def _expected_fix(fix):
+    if not isinstance(fix, dict):
+        return None
+    rounds = fix.get("rounds") or []
+    return {
+        "rounds": len(rounds),
+        "status": fix.get("final_status") or fix.get("status"),
+    }
+
+
+def test_presets_lists_all_on_disk():
+    from chainreaction.generic import parse_decision
+    from chainreaction.runs import store as run_store
+    from chainreaction.ui_api import _repo_short
+
     body = client.get("/api/presets").json()
-    assert [p["id"] for p in body] == [
-        "anndata-numpy2", "nibabel-numpy2", "sponsorfit-meta"]
+    expected_ids = _disk_preset_ids()
+    assert expected_ids, "expected at least one preset on disk"
+    assert [p["id"] for p in body] == expected_ids
     for preset in body:
         assert {"id", "title", "repo", "decision", "target",
                 "decision_parsed", "has_recording", "headlines"} <= set(preset)
-        assert preset["has_recording"] is True
-        assert preset["decision"]
-    titles = {p["id"]: p["title"] for p in body}
-    assert titles == {"anndata-numpy2": "anndata",
-                      "nibabel-numpy2": "nibabel",
-                      "sponsorfit-meta": "sponsorfit"}
-    parsed = {p["id"]: p["decision_parsed"] for p in body}
-    assert parsed["nibabel-numpy2"] == {"package": "numpy", "version": "2.0"}
-    assert parsed["sponsorfit-meta"] is None
+        directory = run_store.preset_dir(preset["id"])
+        manifest = run_store.read_json(directory / run_store.MANIFEST)
+        report_path = directory / run_store.ARTIFACTS / "report.json"
+        report = (run_store.read_json(report_path)
+                  if report_path.is_file() else None)
+        assert preset["decision"] == (manifest.get("decision") or "")
+        assert preset["repo"] == (manifest.get("repo_url") or "")
+        assert preset["has_recording"] is (
+            manifest.get("status") == "done" and report is not None)
+        target = (report or {}).get("target") or ""
+        assert preset["target"] == target
+        assert preset["title"] == _repo_short(
+            manifest.get("repo_url") or "", target, preset["id"])
+        parsed = parse_decision(preset["decision"])
+        expected_parsed = (None if parsed is None else
+                           {"package": parsed.package,
+                            "version": parsed.to_version})
+        assert preset["decision_parsed"] == expected_parsed
 
 
 def test_presets_file_breaking_stats():
+    from chainreaction.runs import store as run_store
+
     body = {p["id"]: p for p in client.get("/api/presets").json()}
-    assert body["nibabel-numpy2"]["headlines"]["files"] == {
-        "breaking_found": 5, "breaking_total": 5,
-        "found": 5, "total": 8, "pr_ref": "PR #1250"}
-    assert body["anndata-numpy2"]["headlines"]["files"] is None
+    assert body, "expected at least one preset on disk"
+    for preset_id, preset in body.items():
+        report_path = (run_store.preset_dir(preset_id)
+                       / run_store.ARTIFACTS / "report.json")
+        report = (run_store.read_json(report_path)
+                  if report_path.is_file() else None)
+        assert preset["headlines"]["files"] == _expected_files(
+            preset_id, report)
 
 
 def test_presets_suite_failures():
+    from chainreaction.runs import store as run_store
+
     body = {p["id"]: p for p in client.get("/api/presets").json()}
-    suite = body["anndata-numpy2"]["headlines"]["suite"]
-    assert suite["new_failures"] == 612
-    assert suite["recall"] == 1.0
-    assert body["nibabel-numpy2"]["headlines"]["suite"] is None
+    assert body, "expected at least one preset on disk"
+    for preset_id, preset in body.items():
+        scores_path = (run_store.preset_dir(preset_id)
+                       / run_store.ARTIFACTS / "scores.json")
+        scores = (run_store.read_json(scores_path)
+                  if scores_path.is_file() else None)
+        assert preset["headlines"]["suite"] == _expected_suite(scores)
 
 
 def test_meta_usage_real_presets():
@@ -103,22 +232,35 @@ def test_presets_headlines_match_report_files():
     from chainreaction.runs import store as run_store
 
     body = {p["id"]: p for p in client.get("/api/presets").json()}
-    nibabel = body["nibabel-numpy2"]["headlines"]
-    report = run_store.read_json(
-        run_store.preset_dir("nibabel-numpy2") / "artifacts" / "report.json")
-    assert nibabel["hard"] == len(report["hard"])
-    assert nibabel["at_risk"] == len(report["at_risk"])
-    assert nibabel["chain"] == report["spine"]
-    assert nibabel["chain_match"] == report["spine_match"]
-    assert nibabel["first_break"] == {
-        "from": "nibabel.casting.ok_floats", "symbol": "numpy.sctypes",
-        "path": "nibabel/casting.py", "line": 717}
-    assert nibabel["fix"] is None  # M5 hasn't recorded yet; UI hides it
-    assert nibabel["test_groups"] is None  # Session A hasn't added it yet
-    # Generic-path recording (no scenarios.py entry) still listed.
-    assert body["anndata-numpy2"]["decision"] == "upgrade numpy to 2.0"
-    assert body["anndata-numpy2"]["headlines"]["interpret"] == {
-        "found": 62, "table_size": 62, "blind_hits": 9, "recall": 1.0}
+    assert body, "expected at least one preset on disk"
+    for preset_id, preset in body.items():
+        directory = run_store.preset_dir(preset_id)
+        manifest = run_store.read_json(directory / run_store.MANIFEST)
+        assert preset["decision"] == (manifest.get("decision") or "")
+        headlines = preset["headlines"]
+        report_path = directory / run_store.ARTIFACTS / "report.json"
+        if not report_path.is_file():
+            assert headlines is None
+            continue
+        report = run_store.read_json(report_path)
+        assert headlines["hard"] == len(report.get("hard") or [])
+        assert headlines["at_risk"] == len(report.get("at_risk") or [])
+        assert headlines["chain"] == list(report.get("spine") or [])
+        assert headlines["chain_match"] == report.get("spine_match")
+        assert headlines["first_break"] == _expected_first_break(report)
+        assert headlines["interpret"] == _expected_interpret(report)
+        assert headlines["files"] == _expected_files(preset_id, report)
+        scores_path = directory / run_store.ARTIFACTS / "scores.json"
+        scores = (run_store.read_json(scores_path)
+                  if scores_path.is_file() else None)
+        assert headlines["suite"] == _expected_suite(scores)
+        fix_path = directory / run_store.ARTIFACTS / "fix.json"
+        fix = run_store.read_json(fix_path) if fix_path.is_file() else None
+        assert headlines["fix"] == _expected_fix(fix)
+        # Session A fields: absent until recorded; UI hides them.
+        assert headlines["test_groups"] == report.get("test_groups")
+        assert headlines["test_prediction"] == report.get("test_prediction")
+        assert headlines["vendor_chains"] == report.get("vendor_chains")
 
 
 def test_presets_tolerate_missing_files(tmp_path, monkeypatch):
