@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
 from chainreaction import scenarios
+from chainreaction import ui_api
 from chainreaction.explain import claim_checks
 from chainreaction.graph.repo import relative_posix
 from chainreaction.pipeline import PipelineResult, run_pipeline
@@ -225,6 +226,9 @@ def run_events(run_id: str, request: Request,
 
     return StreamingResponse(gen(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache"})
+
+
+app.include_router(ui_api.router)
 
 
 try:
