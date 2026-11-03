@@ -24,6 +24,7 @@ from chainreaction.baselines import (
 from chainreaction.explain import (
     check_narrative,
     generate_narrative,
+    interpret_m3_metrics,
     render_markdown,
 )
 from chainreaction.graph.repo import (
@@ -344,6 +345,20 @@ def _stage_interpret_m3(ctx, scen, parsed, decision) -> None:
     changeset, stats = interpret_multi(
         decision, notes, parsed.package, chat_fn=ctx.llm,
         page_html=found.raw, emit=ctx.emit)
+    # §6 live gates: low survival fails the run (the model is
+    # guessing, not quoting); low blind recall only warns.
+    survival = stats.get("survival_rate")
+    if survival is not None and survival < 0.5:
+        raise RuntimeError(
+            f"interpret: quote survival rate {survival:.2f} below 0.50 "
+            f"({len(changeset.items)} verified of "
+            f"{len(changeset.items) + len(changeset.dropped)} proposed); "
+            "the model is not quoting the release notes")
+    blind_recall = stats.get("blind_recall")
+    if blind_recall is not None and blind_recall < 0.5:
+        ctx.emit("log", {"message":
+                         f"warning: interpret blind recall "
+                         f"{blind_recall:.2f} below 0.50"})
     changeset, oop_dropped = split_out_of_package(changeset, scen.package)
     changeset.dropped.extend(oop_dropped)
     ctx.set_manifest(changeset_source="muse-spark", interpret_flow="m3",
@@ -380,6 +395,7 @@ def _stage_interpret_m3(ctx, scen, parsed, decision) -> None:
         "interpret_blind_hits": stats["blind_hits"],
         "interpret_blind_recall": stats["blind_recall"],
         "interpret_survival_rate": stats["survival_rate"],
+        "interpret_completed": stats["completed"],
         "interpret_model_only": stats["model_only"],
         "interpret_det_by_method": stats["det_by_method"],
         "source_counts": stats["source_counts"],
@@ -476,7 +492,8 @@ def stage_interpret(ctx) -> None:
         "interpret_blind_hits": stats["blind_hits"],
         "interpret_blind_recall": stats["blind_recall"],
         "dropped_symbols": dropped,
-        "items": [asdict(i) for i in changeset.items],
+        "dropped": [asdict(d) for d in changeset.dropped],
+        "items": [item_record(i) for i in changeset.items],
     })
 
 
@@ -924,6 +941,9 @@ def _stage_report_generic(ctx) -> None:
         "has_suite": ctx.state.get("project").has_suite
         if ctx.state.get("project") else True,
     }
+    m3_metrics = interpret_m3_metrics(ctx.state.get("interpret_stats"))
+    if m3_metrics is not None:
+        extra["interpret_m3"] = m3_metrics
     if ctx.mode == "replay":
         want_narrative = (ctx.manifest.get("narrative_source")
                           == "muse-spark")
@@ -959,7 +979,10 @@ def _stage_report_generic(ctx) -> None:
         else:
             ctx.emit("log", {"message":
                              "narrative: skipped (not in recording)"})
-    ctx.save_artifact("report.json", asdict(report))
+    report_dict = asdict(report)
+    if m3_metrics is not None:
+        report_dict["interpret_m3"] = m3_metrics
+    ctx.save_artifact("report.json", report_dict)
     ctx.save_artifact("report.md", render_markdown(report, extra))
     stats = ""
     if scores.get("test_precision") is not None:

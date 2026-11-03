@@ -566,6 +566,52 @@ def _prediction_chain_lines(report: Report, extra: dict | None,
     ]
 
 
+def interpret_m3_metrics(stats: dict | None) -> dict | None:
+    """report.json "interpret_m3" block (§6); None for legacy flows.
+
+    None keeps legacy reports byte-identical: the block, the extra
+    key, and the Markdown section all vanish together.
+    """
+    if not stats or stats.get("survival_rate") is None:
+        return None
+    det = stats.get("det_by_method") or {}
+    return {
+        "quote_survival_rate": stats["survival_rate"],
+        "blind_recall": stats.get("blind_recall"),
+        "guided_recall": stats.get("recall"),
+        "deterministic_rows": {m: det.get(m, 0)
+                               for m in ("table", "list", "pattern")},
+        "model_only": list(stats.get("model_only", [])),
+        "completed": stats.get("completed", 0),
+        "releases": list(stats.get("releases", [])),
+    }
+
+
+def _interpret_m3_lines(metrics: dict | None) -> list[str]:
+    if not metrics:
+        return []
+    det = metrics["deterministic_rows"]
+    blind = metrics["blind_recall"]
+    guided = metrics["guided_recall"]
+    only = metrics["model_only"]
+    return [
+        "",
+        f"Interpreter metrics: quote survival "
+        f"{metrics['quote_survival_rate']:.2f}; blind recall "
+        + (f"{blind:.2f}" if blind is not None else "n/a")
+        + f" ({det['table']}/{det['list']}/{det['pattern']} "
+        "table/list/pattern rows); guided recall "
+        + (f"{guided:.2f}" if guided is not None else "n/a")
+        + f"; completion added {metrics['completed']}; "
+        + (f"model-only finds ({len(only)}): "
+           + ", ".join(f"`{s}`" for s in only) + "; "
+           if only else "")
+        + "releases with notes: "
+        + (", ".join(f"`{v}`" for v in metrics["releases"]) or "none")
+        + ".",
+    ]
+
+
 def render_markdown(report: Report, extra: dict | None = None) -> str:
     decision = report.probe_kind == "decision"
     target_line = (f"Target: `{report.target}` "
@@ -624,6 +670,7 @@ def render_markdown(report: Report, extra: dict | None = None) -> str:
                " (missed: "
                + ", ".join(f"`{m}`" for m in report.interpret_missed) + ")"),
         ]),
+        *_interpret_m3_lines((extra or {}).get("interpret_m3")),
         "",
         "## Prediction",
         "",

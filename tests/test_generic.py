@@ -1186,6 +1186,38 @@ def test_generic_interpret_needs_key_live(tmp_path, monkeypatch):
         stages_mod.stage_interpret(ctx)
 
 
+def _m3_stage_ctx(guide, llm, manifest=None, emits=None):
+    from chainreaction.generic import Decision
+    from chainreaction.interpret import FetchedText
+    from chainreaction.scenarios import Scenario
+    from types import SimpleNamespace
+
+    saved = {}
+    manifest = {"preset": None, "decision": "upgrade numpy to 2.0",
+                "guide_url": "https://guide",
+                **(manifest or {})}
+
+    def fetch(url, timeout=60, clean="text"):
+        body = b"" if "pypi.org" in url else guide.encode()
+        fetched = FetchedText(body.decode() if body else "")
+        fetched.status = 404 if "pypi.org" in url else 200
+        fetched.bytes = len(body)
+        fetched.sha256 = "ab" * 32
+        return fetched
+
+    ctx = SimpleNamespace(
+        manifest=manifest, mode="live",
+        state={"scenario": Scenario(id="g", decision="d", target="t",
+                                    package="demopkg", guide_url=""),
+               "decision_parsed": Decision("numpy", "2.0.2")},
+        llm=llm, fetch=fetch,
+        emit=(lambda t, d: emits.append((t, d))
+              if emits is not None else lambda *a, **k: None),
+        set_manifest=manifest.update,
+        save_artifact=lambda n, o: saved.update({n: o}))
+    return ctx, saved
+
+
 def test_generic_interpret_model_path(monkeypatch):
     import json as json_mod
 
@@ -1241,6 +1273,57 @@ def test_generic_interpret_model_path(monkeypatch):
     assert saved["sources.json"]["package"] == "numpy"
     assert ctx.state["symbols"] == {"numpy.sctypes"}
     assert len(calls) == 1  # prose-only guide: single blind call
+
+
+def test_generic_interpret_survival_gate_fails_run(monkeypatch):
+    import json as json_mod
+
+    import pytest
+
+    from chainreaction.runs import stages as stages_mod
+
+    monkeypatch.setattr("chainreaction.llm.has_key", lambda: True)
+    guide = "release notes prose. " * 30
+
+    def llm(system, user, max_tokens=8000, response_format=None):
+        return json_mod.dumps({"items": [
+            {"symbol": "numpy.a", "kind": "removed",
+             "quote": "fabricated one", "replacement": None},
+            {"symbol": "numpy.b", "kind": "removed",
+             "quote": "fabricated two", "replacement": None},
+        ]})
+
+    ctx, _ = _m3_stage_ctx(guide, llm)
+    with pytest.raises(RuntimeError, match="survival rate 0.00 below"):
+        stages_mod.stage_interpret(ctx)
+
+
+def test_generic_interpret_blind_recall_warns(monkeypatch):
+    import json as json_mod
+
+    from chainreaction.runs import stages as stages_mod
+
+    monkeypatch.setattr("chainreaction.llm.has_key", lambda: True)
+    guide = ("## 2.0.2\n\n### Removed\n\n- `gone` is gone.\n\n"
+             + "padding prose. " * 20)
+
+    def llm(system, user, max_tokens=8000, response_format=None):
+        if "Deterministic extraction" in user:
+            items = [{"symbol": "numpy.gone", "kind": "removed",
+                      "quote": "`gone` is gone.", "replacement": None,
+                      "source_url": "https://guide",
+                      "introduced_in": "2.0.2"}]
+        else:
+            items = []
+        return json_mod.dumps({"items": items})
+
+    emits = []
+    ctx, saved = _m3_stage_ctx(guide, llm, emits=emits)
+    stages_mod.stage_interpret(ctx)  # warns, does not fail
+    assert any("blind recall 0.00 below" in d.get("message", "")
+               for _, d in emits)
+    assert [i["symbol"] for i in
+            saved["changeset.json"]["items"]] == ["numpy.gone"]
 
 
 def test_generic_predict_untouched_and_touched(tmp_path, monkeypatch):

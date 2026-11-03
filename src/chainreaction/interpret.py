@@ -500,7 +500,14 @@ def item_confidence(extraction: str, kind: str, verified: bool) -> str:
 
 
 def item_link(item: ChangeItem) -> str:
-    """Source URL with a text-fragment link at the quote start (§5)."""
+    """Source URL with a text-fragment link at the quote start (§5).
+
+    Code-grounded items (§8) link to their repo file:line instead.
+    """
+    if item.source == "code":
+        if item.code_file and item.code_line:
+            return f"{item.code_file}:{item.code_line}"
+        return item.code_file
     if not item.source_url or not item.quote:
         return item.source_url
     start = " ".join(item.quote.split()[:8])[:120]
@@ -597,6 +604,9 @@ def verify_code_quotes(items: list[ChangeItem],
                     or any(ql and (ql in file_line or file_line in ql)
                            for ql in quote_lines))
         item.verified = ok
+        # Same UI data as guide items (§8): offset into the file text.
+        item.quote_offset = text.index(quote) if ok else -1
+        item.verified_mode = "exact" if ok else ""
         (verified if ok else dropped).append(item)
     return verified, dropped
 
@@ -1766,6 +1776,7 @@ def interpret_multi(decision: str, notes: list, package: str = "",
         "blind_recall": ((blind_hits / det_size)
                          if det_size else None),
         "survival_rate": (len(verified) / proposed if proposed else None),
+        "completed": len(added),
         "model_only": sorted(
             {i.symbol for i in verified
              if (i.symbol, i.kind) not in det_pairs}),

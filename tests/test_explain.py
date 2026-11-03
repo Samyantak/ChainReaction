@@ -99,6 +99,43 @@ def test_render_markdown_generic_extras(tmp_path):
     assert "not imported anywhere" in untouched_md
 
 
+def test_interpret_m3_metrics_block_and_absent_for_legacy(tmp_path):
+    from chainreaction.explain import interpret_m3_metrics
+
+    assert interpret_m3_metrics(None) is None
+    assert interpret_m3_metrics({"recall": 0.5}) is None
+    stats = {"survival_rate": 0.8, "blind_recall": 0.5, "recall": 1.0,
+             "det_by_method": {"table": 0, "list": 1, "pattern": 2},
+             "model_only": ["pkg.quiet"], "completed": 2,
+             "releases": ["3.0.1", "3.1.0"]}
+    block = interpret_m3_metrics(stats)
+    assert block == {
+        "quote_survival_rate": 0.8, "blind_recall": 0.5,
+        "guided_recall": 1.0,
+        "deterministic_rows": {"table": 0, "list": 1, "pattern": 2},
+        "model_only": ["pkg.quiet"], "completed": 2,
+        "releases": ["3.0.1", "3.1.0"],
+    }
+
+
+def test_render_markdown_interpret_m3_section(tmp_path):
+    _, report = _setup(tmp_path)
+    assert "Interpreter metrics" not in render_markdown(report, {})
+    md = render_markdown(report, {"interpret_m3": {
+        "quote_survival_rate": 0.8, "blind_recall": 0.5,
+        "guided_recall": 1.0,
+        "deterministic_rows": {"table": 0, "list": 1, "pattern": 2},
+        "model_only": ["pkg.quiet"], "completed": 2,
+        "releases": ["3.0.1", "3.1.0"],
+    }})
+    assert "Interpreter metrics" in md
+    assert "quote survival 0.80" in md
+    assert "blind recall 0.50" in md
+    assert "model-only finds (1): `pkg.quiet`" in md
+    assert "completion added 2" in md
+    assert "`3.0.1`, `3.1.0`" in md
+
+
 def test_checker_catches_bogus_node_and_evidence(tmp_path):
     g, report = _setup(tmp_path)
     report.hard.append("demo.nope")

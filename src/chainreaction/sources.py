@@ -608,9 +608,11 @@ def collect_release_notes(ctx, discovery: Discovery) -> list[ReleaseNotes]:
         if src.url in used_urls:
             src.used = True
     ordered = [notes[key] for key in wanted if key in notes]
-    chain = " → ".join([discovery.from_version or "?"]
-                       + [n.version for n in ordered])
-    ctx.emit("log", {"message": f"interpret: releases covered: {chain}"})
+    chain = " → ".join([discovery.from_version or "?"] + wanted)
+    missing = [key for key in wanted if key not in notes]
+    suffix = (f" (missing notes: {', '.join(missing)})" if missing else "")
+    ctx.emit("log", {"message":
+                     f"interpret: releases resolved: {chain}{suffix}"})
     return ordered
 
 

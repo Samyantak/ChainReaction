@@ -88,6 +88,36 @@ def test_llm_records_cache_hits_as_cached(tmp_runs):
     assert recs[0]["cache_mtime"] == "2026-01-01T00:00:00Z"
 
 
+def test_llm_length_retry_records_both_attempts(tmp_runs):
+    seen = []
+
+    def fake(system, user, max_tokens, response_format):
+        seen.append(max_tokens)
+        if len(seen) == 1:
+            return llm_mod.ChatResult("truncated", "fake-model", None,
+                                      "length", False, None)
+        return llm_mod.ChatResult("complete", "fake-model", None,
+                                  "stop", False, None)
+
+    live = RunContext(run_id="u1", manifest=_live_manifest("u1"),
+                      mode="live", live_llm=fake)
+    assert live.llm("sys", "a", max_tokens=100) == "complete"
+    assert seen == [100, 150]
+    recs = store.read_jsonl(live.dir / store.LLM_CALLS)
+    assert len(recs) == 2
+    assert recs[0]["finish_reason"] == "length"
+    assert recs[1]["finish_reason"] == "stop"
+    assert recs[0]["params"]["max_tokens"] == 100
+    assert recs[1]["params"]["max_tokens"] == 150
+
+    replay = RunContext(
+        run_id="u2", manifest=_live_manifest("u2", mode="replay",
+                                             model="fake-model"),
+        mode="replay", source_dir=live.dir)
+    assert replay.llm("sys", "a", max_tokens=100) == "complete"
+    assert replay.replay_warnings() == []
+
+
 def test_fetch_records_and_replays(tmp_runs):
     def fake(url, timeout):
         return 200, b"<html><body>guide words</body></html>"

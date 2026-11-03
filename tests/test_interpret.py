@@ -393,6 +393,20 @@ def test_interpret_vendor_grounds_config_in_code(tmp_path):
     assert by_symbol["meta.voice"].source == "guide"
 
 
+def test_verify_code_quotes_records_offset_and_mode():
+    from chainreaction.interpret import item_link, verify_code_quotes
+
+    files = {"src/fit/llm.py": 'Provider = Literal["a"]\n'}
+    items = [ChangeItem("fit.Provider", "rejected_value", "",
+                        source="code", code_quote='Literal["a"]',
+                        code_file="src/fit/llm.py", code_line=1)]
+    verified, dropped = verify_code_quotes(items, files)
+    assert dropped == []
+    assert verified[0].quote_offset == 11
+    assert verified[0].verified_mode == "exact"
+    assert item_link(verified[0]) == "src/fit/llm.py:1"
+
+
 # -- M3 §3: deterministic extraction beyond NumPy --
 
 def test_normalize_symbol_shapes():
@@ -708,6 +722,7 @@ def test_interpret_multi_two_releases():
     assert stats["blind_hits"] == 0
     assert stats["blind_recall"] == 0.0
     assert stats["survival_rate"] == 0.8
+    assert stats["completed"] == 0
     assert stats["model_only"] == ["pkg.quiet"]
     assert stats["missed"] == []
     assert stats["det_by_method"] == {"table": 0, "list": 1,
@@ -740,6 +755,7 @@ def test_interpret_multi_completes_missed_rows():
     assert by_symbol["pkg.contextfunction"].introduced_in == "3.1.0"
     assert by_symbol["pkg.oldthing"].introduced_in == "3.0.1"
     assert by_symbol["pkg.listgone"].introduced_in == "3.0.1"
+    assert stats["completed"] == 3
     assert stats["blind_recall"] == 0.0
     assert stats["quote_misses"] == []
     assert stats["survival_rate"] is None

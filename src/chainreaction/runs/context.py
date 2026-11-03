@@ -206,18 +206,34 @@ class RunContext:
 
     def llm(self, system: str, user: str, max_tokens: int = 8000,
             response_format=None) -> str:
-        """Recorded model call; in replay returns the recorded response."""
+        """Recorded model call; in replay returns the recorded response.
+
+        Length-truncated live calls retry once with +50% max tokens;
+        both attempts are recorded, so replay follows the same path.
+        """
         if self.mode == "replay":
             model = self.manifest.get("model") or llm_mod.model_name()
             prompt_hash = llm_mod.cache_key_for(model, system, user,
                                                 response_format)
             rec = self._take("llm", prompt_hash,
                              f"prompt_hash={prompt_hash}")
+            if rec.get("finish_reason") == "length" \
+                    and not rec.get("cached", False):
+                # The live run retried: consume the retry's recording.
+                rec = self._take("llm", prompt_hash,
+                                 f"prompt_hash={prompt_hash}")
             self.emit("llm_call", {"prompt_hash": prompt_hash,
                                    "model": rec.get("model"),
                                    "cached": rec.get("cached", False),
                                    "replayed": True})
             return rec["response"]
+        res = self._llm_live(system, user, max_tokens, response_format)
+        # Return exactly the recorded bytes (scrubbed): live and replay
+        # stages see identical inputs.
+        return self.scrubber.text(res.content)
+
+    def _llm_live(self, system: str, user: str, max_tokens: int,
+                  response_format, retried: bool = False):
         self.check_cancelled()
         started = utc_now_iso()
         t0 = time.perf_counter()
@@ -238,10 +254,16 @@ class RunContext:
             "cached": res.cached, "cache_mtime": res.cache_mtime,
         })
         self.emit("llm_call", {"prompt_hash": prompt_hash,
-                               "model": res.model, "cached": res.cached})
-        # Return exactly the recorded bytes (scrubbed): live and replay
-        # stages see identical inputs.
-        return self.scrubber.text(res.content)
+                               "model": res.model, "cached": res.cached,
+                               "retried": retried})
+        if res.finish_reason == "length" and not res.cached \
+                and not retried:
+            self.emit("log", {"message":
+                              "llm: length finish, retrying with "
+                              f"{int(max_tokens * 1.5)} max tokens"})
+            return self._llm_live(system, user, int(max_tokens * 1.5),
+                                  response_format, retried=True)
+        return res
 
     def web_search(self, query: str):
         """Recorded web search; in replay returns the recorded citations.
