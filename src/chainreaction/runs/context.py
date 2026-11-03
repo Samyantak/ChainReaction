@@ -34,6 +34,17 @@ from chainreaction.verifier import target_python
 
 ENV_PYTHON = "<env-python>"
 
+
+def canon_cmd_key(cmd) -> tuple:
+    """Match key for a command: --tb flavor is not identity.
+
+    Traceback verbosity is a record-time choice, not part of what a
+    command IS: --tb=no (recordings from before short-traceback
+    diagnostics) and --tb=short (current builders) match each other.
+    The stored argv keeps whatever actually ran.
+    """
+    return tuple("--tb" if str(p).startswith("--tb=") else p for p in cmd)
+
 # M2 §8: target code never sees MODEL_API_KEY or any other token.
 # run_cmd passes only this allowlist (lookups, home/cache dirs, temp
 # dirs, locale). Everything else — keys, tokens, editor sessions,
@@ -134,7 +145,7 @@ class RunContext:
             self._search_recs = store_mod.read_jsonl(
                 self.source_dir / store_mod.SEARCHES)
             self._llm_keys = [r.get("prompt_hash") for r in self._llm_recs]
-            self._cmd_keys = [(tuple(r.get("cmd", ())),
+            self._cmd_keys = [(canon_cmd_key(r.get("cmd", ())),
                                r.get("cwd"), r.get("env_name"))
                               for r in self._cmd_recs]
             self._fetch_keys = [r.get("url") for r in self._fetch_recs]
@@ -390,7 +401,8 @@ class RunContext:
         cwd_rel = self._cwd_key(cwd)
         key_cmd = self._cmd_key(cmd, env_name, tool)
         if self.mode == "replay":
-            rec = self._take("cmd", (key_cmd, cwd_rel, env_name),
+            rec = self._take("cmd",
+                             (canon_cmd_key(key_cmd), cwd_rel, env_name),
                              f"cmd={list(key_cmd)} cwd={cwd_rel} "
                              f"env={env_name}")
             self.emit("cmd", {"cmd": rec.get("cmd"), "cwd": cwd_rel,

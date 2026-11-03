@@ -364,7 +364,7 @@ def failing_tests(python: str, target: str | Path, tests: str,
     run(cmd, cwd) injects the subprocess layer (recorded runs pass a
     ctx.run_cmd adapter); it must return an object with .stdout.
     """
-    cmd = [python, "-m", "pytest", tests, "-q", "--tb=no",
+    cmd = [python, "-m", "pytest", tests, "-q", "--tb=short",
            "-p", "no:cacheprovider", "--noconftest",
            "--continue-on-collection-errors", "-rfE"]
     if run is None:
@@ -775,7 +775,7 @@ def build_map_with(run, python: str, target: str | Path, package: str,
     data_path = Path(cwd) / data_name
     data_path.unlink(missing_ok=True)
     proc = run(
-        [python, "-m", "pytest", tests_rel, "-q", "--tb=no",
+        [python, "-m", "pytest", tests_rel, "-q", "--tb=short",
          "-p", "no:cacheprovider", "--continue-on-collection-errors",
          "-rfE", f"--cov={package}", "--cov-context=test",
          "--cov-report="],

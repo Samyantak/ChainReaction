@@ -598,7 +598,7 @@ def _run_after_suite(after_run, after_py: str, target_abs: str, ws_rel: str,
     """
     from chainreaction.testmap import parse_suite
 
-    base = [after_py, "-m", "pytest", ".", "-q", "--tb=no",
+    base = [after_py, "-m", "pytest", ".", "-q", "--tb=short",
             "-p", "no:cacheprovider", "--continue-on-collection-errors",
             "-rfE"]
     wide = {"COLUMNS": "200"}
@@ -653,7 +653,7 @@ def _run_plain_before(before_run, before_py: str, target_abs: str,
     from chainreaction.testmap import parse_suite
 
     plain = before_run(
-        [before_py, "-m", "pytest", ".", "-q", "--tb=no",
+        [before_py, "-m", "pytest", ".", "-q", "--tb=short",
          "-p", "no:cacheprovider", "--continue-on-collection-errors",
          "-rfE"], target_abs, extra_env={"COLUMNS": "200"})
     if plain.timed_out:

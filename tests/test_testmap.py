@@ -328,6 +328,7 @@ def test_failing_tests_accepts_injected_runner():
                                                          "e.py::t2"}
     assert seen[0][0][:3] == ["py", "-m", "pytest"]
     assert "--noconftest" in seen[0][0]
+    assert "--tb=short" in seen[0][0]
 
 
 def test_predicted_failing_spans_at_risk_modules():
@@ -378,6 +379,7 @@ def test_build_map_with_parses_recorded_dump(tmp_path):
         assert extra_env == {"COVERAGE_FILE": ".coverage-chainreaction",
                              "COLUMNS": "200"}
         assert "--cov-context=test" in cmd
+        assert "--tb=short" in cmd
         return SimpleNamespace(returncode=0, stdout=out, stderr="")
 
     testmap, output = build_map_with(run, "py", str(target), "pkg")

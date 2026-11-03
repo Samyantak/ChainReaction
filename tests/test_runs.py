@@ -164,6 +164,42 @@ def test_replay_miss_names_hash_and_command(tmp_runs):
                        env_name=None)
 
 
+def test_replay_cmd_matches_across_tb_flavor(tmp_runs):
+    live = RunContext(run_id="u1", manifest=_live_manifest("u1"),
+                      mode="live")
+    live.run_cmd([sys.executable, "-c", "print('x')", "--tb=no"],
+                 cwd=".", env_name=None)
+    recs = store.read_jsonl(live.dir / store.CMDS)
+    assert "--tb=no" in recs[0]["cmd"]  # stored argv stays truthful
+    replay = RunContext(
+        run_id="u2", manifest=_live_manifest("u2", mode="replay"),
+        mode="replay", source_dir=live.dir)
+    # Current builders emit --tb=short; --tb=no records still match.
+    res = replay.run_cmd(
+        [sys.executable, "-c", "print('x')", "--tb=short"],
+        cwd=".", env_name=None)
+    assert res.stdout == "x\n" and res.returncode == 0
+    assert replay.replay_warnings() == []
+
+
+def test_suite_builders_emit_short_tracebacks():
+    from types import SimpleNamespace
+
+    seen = []
+
+    def fake_run(cmd, cwd, extra_env=None):
+        seen.append(cmd)
+        return SimpleNamespace(stdout="2 passed in 0.1s\n", stderr="",
+                               timed_out=False)
+
+    _, _, escalated = stages_mod._run_after_suite(
+        fake_run, "py", "t", "workspaces/k", None, lambda *a: None)
+    assert escalated is False
+    stages_mod._run_plain_before(fake_run, "py", "t", "workspaces/k")
+    assert len(seen) == 2
+    assert [c for c in seen if "--tb=short" in c] == seen
+
+
 def test_probe_adapter_parses_modules_through_scrub(tmp_runs, tmp_path):
     from chainreaction.verifier import run_snippet_probe
 
