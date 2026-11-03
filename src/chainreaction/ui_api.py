@@ -6,13 +6,17 @@ of recordings made before a field existed: the UI hides sections whose
 data is absent rather than crashing (M6 plan point 3).
 """
 
+import io
 import json
 import re
+import zipfile
 from functools import lru_cache
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import Response
 
 from chainreaction import __version__, llm as llm_mod
 from chainreaction.runs import store as run_store
@@ -68,6 +72,13 @@ def _first_break(spine_evidence: list) -> dict | None:
     return {"from": hop[0], "symbol": hop[1], "path": hop[2], "line": hop[3]}
 
 
+def _pr_ref(pr_url: str) -> str | None:
+    match = re.search(r"/pull/(\d+)", pr_url or "")
+    if match:
+        return f"PR #{match.group(1)}"
+    return "upstream PR" if pr_url else None
+
+
 def _file_stats(report: dict, behavior: set) -> dict | None:
     """Upstream-file overlap split into breaking vs behavior files.
 
@@ -82,10 +93,7 @@ def _file_stats(report: dict, behavior: set) -> dict | None:
     behavior_in_pr = set(pr_files) & set(behavior)
     breaking_total = total - len(behavior_in_pr)
     breaking_found = breaking_total - len(missing - behavior_in_pr)
-    pr_url = report.get("pr_url") or ""
-    match = re.search(r"/pull/(\d+)", pr_url)
-    pr_ref = f"PR #{match.group(1)}" if match else (
-        "upstream PR" if pr_url else None)
+    pr_ref = _pr_ref(report.get("pr_url") or "")
     return {
         "breaking_found": breaking_found,
         "breaking_total": breaking_total,
@@ -337,25 +345,26 @@ def ui_meta_usage() -> dict:
     return {"capabilities": _scan_meta_usage(str(run_store.presets_dir()))}
 
 
-GRAPH_SHOWN_BUDGET = 150
+GRAPH_FULL_THRESHOLD = 60
+GRAPH_MAX_NEIGHBORS = 35
 
 
 def build_tiles(spine: list, spine_evidence: list) -> list:
     """Domino tiles, break side first, package root last.
 
-    The decision (red) tile carries the first-break site; link tiles
-    carry the import site that pulls them in; the root (ink) tile has
-    no single site. Missing sites come back null and the tile shows
-    the module only.
+    Every tile shows its OWN line: the decision (red) tile the
+    first-break site, every other tile its outgoing hop toward the
+    break (the import statement in its own file). Missing sites come
+    back null and the tile shows the module only.
     """
     if not spine:
         return []
     first = _first_break(spine_evidence or [])
-    to_hop = {}
+    from_hop = {}
     for hop in spine_evidence or []:
         if (isinstance(hop, (list, tuple)) and len(hop) >= 4
-                and hop[1] not in to_hop):
-            to_hop[hop[1]] = hop
+                and hop[0] not in from_hop):
+            from_hop[hop[0]] = hop
     tiles = []
     for module in reversed(spine):
         if module == spine[-1]:
@@ -365,13 +374,11 @@ def build_tiles(spine: list, spine_evidence: list) -> list:
                 "line": (first or {}).get("line"),
                 "symbol": (first or {}).get("symbol"),
             })
-        elif module == spine[0]:
-            tiles.append({"module": module, "role": "root",
-                          "file": None, "line": None})
         else:
-            hop = to_hop.get(module)
+            hop = from_hop.get(module)
             tiles.append({
-                "module": module, "role": "link",
+                "module": module,
+                "role": "root" if module == spine[0] else "link",
                 "file": hop[2] if hop else None,
                 "line": hop[3] if hop else None,
             })
@@ -379,14 +386,17 @@ def build_tiles(spine: list, spine_evidence: list) -> list:
 
 
 def cluster_impacted(modules: dict, edges: list, main: list,
-                     budget: int = GRAPH_SHOWN_BUDGET) -> dict:
-    """Main chain + neighbors up to budget; the rest grouped by status.
+                     max_total: int = GRAPH_FULL_THRESHOLD,
+                     max_neighbors: int = GRAPH_MAX_NEIGHBORS) -> dict:
+    """Chain + most-connected neighbors; the rest grouped by status.
 
-    Deterministic: chain order first, then HARD before AT_RISK,
-    alphabetical within. Small graphs pass through unclustered.
+    Small graphs pass through whole. Large ones show the chain plus
+    the most chain-connected first-degree neighbors (HARD first, then
+    edge count to the chain, then alphabetical — deterministic), with
+    "+N more" clusters for the rest. nibabel lands at 5 + 35 = 40.
     """
     main = [m for m in main if m in modules]
-    if len(modules) <= budget:
+    if len(modules) <= max_total:
         ids = sorted(modules)
         return {
             "nodes": [_node(modules, i, i in main) for i in ids],
@@ -394,15 +404,19 @@ def cluster_impacted(modules: dict, edges: list, main: list,
                       if e["source"] in modules and e["target"] in modules],
             "clusters": [],
         }
-    adjacent = {m: False for m in main}
+    main_set = set(main)
+    touch: dict[str, int] = {}
     for edge in edges:
-        for end in (edge["source"], edge["target"]):
-            if end in modules and end not in adjacent:
-                adjacent[end] = True
+        ends = {edge["source"], edge["target"]}
+        if len(ends & main_set) != 1:
+            continue
+        other = (ends - main_set).pop()
+        if other in modules:
+            touch[other] = touch.get(other, 0) + 1
     neighbors = sorted(
-        (m for m in adjacent if m not in main),
-        key=lambda m: (modules[m]["status"] != "HARD", m))
-    shown = list(main) + neighbors[:max(0, budget - len(main))]
+        touch, key=lambda m: (modules[m]["status"] != "HARD",
+                              -touch[m], m))
+    shown = list(main) + neighbors[:max_neighbors]
     shown_set = set(shown)
     hidden = sorted(set(modules) - shown_set)
     clusters = []
@@ -510,7 +524,7 @@ def ui_graph(run_id: str, full: bool = False) -> dict:
             modules[module]["tests_more"] = max(0, len(tests) - 15)
     if full:
         clustered = cluster_impacted(modules, edges, spine,
-                                     budget=len(modules))
+                                     max_total=len(modules))
     else:
         clustered = cluster_impacted(modules, edges, spine)
     return {
@@ -619,3 +633,304 @@ def ui_source(run_id: str, path: str, start: int = 1,
         "lines": [{"no": no, "text": text}
                   for no, text in enumerate(window, start=start)],
     }
+
+
+def _read_run_json(directory: Path, *parts: str):
+    """Artifact JSON, or None when missing/unreadable (optional data)."""
+    path = directory
+    for part in parts:
+        path = path / part
+    if not path.is_file():
+        return None
+    try:
+        return run_store.read_json(path)
+    except (ValueError, OSError):
+        return None
+
+
+def _jsonl_count(path: Path) -> int:
+    if not path.is_file():
+        return 0
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return 0
+    return sum(1 for line in text.splitlines() if line.strip())
+
+
+@router.get("/api/runs/{run_id}/provenance")
+def ui_provenance(run_id: str) -> dict:
+    """Recorded-call counts for the report provenance block.
+
+    Manifest fields (model, times, SHAs, replay source) come from
+    GET /api/runs/{id}; only the JSONL counts need a dedicated read.
+    """
+    try:
+        directory = run_or_preset_dir(run_id)
+    except ValueError:
+        raise HTTPException(404, f"unknown run: {run_id}") from None
+    return {
+        "llm_calls": _jsonl_count(directory / run_store.LLM_CALLS),
+        "cmds": _jsonl_count(directory / run_store.CMDS),
+        "fetches": _jsonl_count(directory / run_store.FETCHES),
+    }
+
+
+def _namespace(obj):
+    """Dicts/lists to attribute-accessed namespaces (claim checker input)."""
+    if isinstance(obj, dict):
+        return SimpleNamespace(**{k: _namespace(v) for k, v in obj.items()})
+    if isinstance(obj, list):
+        return [_namespace(v) for v in obj]
+    return obj
+
+
+def report_from_json(data: dict):
+    """Rebuild a Report from its recorded report.json.
+
+    Only known fields are passed through, so recordings from newer
+    code with extra keys still load.
+    """
+    from chainreaction.explain import (  # noqa: PLC0415 - lazy, heavy
+        LayerResult, Report)
+
+    layers = []
+    for raw in data.get("layers") or []:
+        if not isinstance(raw, dict):
+            continue
+        known = {k: raw.get(k) for k in
+                 ("name", "actual", "missing", "recall", "error_tail",
+                  "ok", "failure_site") if k in raw}
+        try:
+            layers.append(LayerResult(**known))
+        except TypeError:
+            continue
+    items = [_namespace(i) for i in data.get("change_items") or []]
+    return Report(
+        decision=data.get("decision") or "",
+        target=data.get("target") or "",
+        package=data.get("package") or "",
+        numpy_version=data.get("numpy_version"),
+        change_symbols=list(data.get("change_symbols") or []),
+        hard=list(data.get("hard") or []),
+        at_risk=list(data.get("at_risk") or []),
+        spine=list(data.get("spine") or []),
+        spine_evidence=[tuple(h) for h in data.get("spine_evidence") or []
+                       if isinstance(h, (list, tuple)) and len(h) >= 4],
+        spine_match=bool(data.get("spine_match")),
+        before_numpy=data.get("before_numpy"),
+        pr_url=data.get("pr_url") or "",
+        pr_files=list(data.get("pr_files") or []),
+        file_precision=data.get("file_precision"),
+        file_recall=data.get("file_recall"),
+        file_missing=list(data.get("file_missing") or []),
+        file_behavior=list(data.get("file_behavior") or []),
+        probe_kind=data.get("probe_kind") or "import",
+        change_items=items,
+        layers=layers,
+        grep_hits=data.get("grep_hits") or 0,
+        ruff_hits=data.get("ruff_hits"),
+        narrative=data.get("narrative"),
+        deprecated_symbols=list(data.get("deprecated_symbols") or []),
+        changed_symbols=list(data.get("changed_symbols") or []),
+        interpret_recall=data.get("interpret_recall"),
+        interpret_table_size=data.get("interpret_table_size") or 0,
+        interpret_missed=list(data.get("interpret_missed") or []),
+        interpret_blind_hits=data.get("interpret_blind_hits") or 0,
+        interpret_blind_recall=data.get("interpret_blind_recall"),
+        used_symbols=list(data.get("used_symbols") or []),
+        fix_order=list(data.get("fix_order") or []),
+    )
+
+
+@router.get("/api/runs/{run_id}/claims")
+def ui_claims(run_id: str) -> dict:
+    """Per-claim verification (label, status, detail) for the report view.
+
+    Recomputed from the recorded report.json against the checkout's AST
+    graph — the same checker the pipeline uses, so the UI can never
+    show a greener result than the artifacts support.
+    """
+    from chainreaction.explain import (  # noqa: PLC0415 - lazy, heavy
+        claim_checks)
+
+    try:
+        directory = run_or_preset_dir(run_id)
+    except ValueError:
+        raise HTTPException(404, f"unknown run: {run_id}") from None
+    manifest = run_store.read_json(directory / run_store.MANIFEST)
+    report_data = _read_run_json(directory, run_store.ARTIFACTS,
+                                 "report.json")
+    if not isinstance(report_data, dict):
+        raise HTTPException(404, "report not available yet")
+    package = report_data.get("package") or manifest.get("package") or ""
+    if not package:
+        raise HTTPException(404, "report not available yet")
+    _source_root(directory, manifest)  # 404 unless checked out
+    target = _target_string(directory, manifest)
+    graph = cached_repo_graph(
+        target, package, manifest.get("resolved_commit"))
+    checks = claim_checks(graph, report_from_json(report_data))
+    return {"claims": [
+        {"label": c.label, "status": c.status, "detail": c.detail}
+        for c in checks]}
+
+
+EXPORT_FORMATS = ("md", "json", "bundle")
+
+
+def _export_filename(run_id: str, suffix: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", run_id).strip("-") or "run"
+    return f"chainreaction-{slug}.{suffix}"
+
+
+@router.get("/api/runs/{run_id}/export")
+def ui_export(run_id: str,
+              format: str = Query(default="md")) -> Response:
+    """Download the report (md|json) or the full run bundle (zip).
+
+    Bytes come straight from the run directory, so an export always
+    matches the artifacts the views render. Accepts run ids and
+    `preset:<id>`.
+    """
+    if format not in EXPORT_FORMATS:
+        raise HTTPException(
+            400, f"invalid format: {format!r} (want md|json|bundle)")
+    try:
+        directory = run_or_preset_dir(run_id)
+    except ValueError:
+        raise HTTPException(404, f"unknown run: {run_id}") from None
+    if format in ("md", "json"):
+        name = "report.md" if format == "md" else "report.json"
+        path = directory / run_store.ARTIFACTS / name
+        if not path.is_file():
+            raise HTTPException(404, f"{name} not available yet")
+        media = ("text/markdown" if format == "md"
+                 else "application/json")
+        return Response(
+            path.read_bytes(), media_type=media, headers={
+                "Content-Disposition":
+                    f'attachment; filename="{_export_filename(run_id, format)}"',
+            })
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for path in sorted(p for p in directory.rglob("*")
+                           if p.is_file()):
+            archive.write(path, path.relative_to(directory).as_posix())
+    return Response(
+        buffer.getvalue(), media_type="application/zip", headers={
+            "Content-Disposition":
+                f'attachment; filename="{_export_filename(run_id, "zip")}"',
+        })
+
+
+def _hit_files(hits, root: str | Path) -> set:
+    """Repo-relative hit files, test files excluded like the file score."""
+    from chainreaction.graph.repo import (  # noqa: PLC0415 - lazy, cheap
+        relative_posix)
+
+    files = set()
+    for hit in hits:
+        rel = relative_posix(hit.file, root)
+        if "/tests/" not in f"/{rel}" and not rel.startswith("tests/"):
+            files.add(rel)
+    return files
+
+
+def _recorded_ruff_stdout(directory: Path) -> str | None:
+    """Stdout of the recorded `ruff check` invocation, if any.
+
+    The pipeline records tool runs in cmds.jsonl, so replay parses the
+    same bytes the live run saw — ruff is never executed here.
+    """
+    path = directory / run_store.CMDS
+    if not path.is_file():
+        return None
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(rec, dict):
+            continue
+        cmd = rec.get("cmd") or []
+        if cmd[:1] == ["<tool:ruff>"] and not rec.get("missing"):
+            stdout = rec.get("stdout")
+            return stdout if isinstance(stdout, str) else None
+    return None
+
+
+def _score_files(files: set, actual: set) -> dict:
+    from chainreaction.scorer import (  # noqa: PLC0415 - lazy, cheap
+        precision_recall)
+
+    score = precision_recall(set(files), set(actual))
+    return {"hits": None, "files": sorted(files),
+            "precision": score.precision, "recall": score.recall}
+
+
+@router.get("/api/runs/{run_id}/baseline-files")
+def ui_baseline_files(run_id: str) -> dict:
+    """Grep and ruff scored as file sets vs the upstream PR.
+
+    Raw hit counts can't show ChainReaction did better; file
+    precision/recall against the same PR files can. Grep re-runs the
+    pipeline's own deterministic regex over the pinned checkout with
+    patterns from the recorded changeset; ruff parses the recorded
+    tool stdout (never executed). Either baseline is null when its
+    data is unavailable. 404 without an upstream PR to score against.
+    """
+    from chainreaction.baselines import (  # noqa: PLC0415 - lazy, cheap
+        grep_hits, patterns_for_changeset, ruff_npy201)
+    from chainreaction.graph.repo import package_dir
+
+    try:
+        directory = run_or_preset_dir(run_id)
+    except ValueError:
+        raise HTTPException(404, f"unknown run: {run_id}") from None
+    manifest = run_store.read_json(directory / run_store.MANIFEST)
+    report = _read_run_json(directory, run_store.ARTIFACTS, "report.json")
+    if not isinstance(report, dict):
+        raise HTTPException(404, "report not available yet")
+    pr_files = list(report.get("pr_files") or [])
+    if not pr_files:
+        raise HTTPException(404, "no upstream PR recorded for this run")
+    actual = set(pr_files)
+    target = _target_string(directory, manifest)
+    package = report.get("package") or manifest.get("package") or ""
+
+    grep = None
+    changeset = _read_run_json(directory, run_store.ARTIFACTS,
+                               "changeset.json")
+    if isinstance(changeset, dict) and package:
+        try:
+            root = _source_root(directory, manifest)
+        except HTTPException:
+            root = None
+        if root is not None:
+            items = [_namespace(i) for i in changeset.get("items") or []
+                     if isinstance(i, dict)]
+            patterns = patterns_for_changeset(
+                SimpleNamespace(items=items))
+            hits = grep_hits(package_dir(root, package), patterns)
+            grep = _score_files(_hit_files(hits, root), actual)
+            grep["hits"] = len(hits)
+
+    ruff = None
+    stdout = _recorded_ruff_stdout(directory)
+    if stdout is not None:
+        hits = ruff_npy201(
+            target,
+            run=lambda cmd, cwd: SimpleNamespace(stdout=stdout,
+                                                 missing=None))
+        ruff = _score_files(_hit_files(hits or [], target), actual)
+        ruff["hits"] = len(hits or [])
+
+    return {"pr_files": sorted(actual), "pr_ref": _pr_ref(
+        report.get("pr_url") or ""), "grep": grep, "ruff": ruff}

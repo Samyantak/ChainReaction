@@ -42,7 +42,9 @@ export function sourceHash() {
   for (const rel of files) {
     hash.update(rel)
     hash.update('\0')
-    hash.update(fs.readFileSync(path.join(root, rel)))
+    // Normalize line endings: a Windows checkout (CRLF) must hash the
+    // same as Linux (LF). Deterministic on binary files too.
+    hash.update(fs.readFileSync(path.join(root, rel)).toString('binary').replace(/\r\n/g, '\n'))
     hash.update('\0')
   }
   return hash.digest('hex')

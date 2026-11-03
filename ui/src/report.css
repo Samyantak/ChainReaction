@@ -1,0 +1,24 @@
+/* Report view (M6 §9): narrative + claim checks, scoreboard, provenance. */
+
+.report-view section { margin-top: 24px; }
+.report-view h3 { font-size: 18px; margin: 0 0 8px; }
+.report-view p { max-width: 78ch; }
+
+.claims-sheet { margin-top: 12px; }
+.claim-row {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--grid);
+  flex-wrap: wrap;
+}
+.claim-row:last-child { border-bottom: none; }
+.claim-label { font-weight: 500; word-break: break-word; }
+.claim-detail { font-size: 12px; color: var(--ink-muted); margin-left: auto; }
+
+.export-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.export-row .btn { min-height: 40px; }
+
+/* Stacked provenance rows share one border. */
+.title-stack .title-block + .title-block { border-top: none; }

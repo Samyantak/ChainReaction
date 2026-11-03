@@ -162,7 +162,10 @@ def cancel_run(run_id: str) -> dict:
 
 
 @app.get("/api/runs/{run_id}/artifacts/{name:path}")
-def get_artifact(run_id: str, name: str):
+def get_artifact(run_id: str, name: str, optional: bool = False):
+    """One recorded artifact file. `optional=1` answers a missing file
+    with an empty 200 (JSON null, text "") so views that render without
+    future fields never log a console 404; unknown runs still 404."""
     try:
         base = ui_api.run_or_preset_dir(run_id) / run_store.ARTIFACTS
     except ValueError:
@@ -172,9 +175,12 @@ def get_artifact(run_id: str, name: str):
     path = (base / name).resolve()
     if path != base.resolve() and base.resolve() not in path.parents:
         raise HTTPException(400, f"invalid artifact: {name}")
+    is_json = path.suffix == ".json"
+    media = "application/json" if is_json else "text/plain"
     if not path.is_file():
+        if optional:
+            return Response(b"null" if is_json else b"", media_type=media)
         raise HTTPException(404, f"unknown artifact: {name}")
-    media = "application/json" if path.suffix == ".json" else "text/plain"
     return Response(path.read_bytes(), media_type=media)
 
 

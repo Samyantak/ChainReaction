@@ -25,8 +25,9 @@
   transition: transform 220ms ease-out, opacity 200ms ease-out;
 }
 .domino.upright { opacity: 0; }
-.domino.tipped { opacity: 1; transform: rotate(14deg); }
+.domino.tipped { opacity: 1; transform: rotate(10deg); }
 .domino.no-motion.tipped { transform: none; }
+.domino.role-root.tipped { transform: none; }
 .domino-top {
   font-size: 11px;
   padding: 10px 8px;
@@ -117,8 +118,8 @@
   margin: 12px 0 6px;
 }
 .chain-hop { font-size: 12px; padding: 2px 0; word-break: break-all; }
-.chain-site { color: var(--sky-ink); }
-.panel-test { font-size: 11px; padding: 1px 0; word-break: break-all; }
+.chain-site { color: var(--sky-ink); white-space: nowrap; }
+/* .panel-test lives in theme.css (shared with the verify view). */
 .panel-quote { font-style: italic; }
 
 @media (max-width: 1100px) {

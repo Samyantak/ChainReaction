@@ -4,16 +4,18 @@ import { Chip, Sheet, Status, TitleBlock } from '../components'
 import { STAGES, STAGE_VIEW, VIEW_STAGE, stageStates } from '../stages'
 import { useRun } from '../useRun'
 import GraphView from './Graph'
+import VerifyView from './Verify'
+import ReportView from './Report'
 import '../run.css'
 
 const VIEW_TITLES = {
   setup: ['Setup', 'Clone, detect, build envs, baselines. Full view lands in step 7.'],
   interpret: ['Interpret', 'The change set. Full view lands in step 8.'],
   investigate: ['Investigate', 'Tool calls and findings. Full view lands in step 8.'],
-  graph: ['Prediction graph', 'Domino tiles + impacted subgraph. Lands in step 5.'],
-  verify: ['Verify', 'Before vs after, predicted vs actual. Lands in step 6.'],
+  graph: ['Prediction graph', 'Domino tiles + impacted subgraph.'],
+  verify: ['Verify', 'Before vs after, predicted vs actual.'],
   fix: ['Fix', 'Rounds to green. Full view lands in step 8.'],
-  report: ['Report', 'Narrative, scoreboard, exports. Lands in step 6.'],
+  report: ['Report', 'Narrative, scoreboard, exports.'],
 }
 
 function repoShort(manifest) {
@@ -270,6 +272,10 @@ export default function Run({ id, view }) {
         <StageRail runId={id} states={states} now={now} />
         {view === 'graph' ? (
           <GraphView runId={id} />
+        ) : view === 'verify' ? (
+          <VerifyView runId={id} />
+        ) : view === 'report' ? (
+          <ReportView runId={id} />
         ) : (
           <ViewPanel runId={id} view={view} stage={stage} state={states[stage]} events={events} />
         )}

@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import cytoscape from 'cytoscape'
-import { getJSON, useApi } from '../api'
+import dagre from 'cytoscape-dagre'
+import { getJSON, useApi, withOptional } from '../api'
+
+cytoscape.use(dagre)
 import { Status } from '../components'
 import { CodeBlock, FileHead } from '../CodeBlock'
 import '../graph.css'
@@ -120,9 +123,9 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
             label: 'data(label)',
             color: cssVar('--ink') || '#102536',
             'font-family': '"Martian Mono", monospace',
-            'font-size': 10,
+            'font-size': 13,
             'text-wrap': 'wrap',
-            'text-max-width': 150,
+            'text-max-width': 180,
             padding: '8px',
             'text-valign': 'center',
             'text-halign': 'center',
@@ -130,7 +133,14 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
         },
         {
           selector: 'node.chain',
-          style: { 'background-color': cssVar('--sky'), 'border-width': 3 },
+          style: {
+            'background-color': cssVar('--sky'),
+            'border-width': 3,
+            'font-size': 14,
+            'font-weight': 600,
+            padding: '12px',
+            'text-max-width': 220,
+          },
         },
         {
           selector: 'node.cluster',
@@ -149,6 +159,7 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
           selector: 'edge',
           style: {
             width: 1,
+            opacity: 0.25,
             'line-color': cssVar('--ink-muted'),
             'target-arrow-color': cssVar('--ink-muted'),
             'target-arrow-shape': 'triangle',
@@ -158,20 +169,43 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
         {
           selector: 'edge.chain-edge',
           style: {
-            width: 2,
+            width: 2.5,
+            opacity: 1,
             'line-color': cssVar('--red'),
             'target-arrow-color': cssVar('--red'),
           },
         },
       ],
       layout: {
-        name: 'breadthfirst',
-        roots: spine.length > 0 ? [spine[spine.length - 1]] : undefined,
-        directed: true,
-        spacingFactor: 1.15,
+        name: 'dagre',
+        // Import edges point importer -> imported, so bottom-to-top
+        // ranks nodes by distance from the breaking line: the break
+        // sits on top, the package root at the bottom.
+        rankDir: 'BT',
+        ranker: 'longest-path',
+        nodeSep: 30,
+        rankSep: 60,
         animate: false,
       },
     })
+    // Fit the whole visible graph once positions are final. Both
+    // hooks stay: whichever fires last wins, so a sync layout that
+    // finishes before ready still ends fitted to the viewport.
+    // Whole-fit can shrink labels below reading size, so never zoom
+    // out past 0.75 (chain labels still render ~10px) — the chain
+    // stays centered and the rest is a pan away.
+    const fitVisible = () => {
+      const shown = cy.elements(':visible')
+      if (shown.length > 0) cy.fit(shown, 30)
+      if (cy.zoom() < 0.75) {
+        cy.zoom(0.75)
+        const chain = cy.nodes('.chain:visible')
+        if (chain.length > 0) cy.center(chain)
+        else cy.center()
+      }
+    }
+    cy.ready(fitVisible)
+    cy.one('layoutstop', fitVisible)
     cy.on('tap', 'node', (e) => {
       const node = e.target
       if (node.data('cluster')) onExpand()
@@ -284,7 +318,7 @@ function SidePanel({ runId, module, tiles, nodes, changeset }) {
 
 export default function GraphView({ runId }) {
   const { data, error } = useApi(`/api/runs/${runId}/graph`)
-  const { data: changeset } = useApi(`/api/runs/${runId}/artifacts/changeset.json`)
+  const { data: changeset } = useApi(withOptional(`/api/runs/${runId}/artifacts/changeset.json`))
   const [full, setFull] = useState(null)
   const [expanding, setExpanding] = useState(false)
   const [selected, setSelected] = useState(null)

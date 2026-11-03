@@ -1,9 +1,11 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useApi } from './api'
 import { RedCircle } from './components'
 
-/* CodeBlock: a file window with an optional breaking line (accent text
- * + red-pencil circle + gutter dot). Fetches its own lines. */
+/* CodeBlock: a file window around the cited line (accent text
+ * + red-pencil circle + gutter dot, scrolled into view). The cited
+ * line is the window center — the decision tile's breaking line, or
+ * a link tile's import site. Fetches its own lines. */
 export function CodeBlock({
   runId,
   path,
@@ -13,6 +15,7 @@ export function CodeBlock({
   caption = null,
   lines = null,
 }) {
+  const cited = breakLine ?? center
   const start = Math.max(1, center - radius)
   const end = center + radius
   const { data: src } = useApi(
@@ -21,12 +24,19 @@ export function CodeBlock({
       : null,
   )
   const rows = lines ?? src?.lines ?? []
+  const boxRef = useRef(null)
+  useEffect(() => {
+    const box = boxRef.current
+    if (!box || cited == null) return
+    const el = box.querySelector('.code-line.break')
+    if (el) box.scrollTop = Math.max(0, el.offsetTop - box.clientHeight / 3)
+  }, [rows.length, cited])
   return (
     <div className="sheet code-sheet">
       <div className="code-file mono">{path}</div>
-      <div className="code-lines">
+      <div className="code-lines code-scroll" ref={boxRef}>
         {rows.map((l) => {
-          const isBreak = breakLine != null && l.no === breakLine
+          const isBreak = cited != null && l.no === cited
           return (
             <div className={`code-line${isBreak ? ' break' : ''}`} key={l.no}>
               <span className="code-gutter" aria-hidden="true">

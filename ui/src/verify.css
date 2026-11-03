@@ -1,0 +1,47 @@
+/* Verify view (M6 §7): before/after sheets, layers, test scoring. */
+
+.verify-view section { margin-top: 24px; }
+.verify-view h3 { font-size: 18px; margin: 0 0 8px; }
+
+.env-grid { grid-template-columns: 1fr 1fr; margin-top: 8px; }
+.env-sheet .sheet-no { font-size: 11px; color: var(--ink-muted); }
+.env-version { font-size: 20px; font-weight: 600; margin: 2px 0 8px; }
+.env-row { margin-top: 6px; font-size: 14px; }
+.env-row.mono { font-size: 13px; }
+
+.layer-card { margin-top: 12px; }
+.layer-head { display: flex; align-items: center; gap: 12px; }
+.layer-head .spacer { margin-left: auto; }
+.layer-row { display: flex; gap: 12px; align-items: baseline; margin-top: 8px; flex-wrap: wrap; }
+.layer-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+  min-width: 110px;
+}
+.chain-line { word-break: break-word; font-size: 13px; }
+.layer-meta { font-size: 12px; color: var(--ink-muted); }
+.layer-meta .missed { color: var(--red-ink); }
+:root[data-theme="dark"] .layer-meta .missed { color: var(--red); }
+.layer-tail { margin-top: 8px; }
+.layer-log { margin-top: 8px; }
+.layer-log summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.layer-log .log-tail { margin-top: 6px; max-height: 320px; }
+
+.test-grid { grid-template-columns: repeat(3, 1fr); }
+.test-list h4 { font-size: 14px; margin: 0 0 6px; }
+.panel-test.tone-flag { color: var(--red-ink); }
+:root[data-theme="dark"] .panel-test.tone-flag { color: var(--red); }
+.panel-test.tone-ok { color: var(--ok); }
+.panel-test.tone-warn { color: var(--sky-ink); }
+
+.group-row { font-size: 13px; padding: 3px 0; word-break: break-word; }
+.group-count { font-weight: 700; margin-right: 8px; }
+
+@media (max-width: 1100px) {
+  .test-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .env-grid { grid-template-columns: 1fr; }
+}

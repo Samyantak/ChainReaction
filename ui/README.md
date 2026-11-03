@@ -27,6 +27,13 @@ npm run build       # rebuild dist/ + write its content hash
 npm run check-dist  # fails if dist/ content is stale
 ```
 
+## Test
+
+```sh
+cd ui
+npm test   # stage-derivation checks (node:test, no deps)
+```
+
 ## Layout
 
 - `src/theme.css` — Redline Blueprint tokens + base components

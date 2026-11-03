@@ -44,22 +44,24 @@ export function parseChunk(state, chunk) {
   return { events }
 }
 
-/* Stream url to onEvent({id, name, data}). Reconnects with ?from= until
- * stop() returns true or the signal aborts. onState('live' |
- * 'connecting' | 'closed') reports connection state. Resolves when
- * stopped. */
+/* Stream url to onEvent({id, name, data}). Always fetches the full
+ * history first (?from=0), then reconnects with ?from=<last id> until
+ * shouldStop() is true or the signal aborts — so a finished run
+ * opened by deep link still builds its state from the event history.
+ * onState('live' | 'connecting' | 'closed') reports connection state.
+ * Resolves when stopped. */
 export async function streamEvents(url, { signal, onEvent, onState, shouldStop }) {
   const state = createParser()
   onState?.('connecting')
   for (;;) {
     if (signal?.aborted) return
-    if (await shouldStop?.(state.lastId)) {
-      onState?.('closed')
-      return
-    }
     try {
       const sep = url.includes('?') ? '&' : '?'
       const res = await fetch(`${url}${sep}from=${state.lastId}`, { signal })
+      if (res.status === 404 || res.status === 400) {
+        onState?.('closed')
+        return
+      }
       if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`)
       onState?.('live')
       const reader = res.body.getReader()
@@ -71,14 +73,17 @@ export async function streamEvents(url, { signal, onEvent, onState, shouldStop }
         for (const e of events) onEvent?.(e)
         if (signal?.aborted) return
       }
-      // Clean end (server closes idle/terminal streams): pause before
-      // the shouldStop check so a lagging snapshot can't hot-loop.
-      onState?.('connecting')
-      await new Promise((r) => setTimeout(r, state.retry))
     } catch {
       if (signal?.aborted) return
-      onState?.('connecting')
-      await new Promise((r) => setTimeout(r, state.retry))
     }
+    // The stream ended (server closes idle/terminal streams): stop
+    // only once the snapshot confirms terminal, else back off and
+    // resume. The pause also keeps a lagging snapshot from hot-loop.
+    if (await shouldStop?.()) {
+      onState?.('closed')
+      return
+    }
+    onState?.('connecting')
+    await new Promise((r) => setTimeout(r, state.retry))
   }
 }

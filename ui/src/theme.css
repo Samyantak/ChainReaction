@@ -266,6 +266,22 @@ a:visited { color: var(--sky-ink); }
   border-radius: 0;
 }
 
+.sheet-no { font-size: 11px; color: var(--ink-muted); }
+.panel-test { font-size: 11px; padding: 1px 0; word-break: break-all; }
+
+/* ---- Measurements (landing + verify/report scoreboards) ---- */
+.measure-value { font-size: 36px; font-weight: 700; letter-spacing: -0.03em; }
+.measure-label { font-weight: 600; }
+.measure-sub { font-size: 14px; color: var(--ink-muted); }
+.measure-source { font-size: 12px; color: var(--ink-muted); }
+.measure-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin: 8px 0 16px; }
+@media (max-width: 1100px) {
+  .measure-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .measure-row { grid-template-columns: 1fr; gap: 24px; }
+}
+
 /* ---- Generic view states ---- */
 .view-error {
   font-family: "Martian Mono", ui-monospace, monospace;
@@ -322,6 +338,7 @@ a:visited { color: var(--sky-ink); }
 .code-line.break .code-text { color: var(--red-ink); font-weight: 700; }
 :root[data-theme="dark"] .code-line.break .code-text { color: var(--red); }
 .code-loading { padding: 0 16px; color: var(--ink-muted); font-family: inherit; }
+.code-lines.code-scroll { max-height: 380px; overflow-y: auto; position: relative; }
 .code-caption {
   font-size: 12px;
   color: var(--ink-muted);

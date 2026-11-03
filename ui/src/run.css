@@ -71,7 +71,7 @@
 }
 .log-row {
   display: grid;
-  grid-template-columns: 64px 1fr;
+  grid-template-columns: 76px 1fr;
   gap: 8px;
   padding: 1px 12px;
   font-family: "Martian Mono", ui-monospace, monospace;
@@ -79,7 +79,7 @@
   line-height: 1.6;
   word-break: break-word;
 }
-.log-time { color: var(--line-num); user-select: none; }
+.log-time { color: var(--line-num); user-select: none; white-space: nowrap; }
 .log-row.tone-flag .log-text { color: var(--red-ink); font-weight: 500; }
 .log-row.tone-ok .log-text { color: var(--ok); }
 .log-row.tone-warn .log-text { color: var(--sky-ink); }
