@@ -219,33 +219,87 @@ def parse_failure_messages(output: str, target: str | Path
     return out
 
 
+def parse_file_errors(output: str, target: str | Path) -> dict[str, str]:
+    """ERROR file -> collection message for file-level ERROR lines."""
+    out: dict[str, str] = {}
+    for line in (output or "").splitlines():
+        if not line.startswith("ERROR ") or "::" in line:
+            continue
+        path, sep, msg = line[6:].partition(" - ")
+        path = _strip_target_prefix(path.strip(), target)
+        if path:
+            out[path] = msg.strip() if sep else ""
+    return out
+
+
 def _normalize_failure_message(msg: str) -> str:
-    """Group key for a summary message: collapsed, truncation-tolerant."""
+    """Group key for a summary message: collapsed, capped, or "other"."""
     text = " ".join(str(msg or "").split())
     if not text:
         return "other"
-    # Truncated lines end with ... mid-word (AttributeErro...): keep the
-    # prefix as the key so equal truncations group together.
     return text[:200]
+
+
+def _merge_truncations(buckets: dict[str, list[str]]) -> dict[str, list[str]]:
+    """Fold truncation fragments into their longest observed message.
+
+    pytest cuts summary lines at the terminal width, so one error
+    fragments into many prefix variants (...., .. D...). A message
+    ending in dots that is a strict prefix (after dot-strip) of a
+    longer observed message is its truncation: fold it. Messages
+    without truncation evidence never merge, and "other" never merges.
+    """
+    merged: dict[str, list[str]] = {}
+    for key in sorted(buckets, key=len, reverse=True):
+        stem = key.rstrip(".").rstrip()
+        target = None
+        if key != "other" and key.rstrip().endswith(".") and stem:
+            for kept in merged:
+                if (kept != "other" and len(kept) > len(key)
+                        and kept.startswith(stem)):
+                    target = kept
+                    break
+        if target is None:
+            merged.setdefault(key, []).extend(buckets[key])
+        else:
+            merged[target].extend(buckets[key])
+    return merged
+
+
+def _file_fallback_message(tid: str, file_errors: dict[str, str]) -> str:
+    """ERROR message of tid's file ("", when its file did not ERROR)."""
+    norm = tid.replace("\\", "/")
+    for path, msg in file_errors.items():
+        if norm == path.replace("\\", "/") or norm.startswith(
+                path.replace("\\", "/") + "::"):
+            return msg
+    return ""
 
 
 def failure_groups(new_failed: set[str], after_output: str,
                    target: str | Path) -> list[dict]:
     """New failures grouped by error message, largest first.
 
-    Each group is {message, count, examples}: message is the normalized
-    -rfE message (or "other" when the line carries none), examples are
-    up to three sorted test ids. Tells the user what the decision
-    actually caused versus collateral breakage.
+    Each group is {message, count, examples}: message is the longest
+    observed -rfE message in the bucket (truncation fragments fold
+    together), examples are up to three sorted test ids. Tests that
+    never ran (their file ERRORed at collection) inherit the file's
+    ERROR message; only truly messageless failures read "other". Tells
+    the user what the decision actually caused versus collateral
+    breakage.
     """
     messages = parse_failure_messages(after_output, target)
+    file_errors = parse_file_errors(after_output, target)
     buckets: dict[str, list[str]] = {}
     for tid in set(new_failed or ()):
-        key = _normalize_failure_message(messages.get(tid, ""))
-        buckets.setdefault(key, []).append(tid)
+        if tid in messages:
+            msg = messages[tid]
+        else:
+            msg = _file_fallback_message(tid, file_errors)
+        buckets.setdefault(_normalize_failure_message(msg), []).append(tid)
     groups = [{"message": msg, "count": len(tids),
                "examples": sorted(tids)[:3]}
-              for msg, tids in buckets.items()]
+              for msg, tids in _merge_truncations(buckets).items()]
     groups.sort(key=lambda g: (-g["count"], g["message"]))
     return groups
 

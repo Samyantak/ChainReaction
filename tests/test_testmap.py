@@ -173,6 +173,28 @@ def test_failure_groups_attribute_by_message():
     assert any(g["message"] == "other" and g["count"] == 1 for g in groups)
 
 
+def test_failure_groups_fold_truncations_and_file_errors():
+    from chainreaction.testmap import failure_groups
+
+    full = "AttributeError: `np.string_` was removed. Use `np.bytes_` instead."
+    out = (f"FAILED a.py::t1 - {full}\n"
+           "FAILED a.py::t2 - AttributeError: `np.string_` was removed. Use `np.byt...\n"
+           "FAILED b.py::t3 - ValueError: bad shape\n"
+           "ERROR c.py - AttributeError: `np.float_` was removed\n")
+    groups = failure_groups({"a.py::t1", "a.py::t2", "b.py::t3",
+                             "c.py::t9"}, out, "t")
+    assert [(g["count"], g["message"]) for g in groups] == [
+        (2, full),
+        (1, "AttributeError: `np.float_` was removed"),
+        (1, "ValueError: bad shape"),
+    ]
+    # Complete messages that merely share words never merge.
+    out2 = ("FAILED a.py::t1 - ValueError: bad shape\n"
+            "FAILED a.py::t2 - ValueError: bad shape param\n")
+    groups2 = failure_groups({"a.py::t1", "a.py::t2"}, out2, "t")
+    assert len(groups2) == 2
+
+
 def test_focused_dump_survives_scrub_roundtrip():
     """Scrubbed <ws> dump text stays valid JSON through untext+parse.
 
