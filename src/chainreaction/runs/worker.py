@@ -118,6 +118,7 @@ def create_run(req: RunRequest) -> str:
             "model": source.get("model", ""),
             "base_url_host": source.get("base_url_host", ""),
             "changeset_source": source.get("changeset_source"),
+            "interpret_flow": source.get("interpret_flow", "legacy"),
             "narrative_source": source.get("narrative_source"),
             "chainreaction_git_sha": _code_sha(),
             "created_at": utc_now_iso(),
@@ -219,7 +220,8 @@ def _copy_recordings(ctx: RunContext) -> None:
     # Every run dir stays self-contained (replay-of-replay works) and
     # byte-preserving copies keep the provenance chain auditable.
     # Presets store large recordings gzipped; the .gz twin wins.
-    for name in (store_mod.LLM_CALLS, store_mod.CMDS, store_mod.FETCHES):
+    for name in (store_mod.LLM_CALLS, store_mod.CMDS, store_mod.FETCHES,
+                 store_mod.SEARCHES):
         for cand in (ctx.source_dir / (name + ".gz"), ctx.source_dir / name):
             if cand.is_file():
                 shutil.copy(cand, ctx.dir / cand.name)

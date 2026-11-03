@@ -725,12 +725,14 @@ def test_copy_recordings_prefers_gzip_twin(tmp_path):
     src.mkdir()
     (src / "cmds.jsonl.gz").write_bytes(b"gz-bytes")
     (src / "fetches.jsonl").write_text("plain", encoding="utf-8")
+    (src / "searches.jsonl").write_text("{}", encoding="utf-8")
     dst = tmp_path / "dst"
     dst.mkdir()
     worker._copy_recordings(SimpleNamespace(source_dir=src, dir=dst))
     assert (dst / "cmds.jsonl.gz").read_bytes() == b"gz-bytes"
     assert not (dst / "cmds.jsonl").exists()
     assert (dst / "fetches.jsonl").is_file()
+    assert (dst / "searches.jsonl").is_file()
 
 
 def test_preset_replay_matches_committed(monkeypatch, tmp_path):
@@ -878,7 +880,7 @@ def test_replay_manifest_carries_generic_provenance(tmp_runs):
         workspace="workspaces/x__y@abc", package="y",
         allow_untrusted=True, decision="upgrade d to 2",
         guide_url="https://example.com/g", guide_method="model",
-        guide_proposal_fetched=True,
+        guide_proposal_fetched=True, interpret_flow="m3",
         env_provenance={"before": "built", "after": "built"})
     replay = worker.create_run(
         worker.RunRequest(replay_from="src1", mode="replay"))
@@ -888,3 +890,9 @@ def test_replay_manifest_carries_generic_provenance(tmp_runs):
     assert manifest["guide_method"] == "model"
     assert manifest["guide_proposal_fetched"] is True
     assert manifest["workspace"] == "workspaces/x__y@abc"
+    assert manifest["interpret_flow"] == "m3"
+    _live_manifest("src2", status="done")
+    legacy = worker.create_run(
+        worker.RunRequest(replay_from="src2", mode="replay"))
+    assert store.read_json(
+        store.run_dir(legacy) / store.MANIFEST)["interpret_flow"] == "legacy"
