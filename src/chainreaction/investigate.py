@@ -614,6 +614,14 @@ def _run_in_env(env: ToolEnv, env_name: str, cmd: list[str],
 
 def _frame_display(env: ToolEnv, file: str) -> str:
     """Repo-relative file for a traceback frame (deterministic)."""
+    # A scrubbed token (<env:after>/site-packages/...) is never a repo
+    # file. On POSIX it would pass the workspace check below as a
+    # nonexistent relative path; on Windows Path() rejects it. Map it
+    # through site-packages first so both OSes give the same answer.
+    if str(file).startswith("<"):
+        sub = site_packages_subpath(file, env.package)
+        if sub:
+            return f"{env.package}/{sub}"
     try:
         rel = Path(file)
         ws = env.workspace.resolve()

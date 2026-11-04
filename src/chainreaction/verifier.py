@@ -186,7 +186,10 @@ def frames_to_modules(frames: list[Frame], root: str | Path,
 
     for f in frames:
         try:
-            rel = Path(f.file).resolve().relative_to(root)
+            # Scrubbed tokens (<env:...>) are never under root (and
+            # Windows rejects them outright); keep POSIX the same.
+            rel = (None if str(f.file).startswith("<")
+                   else Path(f.file).resolve().relative_to(root))
         except (ValueError, OSError):
             rel = None
         if rel is None:

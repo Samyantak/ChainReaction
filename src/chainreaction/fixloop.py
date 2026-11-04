@@ -462,10 +462,16 @@ def in_tree_frames(frames, root: str | Path,
         cand = Path(norm)
         if not cand.is_absolute():
             cand = root_abs / cand
-        try:
-            rel = cand.resolve().relative_to(root_abs)
-        except (ValueError, OSError):
+        # Scrubbed tokens (<env:after>/site-packages/...) are never repo
+        # files: Windows rejects them in Path.resolve(), POSIX would
+        # accept them as a nonexistent path under the root. Skip both.
+        if norm.startswith("<"):
             rel = None
+        else:
+            try:
+                rel = cand.resolve().relative_to(root_abs)
+            except (ValueError, OSError):
+                rel = None
         if rel is not None:
             out.append(f"{rel.as_posix()}:{frame.line}")
             continue

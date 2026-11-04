@@ -235,6 +235,16 @@ class RunContext:
 
     # -- model --
 
+    def _prompt_key(self, model, system, user, *rest) -> str:
+        """prompt_hash over the scrubbed prompt: exactly the text the
+        recording stores. Live prompts can carry machine paths (a
+        traceback's site-packages file) that replay only ever sees in
+        placeholder form, so hashing raw text forks the key per machine.
+        Prompts without paths scrub to themselves (keys unchanged)."""
+        sc = self.scrubber
+        return llm_mod.cache_key_for(model, sc.text(system), sc.text(user),
+                                     *rest)
+
     def llm(self, system: str, user: str, max_tokens: int = 8000,
             response_format=None, reasoning_effort=None) -> str:
         """Recorded model call; in replay returns the recorded response.
@@ -247,7 +257,7 @@ class RunContext:
         """
         if self.mode == "replay":
             model = self.manifest.get("model") or llm_mod.model_name()
-            prompt_hash = llm_mod.cache_key_for(model, system, user,
+            prompt_hash = self._prompt_key(model, system, user,
                                                 response_format,
                                                 reasoning_effort)
             rec = self._take("llm", prompt_hash,
@@ -297,7 +307,7 @@ class RunContext:
             # the tombstone instead of missing the next prompt.
             duration_ms = int((time.perf_counter() - t0) * 1000)
             model = llm_mod.model_name()
-            prompt_hash = llm_mod.cache_key_for(model, system, user,
+            prompt_hash = self._prompt_key(model, system, user,
                                                 response_format,
                                                 reasoning_effort)
             store_mod.append_jsonl(self.dir / store_mod.LLM_CALLS, {
@@ -318,7 +328,7 @@ class RunContext:
                                    "retried": retried})
             raise
         duration_ms = int((time.perf_counter() - t0) * 1000)
-        prompt_hash = llm_mod.cache_key_for(res.model, system, user,
+        prompt_hash = self._prompt_key(res.model, system, user,
                                             response_format,
                                             reasoning_effort)
         store_mod.append_jsonl(self.dir / store_mod.LLM_CALLS, {
@@ -357,7 +367,7 @@ class RunContext:
         """
         if self.mode == "replay":
             model = self.manifest.get("model") or llm_mod.model_name()
-            prompt_hash = llm_mod.cache_key_for(model, system, user,
+            prompt_hash = self._prompt_key(model, system, user,
                                                 response_format,
                                                 reasoning_effort, tools,
                                                 tool_choice)
@@ -411,7 +421,7 @@ class RunContext:
         except Exception as exc:
             duration_ms = int((time.perf_counter() - t0) * 1000)
             model = llm_mod.model_name()
-            prompt_hash = llm_mod.cache_key_for(model, system, user,
+            prompt_hash = self._prompt_key(model, system, user,
                                                 response_format,
                                                 reasoning_effort, tools,
                                                 tool_choice)
@@ -434,7 +444,7 @@ class RunContext:
                                    "error": exc.__class__.__name__})
             raise
         duration_ms = int((time.perf_counter() - t0) * 1000)
-        prompt_hash = llm_mod.cache_key_for(res.model, system, user,
+        prompt_hash = self._prompt_key(res.model, system, user,
                                             response_format,
                                             reasoning_effort, tools,
                                             tool_choice)
