@@ -92,12 +92,15 @@ function RailItem({ runId, stage, index, state, now }) {
   ]
   return (
     <a className={`rail-item${active ? ' active' : ''}`} href={`#/runs/${runId}/${view}`}>
-      <span className="mono rail-sheet">SHEET {index + 1} / 7</span>
-      <span className="rail-name">{stage}</span>
-      <span className="mono rail-state">
-        {icon} {state.state}
-        {state.state === 'running' && state.startedAt ? ` · ${elapsed(state.startedAt, now)}` : ''}
-        {state.state === 'skipped' && state.reason ? ` · ${state.reason}` : ''}
+      <span className={`stage-dot state-${state.state}`} aria-hidden="true" />
+      <span className="rail-text">
+        <span className="mono rail-sheet">SHEET {index + 1} / 7</span>
+        <span className="rail-name">{stage}</span>
+        <span className="mono rail-state">
+          {icon} {state.state}
+          {state.state === 'running' && state.startedAt ? ` · ${elapsed(state.startedAt, now)}` : ''}
+          {state.state === 'skipped' && state.reason ? ` · ${state.reason}` : ''}
+        </span>
       </span>
     </a>
   )

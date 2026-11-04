@@ -1,6 +1,6 @@
 import React from 'react'
 import { useApi, useOptionalJson } from '../api'
-import { Button, DimensionRule, RedUnderline, Sheet, Status, TitleBlock } from '../components'
+import { Button, DimensionRule, FileIcon, RedUnderline, Sheet, Status, TitleBlock } from '../components'
 import '../report.css'
 
 function ClaimRow({ claim }) {
@@ -26,7 +26,7 @@ function Narrative({ report, claims }) {
       {narrative &&
         narrative.split('\n\n').map((para, i) => <p key={i}>{para}</p>)}
       {claims && claims.length > 0 && (
-        <Sheet className="claims-sheet">
+        <Sheet className="claims-sheet card">
           <div className="mono sheet-no">CLAIM CHECKS</div>
           {claims.map((c, i) => (
             <ClaimRow key={`${c.label}-${i}`} claim={c} />
@@ -129,7 +129,12 @@ function Scoreboard({ report, scores, runId }) {
             <div className="measure-value">{m.value}</div>
             <div className="measure-label">{m.label}</div>
             {m.sub && <div className="measure-sub">{m.sub}</div>}
-            {m.source && <div className="mono measure-source">{m.source}</div>}
+            {m.source && (
+              <div className="mono measure-source">
+                <FileIcon />
+                {m.source}
+              </div>
+            )}
           </div>
         ))}
       </div>

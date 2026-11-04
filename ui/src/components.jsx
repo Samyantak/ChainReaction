@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 /* DotBreak: module ids break after dots, never mid-word. Pair with
  * normal wrapping (no break-word/break-all) at the call site. The
@@ -60,9 +60,9 @@ export function Button({ kind = 'secondary', href, children, ...rest }) {
   )
 }
 
-/* Chip: boxed mono label; accent for breaking sites. */
-export function Chip({ accent = false, sky = false, children }) {
-  const cls = `chip${accent ? ' chip-accent' : ''}${sky ? ' chip-sky' : ''}`
+/* Chip: boxed mono label; accent for breaking sites, tone for status. */
+export function Chip({ accent = false, sky = false, tone = null, children }) {
+  const cls = `chip${accent ? ' chip-accent' : ''}${sky ? ' chip-sky' : ''}${tone ? ` chip-${tone}` : ''}`
   return <span className={cls}>{children}</span>
 }
 
@@ -76,11 +76,16 @@ export function Status({ tone = 'mute', text }) {
   )
 }
 
-/* DimensionRule: thin |——| rule above a measured value. */
+/* DimensionRule: thin dimension line with arrowheads above a value. */
 export function DimensionRule() {
   return (
     <svg className="dim-rule" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M1 7 V1 M1 4 H99 M99 7 V1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      <path
+        d="M9 4 H91 M9 4 L2 1.5 M9 4 L2 6.5 M91 4 L98 1.5 M91 4 L98 6.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill="none"
+      />
     </svg>
   )
 }
@@ -109,7 +114,9 @@ export function RedCircle({ children, className = '' }) {
           cx="60" cy="30" rx="56" ry="25"
           fill="none" stroke="var(--red)" strokeWidth="2.5"
           strokeLinecap="round"
-          strokeDasharray="300 14"
+          pathLength={100}
+          strokeDasharray="95.5 4.5"
+          className="draw-in"
           transform="rotate(-3 60 30)"
         />
       </svg>
@@ -127,7 +134,16 @@ export function RedUnderline({ children }) {
         aria-hidden="true"
         style={{ position: 'absolute', left: 0, right: 0, bottom: '-4px', width: '100%', height: '8px', pointerEvents: 'none' }}
       >
-        <path d="M2 5 C 30 3, 70 7, 98 4" fill="none" stroke="var(--red)" strokeWidth="2.5" strokeLinecap="round" />
+        <path
+          d="M2 5 C 30 3, 70 7, 98 4"
+          fill="none"
+          stroke="var(--red)"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          pathLength={100}
+          strokeDasharray="100 100"
+          className="draw-in"
+        />
       </svg>
     </span>
   )
@@ -136,4 +152,89 @@ export function RedUnderline({ children }) {
 /* RedNote: Caveat handwriting for annotations only — never UI text. */
 export function RedNote({ children }) {
   return <span className="red-note">{children}</span>
+}
+
+/* MatchStamp: the ✓ MATCH rubber stamp for proven chains. */
+export function MatchStamp({ small = false }) {
+  return <span className={`stamp${small ? ' stamp-small' : ''}`}>✓ MATCH</span>
+}
+
+/* Eyebrow: mono §0n · LABEL with a 36px rule above a section. */
+export function Eyebrow({ n, label }) {
+  return (
+    <div className="eyebrow mono">
+      <span className="eyebrow-rule" aria-hidden="true" />§{n} · {label}
+    </div>
+  )
+}
+
+/* Reveal: rise in on first view. Reduced-motion and missing
+ * IntersectionObserver show content immediately, never hidden. */
+export function Reveal({ index = 0, className = '', children, ...rest }) {
+  const ref = useRef(null)
+  const [shown, setShown] = useState(
+    () =>
+      typeof window === 'undefined' ||
+      window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ||
+      !('IntersectionObserver' in window),
+  )
+  useEffect(() => {
+    if (shown || !ref.current) return undefined
+    const el = ref.current
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setShown(true)
+          io.disconnect()
+        }
+      },
+      { threshold: 0.08 },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [shown])
+  return (
+    <div
+      ref={ref}
+      className={`reveal${shown ? ' revealed' : ''}${className ? ` ${className}` : ''}`}
+      style={{ transitionDelay: `${index * 60}ms` }}
+      {...rest}
+    >
+      {children}
+    </div>
+  )
+}
+
+/* Logo: three dominoes tipping right, the last one red. */
+export function Logo() {
+  return (
+    <svg className="logo-mark" viewBox="0 0 36 22" aria-hidden="true">
+      <rect x="2" y="5" width="9" height="15" fill="var(--sheet)" stroke="var(--ink)" strokeWidth="2" />
+      <rect
+        x="14" y="4" width="9" height="15"
+        fill="var(--sheet)" stroke="var(--ink)" strokeWidth="2"
+        transform="rotate(8 18 19)"
+      />
+      <rect
+        x="25" y="3" width="9" height="15"
+        fill="var(--red)" stroke="var(--red)" strokeWidth="2"
+        transform="rotate(16 29 18)"
+      />
+    </svg>
+  )
+}
+
+/* FileIcon: tiny document glyph for source chips. */
+export function FileIcon() {
+  return (
+    <svg className="file-icon" viewBox="0 0 12 12" aria-hidden="true">
+      <path
+        d="M2 1 h5 l3 3 v7 h-8 z M7 1 v3 h3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
 }

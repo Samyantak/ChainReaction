@@ -38,19 +38,34 @@
   border-right: var(--rule) solid var(--ink);
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+/* Vertical rule joining the stage dots. */
+.rail::before {
+  content: '';
+  position: absolute;
+  left: 21px;
+  top: 18px;
+  bottom: 18px;
+  width: 2px;
+  background: var(--ink);
+  opacity: 0.35;
 }
 .rail-item {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  gap: 12px;
+  align-items: flex-start;
   padding: 10px 16px;
   border-bottom: var(--rule) solid var(--ink);
   text-decoration: none;
   color: var(--ink);
+  position: relative;
 }
 .rail-item:last-child { border-bottom: none; }
 .rail-item:hover { background: var(--paper); }
 .rail-item.active { background: var(--sky); }
+.rail-item .stage-dot { margin-top: 5px; position: relative; z-index: 1; }
+.rail-text { display: flex; flex-direction: column; gap: 2px; }
 .rail-sheet { font-size: 11px; color: var(--ink-muted); }
 .rail-name { font-weight: 600; text-transform: capitalize; }
 .rail-state { font-size: 12px; color: var(--ink-muted); }

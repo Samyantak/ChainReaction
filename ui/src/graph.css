@@ -2,7 +2,8 @@
 
 .graph-view { min-width: 0; }
 
-/* ---- Domino tiles ---- */
+/* ---- Domino tiles (tile styles live in theme.css, shared with the
+ * landing strip) ---- */
 .domino-block { margin-bottom: 16px; }
 .domino-row {
   display: flex;
@@ -10,50 +11,6 @@
   overflow-x: auto;
   padding: 24px 8px 28px;
 }
-.domino {
-  flex: 0 0 168px;
-  display: flex;
-  flex-direction: column;
-  background: var(--sheet);
-  border: 2px solid var(--ink);
-  border-radius: 0;
-  padding: 0;
-  cursor: pointer;
-  font: inherit;
-  color: var(--ink);
-  transform-origin: bottom right;
-  transition: transform 220ms ease-out, opacity 200ms ease-out;
-}
-.domino.upright { opacity: 0; }
-.domino.tipped { opacity: 1; transform: rotate(10deg); }
-.domino.no-motion.tipped { transform: none; }
-.domino.role-root.tipped { transform: none; }
-.domino-top {
-  font-size: 11px;
-  padding: 10px 8px;
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-.domino-divider { border-top: 2px solid var(--ink); }
-.domino-bottom {
-  font-size: 11px;
-  padding: 10px 8px;
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: var(--ink-muted);
-}
-.domino.role-decision { background: var(--btn-fill); border-color: var(--btn-fill); color: var(--btn-ink); }
-.domino.role-decision .domino-divider { border-top-color: var(--btn-ink); }
-.domino.role-decision .domino-bottom { color: var(--btn-ink); }
-.domino.role-root { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-.domino.role-root .domino-divider { border-top-color: var(--paper); }
-.domino.role-root .domino-bottom { color: var(--paper); }
 .domino.selected { outline: 3px solid var(--sky-ink); outline-offset: 3px; }
 
 /* ---- Toolbar / legend ---- */

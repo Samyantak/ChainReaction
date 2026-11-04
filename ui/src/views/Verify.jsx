@@ -1,6 +1,6 @@
 import React from 'react'
 import { useApi, useOptionalJson, useText } from '../api'
-import { Chip, DimensionRule, Sheet, Status } from '../components'
+import { Chip, DimensionRule, FileIcon, MatchStamp, Sheet, Status } from '../components'
 import { describeMatch, describeVersions } from '../verifyUtils'
 import '../verify.css'
 
@@ -32,9 +32,9 @@ function ProbeResult({ layer, kind }) {
   )
 }
 
-function EnvSheet({ title, version, layer, counts, excluded, warnings, kind, emptyCounts }) {
+export function EnvSheet({ title, version, layer, counts, excluded, warnings, kind, emptyCounts }) {
   return (
-    <Sheet className="env-sheet">
+    <Sheet className="env-sheet card">
       <div className="mono sheet-no">{title}</div>
       <div className="env-version mono">{version || 'version unknown'}</div>
       <div className="env-row">
@@ -84,7 +84,7 @@ function LayerLog({ runId, layer }) {
 
 function LayerCard({ runId, layer, kind }) {
   return (
-    <Sheet className="layer-card">
+    <Sheet className="layer-card card">
       <div className="layer-head">
         <strong>{layer.name}</strong>
         <span className="spacer" />
@@ -149,19 +149,22 @@ function TestPrediction({ scores }) {
             {pr(scores.test_precision)} / {pr(scores.test_recall)}
           </div>
           <div className="measure-label">test precision / recall</div>
-          <div className="mono measure-source">scores.json</div>
+          <div className="mono measure-source">
+            <FileIcon />
+            scores.json
+          </div>
         </div>
       </div>
-      <div className="sheet-grid test-grid">
-        <Sheet>
+      <div className="test-grid">
+        <Sheet className="card">
           <TestList title="True positives" ids={hits} tone="ok" />
           {hits.length === 0 && <p className="view-empty">None.</p>}
         </Sheet>
-        <Sheet>
+        <Sheet className="card">
           <TestList title="Missed" ids={missed} tone="flag" />
           {missed.length === 0 && <p className="view-empty">None — full recall.</p>}
         </Sheet>
-        <Sheet>
+        <Sheet className="card">
           <TestList title="False alarms" ids={falseAlarms} tone="warn" />
           {falseAlarms.length === 0 && <p className="view-empty">None.</p>}
         </Sheet>
@@ -233,7 +236,7 @@ export default function VerifyView({ runId }) {
     <div className="run-view verify-view">
       <h2>Verify</h2>
 
-      <div className="sheet-grid env-grid">
+      <div className="env-grid">
         <EnvSheet
           title="BEFORE"
           version={versions.before}
@@ -260,11 +263,19 @@ export default function VerifyView({ runId }) {
       )}
 
       <section>
-        <h3>
-          Predicted vs actual chain{' '}
-          {match === 'match' && <Status tone="ok" text="MATCH" />}
-          {match === 'differ' && <Status tone="flag" text="DIFFER" />}
-          {match === 'not-compared' && <Status tone="mute" text="NOT COMPARED" />}
+        <h3 className="chain-head">
+          <span>
+            Predicted vs actual chain{' '}
+            {match === 'match' && <Status tone="ok" text="MATCH" />}
+            {match === 'differ' && <Status tone="flag" text="DIFFER" />}
+            {match === 'not-compared' && <Status tone="mute" text="NOT COMPARED" />}
+          </span>
+          {match === 'match' && (
+            <>
+              <span className="spacer" />
+              <MatchStamp small />
+            </>
+          )}
         </h3>
         {match === 'not-compared' && (
           <p className="view-empty">
@@ -272,7 +283,7 @@ export default function VerifyView({ runId }) {
             compare the prediction against.
           </p>
         )}
-        <Sheet>
+        <Sheet className="card">
           <div className="layer-row">
             <span className="layer-label">predicted</span>
             <ChainLine modules={report.spine} />

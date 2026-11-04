@@ -1,8 +1,9 @@
 import React from 'react'
 import { useRoute } from './router'
-import { useStatus } from './api'
+import { useApi, useStatus } from './api'
 import { usePresenter, useTheme } from './theme'
-import { Sheet } from './components'
+import { Logo, Sheet } from './components'
+import { countReplayable } from './polishUtils'
 import Landing from './views/Landing'
 import Run from './views/Run'
 import NewView from './views/New'
@@ -22,9 +23,22 @@ function KeyPill() {
   )
 }
 
+function ReplayPill() {
+  const { data: presets } = useApi('/api/presets')
+  if (!presets) return null
+  const n = countReplayable(presets)
+  return (
+    <span className="replay-pill mono">
+      <span className="long">{n} drawings replay offline</span>
+      <span className="short">{n} offline</span>
+    </span>
+  )
+}
+
 function AppHeader({ theme, onToggleTheme, presenter, onTogglePresenter }) {
   return (
     <header className="app-header">
+      <Logo />
       <a className="wordmark" href="#/">
         ChainReaction
       </a>
@@ -34,6 +48,7 @@ function AppHeader({ theme, onToggleTheme, presenter, onTogglePresenter }) {
         <a href="#/history">History</a>
       </nav>
       <span className="spacer" />
+      <ReplayPill />
       <KeyPill />
       <button
         className={`theme-toggle${presenter ? ' on' : ''}`}

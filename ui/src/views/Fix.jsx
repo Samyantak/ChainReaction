@@ -79,7 +79,7 @@ function TestCounter({ fix }) {
 function RoundCard({ runId, round, demo }) {
   const probeOk = round.probe?.ok
   return (
-    <Sheet className="round-card">
+    <Sheet className="round-card card">
       <div className="round-head">
         <strong>Round {round.n}</strong>
         <span className="spacer" />
@@ -168,7 +168,7 @@ function FixBody({ runId, fix, demo }) {
       ))}
 
       <h3>Counts</h3>
-      <Sheet>
+      <Sheet className="card">
         <div className="mono">
           {[counts.fixed != null && `${counts.fixed} fixed`,
             counts.still_failing != null && `${counts.still_failing} still failing`,
@@ -183,7 +183,7 @@ function FixBody({ runId, fix, demo }) {
       {guards.length > 0 && (
         <>
           <h3>Guard checks</h3>
-          <Sheet>
+          <Sheet className="card">
             {guards.map((g, i) => (
               <div key={i} className="guard-row">
                 <Status tone={g.ok ? 'ok' : 'flag'} text={g.ok ? 'pass' : 'VIOLATION'} />{' '}
