@@ -57,3 +57,15 @@ test('older reports fall back to numpy fields', () => {
   })
   assert.deepEqual(describeVersions({}, null), { before: null, after: null })
 })
+
+test('tests group by file, biggest first, with filtering', async () => {
+  const { groupByFile, testOverlap, splitSignature } = await import('../src/verifyUtils.js')
+  const g = groupByFile(['a/t1.py::x', 'a/t2.py::y', 'a\\t2.py::z'])
+  assert.deepEqual(g, [['a/t2.py', ['y', 'z']], ['a/t1.py', ['x']]])
+  assert.deepEqual(groupByFile(['a/t1.py::x', 'a/t2.py::y'], 'T1'), [['a/t1.py', ['x']]])
+  const o = testOverlap({ actual_new: ['a', 'b'], predicted_failing: ['b', 'c'] })
+  assert.deepEqual(o, { hits: ['b'], missed: ['a'], falseAlarms: ['c'] })
+  assert.equal(testOverlap({}), null)
+  assert.deepEqual(splitSignature("AttributeError: `np.NaN` was removed"), ['AttributeError', '`np.NaN` was removed'])
+  assert.deepEqual(splitSignature('other'), [null, 'other'])
+})

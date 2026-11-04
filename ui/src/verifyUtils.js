@@ -64,3 +64,37 @@ export function describeVersions(report, envs) {
     after: afterVer ? `numpy ${afterVer}` : null,
   }
 }
+
+/* Test ids grouped by file, biggest groups first: [[file, [names]]]. */
+export function groupByFile(ids, needle = '') {
+  const q = String(needle || '').trim().toLowerCase()
+  const groups = new Map()
+  for (const raw of ids || []) {
+    const id = String(raw).replace(/\\/g, '/')
+    if (q && !id.toLowerCase().includes(q)) continue
+    const cut = id.indexOf('::')
+    const file = cut >= 0 ? id.slice(0, cut) : id
+    const name = cut >= 0 ? id.slice(cut + 2) : ''
+    if (!groups.has(file)) groups.set(file, [])
+    groups.get(file).push(name || file)
+  }
+  return [...groups.entries()].sort((a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1))
+}
+
+/* Prediction overlap: true positives, missed, false alarms. */
+export function testOverlap(scores) {
+  if (!scores || !Array.isArray(scores.actual_new)) return null
+  const actual = new Set(scores.actual_new)
+  const predicted = new Set(scores.predicted_failing || [])
+  return {
+    hits: [...actual].filter((t) => predicted.has(t)).sort(),
+    missed: [...actual].filter((t) => !predicted.has(t)).sort(),
+    falseAlarms: [...predicted].filter((t) => !actual.has(t)).sort(),
+  }
+}
+
+/* "AttributeError: `np.NaN` was removed…" -> ["AttributeError", "`np.NaN` was removed…"] */
+export function splitSignature(message) {
+  const m = /^\s*([A-Za-z_][\w.]*(?:Error|Exception|Warning|Exit|Interrupt))\s*:\s*([\s\S]*)$/.exec(String(message || ''))
+  return m ? [m[1], m[2]] : [null, String(message || 'other')]
+}

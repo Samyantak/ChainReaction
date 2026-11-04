@@ -2,6 +2,7 @@ import React from 'react'
 import { useApi, useOptionalJson, useText } from '../api'
 import { Chip, DimensionRule, FileIcon, MatchStamp, Sheet, Status } from '../components'
 import { describeMatch, describeVersions } from '../verifyUtils'
+import { FailureGroups, TestPrediction } from './VerifyTests'
 import '../verify.css'
 
 /* Mirror of stages._artifact_slug: probe "layer2 (peeled)" lives at
@@ -110,83 +111,6 @@ function LayerCard({ runId, layer, kind }) {
       )}
       <LayerLog runId={runId} layer={layer} />
     </Sheet>
-  )
-}
-
-function TestList({ title, ids, tone }) {
-  const SHOWN = 50
-  if (!ids || ids.length === 0) return null
-  return (
-    <div className="test-list">
-      <h4>
-        {title} <span className="mono">({ids.length})</span>
-      </h4>
-      {ids.slice(0, SHOWN).map((t) => (
-        <div className={`mono panel-test tone-${tone}`} key={t}>
-          {t}
-        </div>
-      ))}
-      {ids.length > SHOWN && <div className="mono panel-test">+{ids.length - SHOWN} more</div>}
-    </div>
-  )
-}
-
-function TestPrediction({ scores }) {
-  if (!scores || !Array.isArray(scores.actual_new)) return null
-  const actual = new Set(scores.actual_new || [])
-  const predicted = new Set(scores.predicted_failing || [])
-  const hits = [...actual].filter((t) => predicted.has(t)).sort()
-  const missed = [...actual].filter((t) => !predicted.has(t)).sort()
-  const falseAlarms = [...predicted].filter((t) => !actual.has(t)).sort()
-  const pr = (v) => (v == null ? '—' : Number(v).toFixed(2))
-  return (
-    <section>
-      <h3>Predicted vs actual failing tests</h3>
-      <div className="measure-row">
-        <div className="measure">
-          <DimensionRule />
-          <div className="measure-value mono">
-            {pr(scores.test_precision)} / {pr(scores.test_recall)}
-          </div>
-          <div className="measure-label">test precision / recall</div>
-          <div className="mono measure-source">
-            <FileIcon />
-            scores.json
-          </div>
-        </div>
-      </div>
-      <div className="test-grid">
-        <Sheet className="card">
-          <TestList title="True positives" ids={hits} tone="ok" />
-          {hits.length === 0 && <p className="view-empty">None.</p>}
-        </Sheet>
-        <Sheet className="card">
-          <TestList title="Missed" ids={missed} tone="flag" />
-          {missed.length === 0 && <p className="view-empty">None — full recall.</p>}
-        </Sheet>
-        <Sheet className="card">
-          <TestList title="False alarms" ids={falseAlarms} tone="warn" />
-          {falseAlarms.length === 0 && <p className="view-empty">None.</p>}
-        </Sheet>
-      </div>
-    </section>
-  )
-}
-
-function FailureGroups({ scores }) {
-  const groups = scores?.failure_groups
-  if (!groups || groups.length === 0) return null
-  return (
-    <section>
-      <h3>New failures by error signature</h3>
-      <Sheet>
-        {groups.map((g, i) => (
-          <div className="mono group-row" key={i}>
-            <span className="group-count">{g.count}×</span> {g.message || 'other'}
-          </div>
-        ))}
-      </Sheet>
-    </section>
   )
 }
 
@@ -303,8 +227,8 @@ export default function VerifyView({ runId }) {
         ))}
       </section>
 
-      <TestPrediction scores={scores} />
       <FailureGroups scores={scores} />
+      <TestPrediction scores={scores} />
     </div>
   )
 }
