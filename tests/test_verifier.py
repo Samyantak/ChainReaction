@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import requires_target_envs
 from chainreaction.verifier import (
     frames_to_modules,
     parse_traceback,
@@ -125,6 +126,7 @@ def test_target_python_missing_env_errors():
         target_python("nope")
 
 
+@requires_target_envs("numpy1", "numpy2")
 def test_before_after_contrast_on_nibabel():
     before = run_import_probe(target_python("numpy1"), "targets/nibabel",
                               "nibabel")

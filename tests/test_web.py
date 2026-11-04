@@ -5,6 +5,7 @@ import pytest
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
+from conftest import requires_target_envs  # noqa: E402
 from chainreaction.web import app  # noqa: E402
 
 client = TestClient(app)
@@ -19,6 +20,7 @@ def test_scenarios_lists_nibabel():
     assert body[0]["id"] == "nibabel-numpy2"
 
 
+@requires_target_envs("numpy1", "numpy2")
 def test_graph_marks_spine_hard():
     body = client.get("/api/graph?scenario=nibabel-numpy2").json()
     status = {n["id"]: n["status"] for n in body["nodes"]}
@@ -28,6 +30,7 @@ def test_graph_marks_spine_hard():
     assert all(e["line"] >= 1 for e in body["edges"])
 
 
+@requires_target_envs("numpy1", "numpy2")
 def test_report_matches_pipeline():
     body = client.get("/api/report?scenario=nibabel-numpy2").json()
     assert body["decision"] == "upgrade numpy to 2.0"
@@ -48,6 +51,7 @@ def test_report_matches_pipeline():
     assert body["file_behavior"] == body["file_missing"]
 
 
+@requires_target_envs("numpy1", "numpy2")
 def test_report_includes_per_claim_checks():
     body = client.get("/api/report?scenario=nibabel-numpy2").json()
     checks = body["claim_checks"]
@@ -60,6 +64,7 @@ def test_unknown_scenario_404s():
     assert client.get("/api/report?scenario=nope").status_code == 404
 
 
+@requires_target_envs("sponsorfit")
 def test_sponsorfit_decision_report():
     body = client.get("/api/report?scenario=sponsorfit-meta").json()
     assert body["decision"] == "switch to Meta Model API"
