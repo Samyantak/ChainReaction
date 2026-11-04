@@ -118,6 +118,38 @@ def test_llm_length_retry_records_both_attempts(tmp_runs):
     assert replay.replay_warnings() == []
 
 
+def test_llm_failed_call_records_tombstone_and_replay_reraises(tmp_runs):
+    calls = []
+
+    def fake(system, user, max_tokens, response_format):
+        calls.append(user)
+        if len(calls) == 1:
+            raise RuntimeError(
+                "empty response from model (finish_reason=length)")
+        return llm_mod.ChatResult("recovered", llm_mod.model_name(),
+                                  None, "stop", False, None)
+
+    live = RunContext(run_id="u1", manifest=_live_manifest("u1"),
+                      mode="live", live_llm=fake)
+    with pytest.raises(RuntimeError, match="finish_reason=length"):
+        live.llm("sys", "a")
+    assert live.llm("sys", "b") == "recovered"
+    recs = store.read_jsonl(live.dir / store.LLM_CALLS)
+    assert len(recs) == 2
+    assert recs[0]["response"] is None
+    assert recs[0]["error_class"] == "RuntimeError"
+    assert recs[0]["error"] == \
+        "empty response from model (finish_reason=length)"
+
+    replay = RunContext(
+        run_id="u2", manifest=_live_manifest("u2", mode="replay"),
+        mode="replay", source_dir=live.dir)
+    with pytest.raises(RuntimeError, match="finish_reason=length"):
+        replay.llm("sys", "a")
+    assert replay.llm("sys", "b") == "recovered"
+    assert replay.replay_warnings() == []
+
+
 def test_fetch_records_and_replays(tmp_runs):
     def fake(url, timeout):
         return 200, b"<html><body>guide words</body></html>"
@@ -533,7 +565,7 @@ def _patch_fakes(monkeypatch):
     calls = {"llm": 0, "fetch": 0}
 
     def fake_chat_full(system, user, max_tokens=8000,
-                       response_format=None):
+                       response_format=None, reasoning_effort=None):
         calls["llm"] += 1
         return llm_mod.ChatResult(f"reply:{user}", llm_mod.model_name(),
                                   {"total_tokens": 3}, "stop", False, None)

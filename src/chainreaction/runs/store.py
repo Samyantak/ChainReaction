@@ -5,7 +5,8 @@ runs/<run_id>/
   manifest.json      # provenance + status (see worker.create_run)
   events.jsonl       # scrubbed event stream (seq, ts, run_id, stage, type, data)
   llm_calls.jsonl    # recorded model calls (prompt_hash, model, full prompt,
-                     # raw response, usage, cached flag)
+                     # raw response, usage, cached flag; failed calls
+                     # keep a tombstone: response null + error_class)
   cmds.jsonl         # recorded subprocesses (cmd, cwd-relative, env_name,
                      # returncode, scrubbed stdout/stderr)
   fetches.jsonl      # recorded URL fetches (url, status, content hash, text)
