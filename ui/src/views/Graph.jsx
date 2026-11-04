@@ -215,7 +215,15 @@ function CytoGraph({ nodes, edges, spine, chainOrder, breakId, filters, query, s
         { selector: 'edge.dim', style: { opacity: 0.05 } },
         {
           selector: 'edge.chain-edge',
-          style: { width: 3, opacity: 1, 'line-color': red, 'target-arrow-color': red, 'arrow-scale': 1 },
+          style: {
+            width: 3,
+            opacity: 1,
+            'line-color': red,
+            'target-arrow-color': red,
+            'arrow-scale': 1,
+            'line-style': 'dashed',
+            'line-dash-pattern': [12, 5],
+          },
         },
       ],
       layout: spinePos
@@ -254,8 +262,28 @@ function CytoGraph({ nodes, edges, spine, chainOrder, breakId, filters, query, s
       setTip(null)
     })
     cy.on('pan zoom', () => setTip(null))
+    // Marching dashes along the chain: the failure flowing from the
+    // breaking line to the package root. Paused under reduced motion.
+    let raf = 0
+    if (!reducedMotion()) {
+      const chainEdges = cy.edges('.chain-edge')
+      let last = 0
+      let offset = 0
+      const step = (t) => {
+        if (t - last > 40) {
+          offset = (offset + 1) % 34
+          chainEdges.style('line-dash-offset', offset)
+          last = t
+        }
+        raf = requestAnimationFrame(step)
+      }
+      if (chainEdges.length) raf = requestAnimationFrame(step)
+    }
     cyRef.current = cy
-    return () => cy.destroy()
+    return () => {
+      cancelAnimationFrame(raf)
+      cy.destroy()
+    }
   }, [dataKey, themeTick, breakId])
 
   // Filters, search, and selection: visibility + neighborhood focus.

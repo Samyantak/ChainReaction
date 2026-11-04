@@ -3,6 +3,7 @@ import { RUN_VIEWS } from '../router'
 import { Chip, Sheet, Status, TitleBlock } from '../components'
 import { STAGES, STAGE_VIEW, VIEW_STAGE, stageStates } from '../stages'
 import { useRun } from '../useRun'
+import '../lively.css'
 import { LogRows } from '../log'
 import GraphView from './Graph'
 import SetupView from './Setup'
@@ -285,6 +286,7 @@ export default function Run({ id, view, presenter }) {
       )}
       <div className="run-body">
         <StageRail runId={id} states={states} now={now} />
+        <div className="view-enter" key={view}>
         {view === 'graph' ? (
           <GraphView runId={id} />
         ) : view === 'verify' ? (
@@ -302,6 +304,7 @@ export default function Run({ id, view, presenter }) {
         ) : (
           <ViewPanel runId={id} view={view} stage={stage} state={states[stage]} events={events} />
         )}
+        </div>
       </div>
     </div>
   )

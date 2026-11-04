@@ -29,7 +29,9 @@ import {
   Status,
   TitleBlock,
 } from '../components'
+import { CountUp, Ticker, Tilt, prefersReduced, useInView, usePointerVars } from '../lively'
 import '../landing.css'
+import '../lively.css'
 
 const GITHUB_URL = 'https://github.com/Samyantak/ChainReaction'
 const NIBABEL_PRESET = 'nibabel-numpy2'
@@ -184,11 +186,22 @@ function CodeDrawing({ preset }) {
 }
 
 function Hero({ preset, busy, error, onReplay }) {
+  const ref = usePointerVars()
   return (
-    <section className="hero">
+    <section className="hero hero-live" ref={ref}>
+      <span className="hero-spot" aria-hidden="true" />
       <div className="hero-copy">
-        <h1>
-          <RedUnderline>Red-line</RedUnderline> your upgrade before you ship it.
+        <h1 className="hero-title">
+          <span className="word" style={{ '--i': 0 }}>
+            <RedUnderline>Red-line</RedUnderline>
+          </span>{' '}
+          {'your upgrade before you ship it.'.split(' ').map((w, i) => (
+            <React.Fragment key={w + i}>
+              <span className="word" style={{ '--i': i + 1 }}>
+                {w}
+              </span>{' '}
+            </React.Fragment>
+          ))}
         </h1>
         <p>
           ChainReaction investigates dependency upgrades before you merge them: it reads the
@@ -227,22 +240,28 @@ function ChainDominoes({ headlines, busy, onOpenGraph }) {
     [headlines],
   )
   const [tipped, setTipped] = useState(0)
-  const reduced = useMemo(
-    () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
-    [],
-  )
+  const [round, setRound] = useState(0)
+  const [ref, seen] = useInView(0.35)
+  const reduced = useMemo(() => prefersReduced(), [])
   useEffect(() => {
+    if (!seen) return undefined
     setTipped(0)
+    // Root first, then each importer falls into the next, the red break last.
     const timers = tiles.map((_, i) =>
-      setTimeout(() => setTipped(i + 1), reduced ? i * 60 : 300 + i * 150),
+      setTimeout(() => setTipped(i + 1), reduced ? i * 60 : 350 + i * 230),
     )
     return () => timers.forEach(clearTimeout)
-  }, [tiles, reduced])
+  }, [tiles, reduced, seen, round])
   if (tiles.length === 0) return null
   return (
-    <section className="strip-section">
-      <Eyebrow n="01" label="THE CASCADE" />
-      <div className="strip-row" aria-label="Import chain">
+    <section className="strip-section" ref={ref}>
+      <div className="strip-head">
+        <Eyebrow n="01" label="THE CASCADE" />
+        <button type="button" className="btn btn-secondary btn-small" onClick={() => setRound((r) => r + 1)}>
+          ↻ Knock them over again
+        </button>
+      </div>
+      <div className={`strip-row${tipped >= tiles.length ? ' strip-done' : ''}`} aria-label="Import chain">
         {tiles.map((t, i) => (
           <button
             key={t.module}
@@ -452,7 +471,7 @@ function Measurements({ nibabel }) {
           <div className="measure" key={s.label}>
             <DimensionRule />
             <div className="measure-value">
-              {s.status ? <Status tone={s.status} text={s.value} /> : s.value}
+              {s.status ? <Status tone={s.status} text={s.value} /> : <CountUp value={s.value} />}
             </div>
             <div className="measure-label">{s.label}</div>
             {s.sub && <div className="measure-sub">{s.sub}</div>}
@@ -551,6 +570,24 @@ function PresetStatus({ preset }) {
   return null
 }
 
+/* One ticker item per preset: the first real break it caught. */
+function tickerItems(presets) {
+  const short = (sym) => String(sym || '').replace(/^numpy\./, 'np.')
+  return (presets || [])
+    .filter((p) => p.has_recording && p.headlines?.first_break)
+    .map((p) => {
+      const fb = p.headlines.first_break
+      return {
+        key: p.id,
+        preset: p.id,
+        pkg: p.decision_parsed ? `${p.decision_parsed.package} ${p.decision_parsed.version}` : p.decision,
+        symbol: short(fb.symbol),
+        site: `${String(fb.path).split('/').pop()}:${fb.line}`,
+        repo: p.title,
+      }
+    })
+}
+
 function DrawingsOnFile({ presets, busy, onReplay }) {
   // The hero drawing leads; the rest keep API order (stable sort).
   const ordered = [...presets].sort((a, b) =>
@@ -568,7 +605,8 @@ function DrawingsOnFile({ presets, busy, onReplay }) {
           const h = p.headlines
           const hasChain = (h?.chain?.length ?? 0) > 0
           return (
-            <div className="sheet card lift drawing-card" key={p.id}>
+            <Tilt key={p.id} className="drawing-tilt">
+            <div className="sheet card drawing-card">
               <div className="mono sheet-no">DWG CR-{String(i + 1).padStart(3, '0')}</div>
               {p.has_recording && hasChain && h.chain_match && (
                 <div className="drawing-stamp">
@@ -596,6 +634,7 @@ function DrawingsOnFile({ presets, busy, onReplay }) {
                 {p.has_recording ? 'Replay' : 'No recording'}
               </Button>
             </div>
+            </Tilt>
           )
         })}
       </div>
@@ -669,6 +708,7 @@ export default function Landing() {
                   onReplay={() => replay(NIBABEL_PRESET)}
                 />
               </Reveal>
+              <Ticker items={tickerItems(presets)} onPick={(it) => replay(it.preset)} />
               <Reveal index={1}>
                 <ChainDominoes
                   headlines={nibabel?.headlines}

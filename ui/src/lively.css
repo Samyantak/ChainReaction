@@ -1,0 +1,218 @@
+/* Lively pass: depth, motion and a little theatre on top of Redline.
+ * Every animation here is decorative and switched off under
+ * prefers-reduced-motion at the bottom of the file. */
+
+/* ---------- Hero: pointer spotlight, parallax sheets, word rise ---------- */
+.hero-live { position: relative; isolation: isolate; }
+.landing { overflow-x: clip; }
+.hero-spot {
+  position: absolute;
+  inset: -40px 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(420px circle at var(--mx, 70%) var(--my, 40%),
+      color-mix(in srgb, var(--sky) 55%, transparent), transparent 70%);
+  opacity: 0.9;
+  transition: background-position 120ms linear;
+}
+.hero-title .word {
+  display: inline-block;
+  animation: word-rise 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+}
+@keyframes word-rise {
+  from { opacity: 0; transform: translateY(22px) rotate(2deg); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+.hero-live .code-drawing {
+  transform: translate(calc(var(--px, 0) * -6px), calc(var(--py, 0) * -5px));
+  transition: transform 260ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.hero-live .code-drawing::before {
+  transform: rotate(-1.4deg) translate(calc(var(--px, 0) * 9px), calc(var(--py, 0) * 7px));
+  transition: transform 300ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.hero-live .code-drawing::after {
+  transform: rotate(2.2deg) translate(calc(var(--px, 0) * 16px), calc(var(--py, 0) * 12px));
+  transition: transform 340ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Hero fixes: one filename (the measuring line keeps it), long lines end
+ * in an ellipsis instead of being clipped, IMPACT on one line. */
+.code-drawing .code-file { display: none; }
+.code-drawing .code-lines { overflow-x: hidden; position: relative; }
+.code-drawing .code-line { width: 100%; }
+.code-drawing .code-text { overflow: hidden; text-overflow: ellipsis; }
+.code-drawing .title-block .cell:nth-child(2) { flex: 1.9 1 210px; }
+.code-drawing .title-block .cell:nth-child(2) .value { white-space: nowrap; }
+
+/* Scan: a sky band sweeps the code once, then the breaking line flashes. */
+.code-drawing .code-lines::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 46px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--sky) 75%, transparent) 60%, transparent);
+  opacity: 0;
+  animation: scan 1500ms 500ms cubic-bezier(0.5, 0, 0.5, 1) 1 both;
+}
+@keyframes scan {
+  0% { transform: translateY(-46px); opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { transform: translateY(360px); opacity: 0; }
+}
+.code-drawing .code-line.break { animation: break-flash 650ms 1900ms ease-out 2 both; }
+@keyframes break-flash {
+  0% { background: color-mix(in srgb, var(--red) 12%, transparent); }
+  45% { background: color-mix(in srgb, var(--red) 34%, transparent); }
+  100% { background: color-mix(in srgb, var(--red) 12%, transparent); }
+}
+.hero-stamp .stamp { animation-delay: 2400ms; }
+
+/* Primary buttons: a light sweep on hover. */
+.btn-primary { position: relative; overflow: hidden; }
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 35%), transparent);
+  transform: skewX(-18deg);
+  transition: left 0s;
+}
+.btn-primary:hover::after { left: 130%; transition: left 650ms ease-out; }
+
+/* ---------- Ticker of real breaks ---------- */
+.ticker {
+  position: relative;
+  overflow: hidden;
+  margin: 8px 0 30px;
+  border-top: var(--rule) solid var(--ink);
+  border-bottom: var(--rule) solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker calc(var(--ticker-count, 5) * 9s) linear infinite;
+}
+.ticker:hover .ticker-track, .ticker:focus-within .ticker-track { animation-play-state: paused; }
+@keyframes ticker { to { transform: translateX(-50%); } }
+.ticker-row { display: flex; }
+.ticker-item {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 11px 26px;
+  border-right: 1px dashed color-mix(in srgb, var(--paper) 30%, transparent);
+  white-space: nowrap;
+  font-size: 13px;
+}
+.ticker-item:hover { background: color-mix(in srgb, var(--red) 30%, transparent); }
+.ticker-item:focus-visible { outline: 3px solid var(--sky); outline-offset: -3px; }
+.ticker-pkg { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.65; }
+.ticker-sym { color: #ff9b74; font-weight: 600; }
+.ticker-arrow { opacity: 0.6; }
+.ticker-site { color: var(--sky); }
+.ticker-repo { font-size: 12px; opacity: 0.75; }
+:root[data-theme='dark'] .ticker { background: #06121c; }
+
+/* ---------- Cascade: heavier tiles that fall with weight ---------- */
+.strip-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.strip-row .domino {
+  transition:
+    transform 520ms cubic-bezier(0.55, -0.25, 0.3, 1.45),
+    opacity 220ms ease-out,
+    box-shadow 520ms ease-out;
+}
+.strip-row .domino.upright { opacity: 1; transform: none; box-shadow: 0 6px 0 var(--ink), 2px 4px 0 var(--sh-faint); }
+.strip-row .domino.tipped { box-shadow: 0 6px 0 var(--ink), 14px 18px 0 var(--sh-faint); }
+.strip-row .domino.role-decision { position: relative; }
+.strip-done .domino.role-decision::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 3px solid var(--red);
+  pointer-events: none;
+  animation: shock 900ms ease-out 2;
+}
+@keyframes shock {
+  from { opacity: 0.9; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.35); }
+}
+.strip-row .domino:hover { filter: brightness(1.04); }
+
+/* ---------- Tilt cards (presets) ---------- */
+.tilt {
+  position: relative;
+  perspective: 900px;
+  transform-style: preserve-3d;
+}
+.tilt > .sheet {
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform 160ms ease-out, box-shadow 200ms ease-out;
+  height: 100%;
+  box-sizing: border-box;
+}
+.tilt:hover > .sheet { box-shadow: 9px 9px 0 var(--sh); }
+.tilt-glare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(320px circle at var(--glare-x, 50%) var(--glare-y, 50%), color-mix(in srgb, var(--sky) 50%, transparent), transparent 65%);
+  mix-blend-mode: multiply;
+  transition: opacity 200ms ease-out;
+}
+:root[data-theme='dark'] .tilt-glare { mix-blend-mode: screen; }
+.tilt:hover .tilt-glare { opacity: 1; }
+
+/* ---------- Eyebrow rule grows in; grounding band grid drifts ---------- */
+.reveal .eyebrow-rule { width: 0; transition: width 600ms 200ms cubic-bezier(0.2, 0.7, 0.2, 1); }
+.reveal.revealed .eyebrow-rule { width: 36px; }
+.band { background-attachment: local; animation: band-drift 60s linear infinite; }
+@keyframes band-drift { to { background-position: 240px 240px; } }
+
+/* ---------- Run page: sheets slide in when you switch views ---------- */
+.view-enter { animation: view-in 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both; min-width: 0; }
+@keyframes view-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- Reduced motion: everything above goes still ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .hero-title .word, .code-drawing .code-lines::after, .code-drawing .code-line.break,
+  .ticker-track, .strip-done .domino.role-decision::after, .band, .view-enter {
+    animation: none !important;
+  }
+  .ticker-track { flex-wrap: wrap; width: auto; }
+  .ticker-row[aria-hidden='true'] { display: none; }
+  .ticker { -webkit-mask-image: none; mask-image: none; }
+  .hero-live .code-drawing, .hero-live .code-drawing::before, .hero-live .code-drawing::after,
+  .tilt > .sheet { transition: none; }
+  .btn-primary::after { display: none; }
+  .reveal .eyebrow-rule { width: 36px; transition: none; }
+}
+
+/* Header fits at laptop widths: the key pill shortens and the row wraps. */
+.app-header { flex-wrap: wrap; row-gap: 8px; }
+@media (max-width: 1180px) {
+  .app-header .key-pill .long { display: none; }
+  .app-header .key-pill .short { display: inline; }
+}
+/* Long muted notes (e.g. "Replay only — set MODEL_API_KEY…") may wrap. */
+span.status.status-mute { white-space: normal; overflow-wrap: anywhere; }
