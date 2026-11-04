@@ -338,7 +338,8 @@ function DrawingsOnFile({ presets, busy, onReplay }) {
     <section className="drawings">
       <h2>Drawings on file</h2>
       <p className="drawings-note">
-        Targets are pre-existing repos, analyzed by ChainReaction — not part of this build.
+        Targets are pre-existing repos, analyzed by ChainReaction — not part of this build.{' '}
+        <a href="#/features/replay">How replay works</a>
       </p>
       <div className="sheet-grid drawings-grid">
         {ordered.map((p, i) => {

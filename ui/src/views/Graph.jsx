@@ -12,8 +12,7 @@ const base = (file) => (file ? file.split('/').pop() : '')
 
 /* ---------- Domino tiles: the main chain, break side first ---------- */
 
-function DominoTiles({ tiles, selected, onSelect, onDone }) {
-  const [round, setRound] = useState(0)
+function DominoTiles({ tiles, selected, onSelect, onDone, round, onReplay }) {
   const [tipped, setTipped] = useState(0)
   const reduced = useMemo(
     () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
@@ -57,7 +56,7 @@ function DominoTiles({ tiles, selected, onSelect, onDone }) {
           </button>
         ))}
       </div>
-      <button type="button" className="btn btn-secondary btn-small" onClick={() => setRound((r) => r + 1)}>
+      <button type="button" className="btn btn-secondary btn-small" onClick={onReplay}>
         Replay animation
       </button>
     </div>
@@ -334,7 +333,21 @@ export default function GraphView({ runId }) {
   const [filters, setFilters] = useState({ HARD: true, AT_RISK: true })
   const [query, setQuery] = useState('')
   const [animDone, setAnimDone] = useState(false)
+  const [round, setRound] = useState(0)
   const shown = full ?? data
+
+  // R replays the domino animation. Ignored while typing.
+  useEffect(() => {
+    const onKey = (e) => {
+      const tag = (e.target?.tagName || '').toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key !== 'r' && e.key !== 'R') return
+      e.preventDefault()
+      setRound((r) => r + 1)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   if (error) {
     return (
@@ -377,6 +390,8 @@ export default function GraphView({ runId }) {
         selected={selected}
         onSelect={setSelected}
         onDone={() => setAnimDone(true)}
+        round={round}
+        onReplay={() => setRound((r) => r + 1)}
       />
       <div className="graph-toolbar">
         <div className="legend">

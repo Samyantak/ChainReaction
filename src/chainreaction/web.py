@@ -171,12 +171,33 @@ def delete_run(run_id: str) -> dict:
 
 @app.get("/api/runs/{run_id}")
 def get_run(run_id: str) -> dict:
+    if run_id.startswith("preset:"):
+        return _preset_snapshot(run_id)
     manifest = _manifest_or_404(run_id)
     report = None
     report_path = (run_store.run_dir(run_id) / run_store.ARTIFACTS
                    / "report.json")
     if report_path.is_file():
         report = run_store.read_json(report_path)
+    return {"manifest": manifest,
+            "stage": manifest.get("current_stage"),
+            "status": manifest.get("status"),
+            "report": report}
+
+
+def _preset_snapshot(run_id: str) -> dict:
+    """Read-only snapshot for committed presets (feature pages render
+    preset data without starting a run)."""
+    try:
+        directory = run_store.preset_dir(run_id.split(":", 1)[1])
+    except (ValueError, IndexError):
+        raise HTTPException(404, f"unknown run: {run_id}") from None
+    manifest_path = directory / run_store.MANIFEST
+    if not manifest_path.is_file():
+        raise HTTPException(404, f"unknown run: {run_id}")
+    manifest = run_store.read_json(manifest_path)
+    report_path = directory / run_store.ARTIFACTS / "report.json"
+    report = run_store.read_json(report_path) if report_path.is_file() else None
     return {"manifest": manifest,
             "stage": manifest.get("current_stage"),
             "status": manifest.get("status"),

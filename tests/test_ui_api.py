@@ -320,6 +320,15 @@ def test_parse_decision_versions():
     assert body["package"] is None
 
 
+def test_preset_snapshot_for_feature_pages():
+    body = client.get("/api/runs/preset:nibabel-numpy2").json()
+    assert body["status"] == "done"
+    assert body["manifest"]["preset"] == "nibabel-numpy2"
+    assert body["report"]["decision"] == "upgrade numpy to 2.0"
+    assert client.get("/api/runs/preset:nope").status_code == 404
+    assert client.get("/api/runs/preset:..").status_code == 404
+
+
 def test_main_help_and_unknown_command():
     from chainreaction.__main__ import main
 

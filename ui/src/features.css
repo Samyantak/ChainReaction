@@ -1,0 +1,36 @@
+/* Feature pages: explanation beside live preset data. */
+
+.feature-page h2 { margin-top: 4px; }
+.feature-split {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 24px;
+  align-items: start;
+  margin-top: 12px;
+}
+.feature-blurb p { font-size: 15px; line-height: 1.6; }
+.feature-demo {
+  min-width: 0;
+  border: var(--rule) solid var(--ink);
+  background: var(--sheet);
+  padding: 16px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.feature-demo .run-view { padding: 0; }
+.feature-demo .run-view h2 { font-size: 20px; }
+.feature-nav {
+  display: flex;
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: var(--rule) solid var(--ink);
+}
+.feature-decision { font-size: 18px; font-weight: 600; }
+.feature-meta { font-size: 12px; color: var(--ink-muted); }
+.grounding-row { font-size: 13px; padding: 2px 0; }
+.grounding-quote { font-size: 14px; }
+
+@media (max-width: 900px) {
+  .feature-split { grid-template-columns: 1fr; }
+  .feature-demo { max-height: none; }
+}

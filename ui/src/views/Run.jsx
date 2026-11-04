@@ -182,6 +182,23 @@ export default function Run({ id, view }) {
     return () => clearInterval(timer)
   }, [snapshot])
 
+  // Arrow keys step between run views. Ignored while typing.
+  useEffect(() => {
+    const onKey = (e) => {
+      const tag = (e.target?.tagName || '').toLowerCase()
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      const at = RUN_VIEWS.indexOf(view)
+      if (at < 0) return
+      const next = e.key === 'ArrowRight' ? at + 1 : at - 1
+      if (next < 0 || next >= RUN_VIEWS.length) return
+      e.preventDefault()
+      window.location.hash = `#/runs/${id}/${RUN_VIEWS[next]}`
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [id, view])
+
   if (snapError) {
     return (
       <div className="page">

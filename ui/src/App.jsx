@@ -7,6 +7,7 @@ import Landing from './views/Landing'
 import Run from './views/Run'
 import NewView from './views/New'
 import HistoryView from './views/History'
+import FeatureView from './views/Feature'
 
 function KeyPill() {
   const status = useStatus()
@@ -68,7 +69,7 @@ export default function App() {
   let view
   switch (route.name) {
     case 'feature':
-      view = <Stub title={`Feature: ${route.params.id}`} step="9 (feature pages)" />
+      view = <FeatureView id={route.params.id} />
       break
     case 'new':
       view = <NewView />
