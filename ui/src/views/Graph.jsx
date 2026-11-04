@@ -320,12 +320,18 @@ function CytoGraph({ nodes, edges, spine, chainOrder, breakId, filters, query, s
     if (selected) {
       const node = cy.getElementById(selected)
       if (node.nonempty() && node.visible()) {
+        // Center the module in the part of the canvas the evidence
+        // drawer leaves visible (the drawer covers the right side).
         const z = Math.max(cy.zoom(), 0.9)
+        const drawer = Math.min(400, cy.width() * 0.92)
+        const visibleW = cy.width() > 760 ? cy.width() - drawer : cy.width()
+        const p = node.position()
+        const pan = { x: visibleW / 2 - p.x * z, y: cy.height() / 2 - p.y * z }
         if (reducedMotion()) {
           cy.zoom(z)
-          cy.center(node)
+          cy.pan(pan)
         } else {
-          cy.animate({ center: { eles: node }, zoom: z, duration: 320, easing: 'ease-out' })
+          cy.animate({ zoom: z, pan, duration: 320, easing: 'ease-out' })
         }
       }
     }
