@@ -1,0 +1,31 @@
+--- a/conftest.py
++++ b/conftest.py
+@@ -33,6 +33,28 @@
+ def _suppress_env_for_doctests(request: pytest.FixtureRequest) -> None:
+     if isinstance(request.node, pytest.DoctestItem):
+         request.getfixturevalue("_doctest_env")
++
++
++@pytest.fixture()
++def cache(request, tmp_path_factory):
++    cached = getattr(request.config, "cache", None)
++    if cached is not None:
++        return cached
++    base = tmp_path_factory.mktemp("fallback-cache")
++
++    class _FallbackCache:
++        def get(self, key, default):
++            return default
++
++        def set(self, key, value):
++            return None
++
++        def mkdir(self, name, *args, **kwargs):
++            path = base / name
++            path.mkdir(parents=True, exist_ok=True)
++            return path
++
++    return _FallbackCache()
+ 
+ 
+ @pytest.fixture()

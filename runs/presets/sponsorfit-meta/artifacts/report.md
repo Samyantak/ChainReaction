@@ -17,6 +17,14 @@ Predicted call chain:
 - `sponsorfit.llm.MeteredLLMClient.call` -> `sponsorfit.llm` (src/sponsorfit/llm.py:14)
 Chain vs decision actual: MATCH
 
+## Investigator
+
+3 finding(s), 2 verified.
+
+Static: 2 HARD, 5 AT_RISK, chain MATCH
+Agent: 2 HARD, 5 AT_RISK, chain MATCH
+No test suite to score. Chain match unchanged (MATCH).
+
 ## Verification
 
 ### decision (recall 1.00)
@@ -29,6 +37,19 @@ Site: `src/sponsorfit/llm.py:78`
     raise ValueError(f"unknown provider: {provider}")
 ValueError: unknown provider: meta
 ```
+
+## Fix loop
+
+Status: green (green)
+
+Round 1: probe src/sponsorfit/llm.py:78 -> `src/sponsorfit/llm.py`, `src/sponsorfit/pricing.py` (probe FAILED)
+Round 2: probe src/sponsorfit/llm.py:79 -> `src/sponsorfit/llm.py` (probe ok)
+
+Counts: 0 fixed, 0 still failing, 0 newly broken (baseline: 0 failures)
+
+Guards: clean
+
+Patch: `fixes/final.patch`
 
 ## Baselines
 

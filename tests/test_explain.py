@@ -457,6 +457,39 @@ def _pr_report(**over):
     return replace(base, **over)
 
 
+def test_fix_loop_section_renders_rounds_status_and_patch():
+    report = _pr_report(fix={
+        "status": "partial", "final_status": "partial",
+        "stop_reason": "max-rounds",
+        "rounds": [{"n": 1,
+                    "failure": {"kind": "probe",
+                                "site": "nibabel/casting.py:717"},
+                    "edits": ["nibabel/casting.py"],
+                    "probe": {"ok": False}}],
+        "counts": {"fixed": ["a.py::t1"], "still_failing": ["b.py::t2"],
+                   "newly_broken": [], "baseline_failures": 0,
+                   "baseline_measured": True},
+        "guards": {"ok": True, "violations": []},
+        "patch": "fixes/final.patch",
+        "upstream": {"ran": True, "pr_url": "https://example.invalid/pr/1",
+                     "overlap": ["nibabel/casting.py"],
+                     "missed": ["nibabel/quaternions.py"]},
+    })
+    md = render_markdown(report)
+    assert "## Fix loop" in md
+    assert "Status: partial (max-rounds)" in md
+    assert "Round 1: probe nibabel/casting.py:717" in md
+    assert "1 fixed, 1 still failing, 0 newly broken" in md
+    assert "Guards: clean" in md
+    assert "Patch: `fixes/final.patch`" in md
+    assert "files in common: `nibabel/casting.py`" in md
+    assert "PR files missed: `nibabel/quaternions.py`" in md
+    assert "## Baselines" in md.split("## Fix loop")[1]
+    # No fix data: no section.
+    assert "## Fix loop" not in render_markdown(_pr_report())
+    assert "## Fix loop" not in render_markdown(_pr_report(fix={}))
+
+
 def test_brief_and_scoreboard_read_recall_both_ways():
     report = _pr_report()
     brief = explain.narrative_brief(report)

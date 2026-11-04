@@ -23,7 +23,7 @@
       "werkzeug": "3.0.6"
     },
     "note": null,
-    "provenance": "built",
+    "provenance": "reused",
     "python": "3.11",
     "spec_hash": "e5a69fb64d2c67b3"
   },

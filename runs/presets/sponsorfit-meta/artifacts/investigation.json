@@ -1,0 +1,1699 @@
+{
+  "findings": [
+    {
+      "claim": "MeteredLLMClient.call(provider='meta', model='muse-spark-1.3', ...) raises ValueError: unknown provider: meta; Provider literal only allows anthropic/openai/ollama",
+      "confidence": "confirmed",
+      "evidence": [
+        "call_1",
+        "call_4",
+        "call_11"
+      ],
+      "id": "F1-provider-meta-rejected",
+      "kind": "breaks_call",
+      "sites": [
+        "src/sponsorfit/llm.py:14",
+        "src/sponsorfit/llm.py:46",
+        "src/sponsorfit/llm.py:78"
+      ],
+      "symbol": "sponsorfit.llm.Provider",
+      "tests": [],
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "claim": "MeteredLLMClient._call_openai signature is (self, model, messages, system, max_tokens) and rejects base_url='https://api.meta.ai/v1' with TypeError: got an unexpected keyword argument 'base_url'",
+      "confidence": "confirmed",
+      "evidence": [
+        "call_1",
+        "call_4",
+        "call_14"
+      ],
+      "id": "F2-call-openai-missing-base-url",
+      "kind": "breaks_call",
+      "sites": [
+        "src/sponsorfit/llm.py:156",
+        "src/sponsorfit/llm.py:69"
+      ],
+      "symbol": "sponsorfit.llm.MeteredLLMClient._call_openai",
+      "tests": [],
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "claim": "pricing.compute_cost_usd('meta','muse-spark-1.3',...) raises KeyError: 'meta' and compute_cost_usd('openai','muse-spark-1.3',...) raises KeyError: 'muse-spark-1.3'; PRICING keys are only anthropic/openai",
+      "confidence": "confirmed",
+      "evidence": [
+        "call_1",
+        "call_5",
+        "call_12",
+        "call_13",
+        "call_15"
+      ],
+      "id": "F3-pricing-missing-meta-key",
+      "kind": "breaks_call",
+      "sites": [
+        "src/sponsorfit/pricing.py:5",
+        "src/sponsorfit/pricing.py:23",
+        "src/sponsorfit/llm.py:103"
+      ],
+      "symbol": "sponsorfit.pricing.PRICING",
+      "tests": [],
+      "verified": false,
+      "verify_reason": "site src/sponsorfit/llm.py:103 is in no cited tool result"
+    }
+  ],
+  "status": "complete",
+  "summary": "Switch to Meta Model API is blocked at 3 layers: imports of sponsorfit.llm/pricing still succeed (call_16) but any meta call fails. Decision preamble with provider='meta' fails with ValueError unknown provider (call_11). _call_openai has no base_url param (call_14). PRICING has no meta provider or muse-spark-1.3 model, failing loud with KeyError (call_13, call_15). Static propagate/find_usages report 0 external hits (call_2, call_6, call_7, call_8) because the break is the absence of new Meta support in definitions shown by source reads (call_4, call_5).",
+  "trace": [
+    {
+      "args": {},
+      "id": "call_1",
+      "model_id": "call_40929b2d-2eca-4077-8d92-3c22f57094a4",
+      "name": "list_changes",
+      "result": {
+        "count": 3,
+        "items": [
+          {
+            "kind": "missing_param",
+            "quote": "base_url=\"https://api.meta.ai/v1\"",
+            "release": "",
+            "symbol": "sponsorfit.llm.MeteredLLMClient._call_openai"
+          },
+          {
+            "kind": "rejected_value",
+            "quote": "",
+            "release": "",
+            "symbol": "sponsorfit.llm.Provider"
+          },
+          {
+            "kind": "missing_key",
+            "quote": "muse-spark-1.3",
+            "release": "",
+            "symbol": "sponsorfit.pricing.PRICING"
+          }
+        ],
+        "ok": true,
+        "summary": "3 change items",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbols": [
+          "sponsorfit.llm.MeteredLLMClient._call_openai",
+          "sponsorfit.llm.Provider",
+          "sponsorfit.pricing.PRICING"
+        ]
+      },
+      "id": "call_2",
+      "model_id": "call_d446e727-6b01-4bf3-b477-d81a05c4a7c1",
+      "name": "propagate",
+      "result": {
+        "at_risk": [],
+        "at_risk_count": 0,
+        "chain_hops": [],
+        "hard": [
+          "sponsorfit.llm",
+          "sponsorfit.pricing"
+        ],
+        "hard_count": 2,
+        "ok": true,
+        "summary": "2 HARD + 0 AT_RISK modules; 0/3 symbols used; worst chain length 0",
+        "symbols": {
+          "sponsorfit.llm.MeteredLLMClient._call_openai": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "sponsorfit.llm.Provider": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "sponsorfit.pricing.PRICING": {
+            "import_time": 0,
+            "sites": 0
+          }
+        },
+        "truncated": false,
+        "worst_chain": []
+      }
+    },
+    {
+      "args": {
+        "end": 200,
+        "path": "src/sponsorfit/__init__.py",
+        "start": 1
+      },
+      "id": "call_3",
+      "model_id": "call_f21d6d9e-d08f-4e6d-be97-de84e2ff9d97",
+      "name": "read_file",
+      "result": {
+        "lines": [],
+        "ok": true,
+        "path": "src/sponsorfit/__init__.py",
+        "sites": [],
+        "summary": "src/sponsorfit/__init__.py:1-200 (0 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "end": 200,
+        "path": "src/sponsorfit/llm.py",
+        "start": 1
+      },
+      "id": "call_4",
+      "model_id": "call_4ffa9056-1271-4551-af63-4ba6388c0ebb",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            1,
+            "\"\"\"The one call-through surface for LLM calls. Every call — from any"
+          ],
+          [
+            2,
+            "agent, any script — goes through MeteredLLMClient.call() (or the call_llm()"
+          ],
+          [
+            3,
+            "convenience wrapper), so cost tracking and tracing can never be"
+          ],
+          [
+            4,
+            "accidentally bypassed. No retry/backoff here; that's Phase 3's job.\"\"\""
+          ],
+          [
+            5,
+            ""
+          ],
+          [
+            6,
+            "import os"
+          ],
+          [
+            7,
+            "import time"
+          ],
+          [
+            8,
+            "import uuid"
+          ],
+          [
+            9,
+            "from dataclasses import dataclass"
+          ],
+          [
+            10,
+            "from typing import Literal"
+          ],
+          [
+            11,
+            ""
+          ],
+          [
+            12,
+            "from sponsorfit import costs, pricing, tracing"
+          ],
+          [
+            13,
+            ""
+          ],
+          [
+            14,
+            "Provider = Literal[\"anthropic\", \"openai\", \"ollama\"]"
+          ],
+          [
+            15,
+            ""
+          ],
+          [
+            16,
+            ""
+          ],
+          [
+            17,
+            "@dataclass"
+          ],
+          [
+            18,
+            "class LLMResponse:"
+          ],
+          [
+            19,
+            "    text: str"
+          ],
+          [
+            20,
+            "    provider: str"
+          ],
+          [
+            21,
+            "    model: str"
+          ],
+          [
+            22,
+            "    tokens_in: int"
+          ],
+          [
+            23,
+            "    tokens_out: int"
+          ],
+          [
+            24,
+            "    cost_usd: float"
+          ],
+          [
+            25,
+            "    latency_ms: int"
+          ],
+          [
+            26,
+            "    call_id: str"
+          ],
+          [
+            27,
+            "    raw: object"
+          ],
+          [
+            28,
+            ""
+          ],
+          [
+            29,
+            ""
+          ],
+          [
+            30,
+            "class MeteredLLMClient:"
+          ],
+          [
+            31,
+            "    def __init__("
+          ],
+          [
+            32,
+            "        self,"
+          ],
+          [
+            33,
+            "        run_id: str | None = None,"
+          ],
+          [
+            34,
+            "        db_path: str | None = None,"
+          ],
+          [
+            35,
+            "        traces_dir: str | None = None,"
+          ],
+          [
+            36,
+            "    ):"
+          ],
+          [
+            37,
+            "        self.run_id = run_id"
+          ],
+          [
+            38,
+            "        self._db_conn = costs.get_connection(db_path)"
+          ],
+          [
+            39,
+            "        self._tracer = tracing.RunTracer(run_id=run_id, traces_dir=traces_dir)"
+          ],
+          [
+            40,
+            "        self._anthropic_client = None"
+          ],
+          [
+            41,
+            "        self._openai_client = None"
+          ],
+          [
+            42,
+            ""
+          ],
+          [
+            43,
+            "    def call("
+          ],
+          [
+            44,
+            "        self,"
+          ],
+          [
+            45,
+            "        *,"
+          ],
+          [
+            46,
+            "        provider: Provider,"
+          ],
+          [
+            47,
+            "        model: str,"
+          ],
+          [
+            48,
+            "        messages: list[dict],"
+          ],
+          [
+            49,
+            "        system: str | None = None,"
+          ],
+          [
+            50,
+            "        max_tokens: int = 1024,"
+          ],
+          [
+            51,
+            "        prompt_version: str | None = None,"
+          ],
+          [
+            52,
+            "        agent: str = \"manual\","
+          ],
+          [
+            53,
+            "        json_schema: dict | None = None,"
+          ],
+          [
+            54,
+            "        ollama_options: dict | None = None,"
+          ],
+          [
+            55,
+            "    ) -> LLMResponse:"
+          ],
+          [
+            56,
+            "        \"\"\"json_schema / ollama_options are Ollama-only for now (structured"
+          ],
+          [
+            57,
+            "        output via Ollama's `format`, and options like num_ctx/temperature)."
+          ],
+          [
+            58,
+            "        Passing them for a cloud provider fails loudly rather than being"
+          ],
+          [
+            59,
+            "        silently ignored.\"\"\""
+          ],
+          [
+            60,
+            "        if provider != \"ollama\" and (json_schema or ollama_options):"
+          ],
+          [
+            61,
+            "            raise NotImplementedError(f\"json_schema/ollama_options not supported for provider={provider}\")"
+          ],
+          [
+            62,
+            "        call_id = uuid.uuid4().hex"
+          ],
+          [
+            63,
+            "        start = time.monotonic()"
+          ],
+          [
+            64,
+            "        try:"
+          ],
+          [
+            65,
+            "            if provider == \"anthropic\":"
+          ],
+          [
+            66,
+            "                text, tokens_in, tokens_out, raw = self._call_anthropic("
+          ],
+          [
+            67,
+            "                    model, messages, system, max_tokens"
+          ],
+          [
+            68,
+            "                )"
+          ],
+          [
+            69,
+            "            elif provider == \"openai\":"
+          ],
+          [
+            70,
+            "                text, tokens_in, tokens_out, raw = self._call_openai("
+          ],
+          [
+            71,
+            "                    model, messages, system, max_tokens"
+          ],
+          [
+            72,
+            "                )"
+          ],
+          [
+            73,
+            "            elif provider == \"ollama\":"
+          ],
+          [
+            74,
+            "                text, tokens_in, tokens_out, raw = self._call_ollama("
+          ],
+          [
+            75,
+            "                    model, messages, system, max_tokens, json_schema, ollama_options"
+          ],
+          [
+            76,
+            "                )"
+          ],
+          [
+            77,
+            "            else:"
+          ],
+          [
+            78,
+            "                raise ValueError(f\"unknown provider: {provider}\")"
+          ],
+          [
+            79,
+            "        except Exception as e:"
+          ],
+          [
+            80,
+            "            latency_ms = int((time.monotonic() - start) * 1000)"
+          ],
+          [
+            81,
+            "            costs.record_call("
+          ],
+          [
+            82,
+            "                self._db_conn,"
+          ],
+          [
+            83,
+            "                call_id=call_id,"
+          ],
+          [
+            84,
+            "                run_id=self.run_id,"
+          ],
+          [
+            85,
+            "                provider=provider,"
+          ],
+          [
+            86,
+            "                model=model,"
+          ],
+          [
+            87,
+            "                prompt_version=prompt_version,"
+          ],
+          [
+            88,
+            "                tokens_in=0,"
+          ],
+          [
+            89,
+            "                tokens_out=0,"
+          ],
+          [
+            90,
+            "                cost_usd=0.0,"
+          ],
+          [
+            91,
+            "                latency_ms=latency_ms,"
+          ],
+          [
+            92,
+            "                status=\"error\","
+          ],
+          [
+            93,
+            "                error_message=str(e),"
+          ],
+          [
+            94,
+            "            )"
+          ],
+          [
+            95,
+            "            self._tracer.log("
+          ],
+          [
+            96,
+            "                \"llm_call_error\","
+          ],
+          [
+            97,
+            "                {\"call_id\": call_id, \"provider\": provider, \"model\": model, \"error\": str(e)},"
+          ],
+          [
+            98,
+            "                agent=agent,"
+          ],
+          [
+            99,
+            "            )"
+          ],
+          [
+            100,
+            "            raise"
+          ],
+          [
+            101,
+            ""
+          ],
+          [
+            102,
+            "        latency_ms = int((time.monotonic() - start) * 1000)"
+          ],
+          [
+            103,
+            "        cost_usd = pricing.compute_cost_usd(provider, model, tokens_in, tokens_out)"
+          ],
+          [
+            104,
+            ""
+          ],
+          [
+            105,
+            "        costs.record_call("
+          ],
+          [
+            106,
+            "            self._db_conn,"
+          ],
+          [
+            107,
+            "            call_id=call_id,"
+          ],
+          [
+            108,
+            "            run_id=self.run_id,"
+          ],
+          [
+            109,
+            "            provider=provider,"
+          ],
+          [
+            110,
+            "            model=model,"
+          ],
+          [
+            111,
+            "            prompt_version=prompt_version,"
+          ],
+          [
+            112,
+            "            tokens_in=tokens_in,"
+          ],
+          [
+            113,
+            "            tokens_out=tokens_out,"
+          ],
+          [
+            114,
+            "            cost_usd=cost_usd,"
+          ],
+          [
+            115,
+            "            latency_ms=latency_ms,"
+          ],
+          [
+            116,
+            "        )"
+          ],
+          [
+            117,
+            "        self._tracer.log("
+          ],
+          [
+            118,
+            "            \"llm_call\","
+          ],
+          [
+            119,
+            "            {"
+          ],
+          [
+            120,
+            "                \"call_id\": call_id,"
+          ],
+          [
+            121,
+            "                \"provider\": provider,"
+          ],
+          [
+            122,
+            "                \"model\": model,"
+          ],
+          [
+            123,
+            "                \"prompt_version\": prompt_version,"
+          ],
+          [
+            124,
+            "                \"tokens_in\": tokens_in,"
+          ],
+          [
+            125,
+            "                \"tokens_out\": tokens_out,"
+          ],
+          [
+            126,
+            "                \"cost_usd\": cost_usd,"
+          ],
+          [
+            127,
+            "                \"latency_ms\": latency_ms,"
+          ],
+          [
+            128,
+            "            },"
+          ],
+          [
+            129,
+            "            agent=agent,"
+          ],
+          [
+            130,
+            "        )"
+          ],
+          [
+            131,
+            ""
+          ],
+          [
+            132,
+            "        return LLMResponse("
+          ],
+          [
+            133,
+            "            text=text,"
+          ],
+          [
+            134,
+            "            provider=provider,"
+          ],
+          [
+            135,
+            "            model=model,"
+          ],
+          [
+            136,
+            "            tokens_in=tokens_in,"
+          ],
+          [
+            137,
+            "            tokens_out=tokens_out,"
+          ],
+          [
+            138,
+            "            cost_usd=cost_usd,"
+          ],
+          [
+            139,
+            "            latency_ms=latency_ms,"
+          ],
+          [
+            140,
+            "            call_id=call_id,"
+          ],
+          [
+            141,
+            "            raw=raw,"
+          ],
+          [
+            142,
+            "        )"
+          ],
+          [
+            143,
+            ""
+          ],
+          [
+            144,
+            "    def _call_anthropic(self, model, messages, system, max_tokens):"
+          ],
+          [
+            145,
+            "        if self._anthropic_client is None:"
+          ],
+          [
+            146,
+            "            import anthropic"
+          ],
+          [
+            147,
+            ""
+          ],
+          [
+            148,
+            "            self._anthropic_client = anthropic.Anthropic()"
+          ],
+          [
+            149,
+            "        kwargs = {\"model\": model, \"max_tokens\": max_tokens, \"messages\": messages}"
+          ],
+          [
+            150,
+            "        if system is not None:"
+          ],
+          [
+            151,
+            "            kwargs[\"system\"] = system  # SDK rejects an explicit system=None; omit instead"
+          ],
+          [
+            152,
+            "        resp = self._anthropic_client.messages.create(**kwargs)"
+          ],
+          [
+            153,
+            "        text = \"\".join(block.text for block in resp.content if block.type == \"text\")"
+          ],
+          [
+            154,
+            "        return text, resp.usage.input_tokens, resp.usage.output_tokens, resp"
+          ],
+          [
+            155,
+            ""
+          ],
+          [
+            156,
+            "    def _call_openai(self, model, messages, system, max_tokens):"
+          ],
+          [
+            157,
+            "        if self._openai_client is None:"
+          ],
+          [
+            158,
+            "            import openai"
+          ],
+          [
+            159,
+            ""
+          ],
+          [
+            160,
+            "            self._openai_client = openai.OpenAI()"
+          ],
+          [
+            161,
+            "        full_messages = ([{\"role\": \"system\", \"content\": system}] if system else []) + messages"
+          ],
+          [
+            162,
+            "        resp = self._openai_client.chat.completions.create("
+          ],
+          [
+            163,
+            "            model=model, max_tokens=max_tokens, messages=full_messages"
+          ],
+          [
+            164,
+            "        )"
+          ],
+          [
+            165,
+            "        text = resp.choices[0].message.content"
+          ],
+          [
+            166,
+            "        return text, resp.usage.prompt_tokens, resp.usage.completion_tokens, resp"
+          ],
+          [
+            167,
+            ""
+          ],
+          [
+            168,
+            "    def _call_ollama(self, model, messages, system, max_tokens, json_schema=None, ollama_options=None):"
+          ],
+          [
+            169,
+            "        import json"
+          ],
+          [
+            170,
+            "        import urllib.request"
+          ],
+          [
+            171,
+            ""
+          ],
+          [
+            172,
+            "        full_messages = ([{\"role\": \"system\", \"content\": system}] if system else []) + messages"
+          ],
+          [
+            173,
+            "        base_url = os.environ.get(\"OLLAMA_BASE_URL\", \"http://localhost:11434\")"
+          ],
+          [
+            174,
+            "        payload = {"
+          ],
+          [
+            175,
+            "            \"model\": model,"
+          ],
+          [
+            176,
+            "            \"messages\": full_messages,"
+          ],
+          [
+            177,
+            "            \"stream\": False,"
+          ],
+          [
+            178,
+            "            \"think\": False,  # hybrid thinking models (e.g. qwen3) otherwise burn"
+          ],
+          [
+            179,
+            "            # max_tokens on hidden reasoning and can return empty `content`."
+          ],
+          [
+            180,
+            "            # Reasoning belongs in explicit structured-output fields (Phase 3+),"
+          ],
+          [
+            181,
+            "            # not a hidden chain-of-thought."
+          ],
+          [
+            182,
+            "            \"options\": {\"num_predict\": max_tokens, **(ollama_options or {})},"
+          ],
+          [
+            183,
+            "        }"
+          ],
+          [
+            184,
+            "        if json_schema:"
+          ],
+          [
+            185,
+            "            payload[\"format\"] = json_schema  # Ollama constrains decoding to this schema"
+          ],
+          [
+            186,
+            "        req = urllib.request.Request("
+          ],
+          [
+            187,
+            "            f\"{base_url}/api/chat\","
+          ],
+          [
+            188,
+            "            data=json.dumps(payload).encode(\"utf-8\"),"
+          ],
+          [
+            189,
+            "            headers={\"Content-Type\": \"application/json\"},"
+          ],
+          [
+            190,
+            "            method=\"POST\","
+          ],
+          [
+            191,
+            "        )"
+          ],
+          [
+            192,
+            "        with urllib.request.urlopen(req, timeout=600) as resp:"
+          ],
+          [
+            193,
+            "            data = json.loads(resp.read())"
+          ],
+          [
+            194,
+            "        text = data[\"message\"][\"content\"]"
+          ],
+          [
+            195,
+            "        tokens_in = data.get(\"prompt_eval_count\", 0)"
+          ],
+          [
+            196,
+            "        tokens_out = data.get(\"eval_count\", 0)"
+          ],
+          [
+            197,
+            "        return text, tokens_in, tokens_out, data"
+          ],
+          [
+            198,
+            ""
+          ],
+          [
+            199,
+            ""
+          ],
+          [
+            200,
+            "def call_llm(provider: Provider | None = None, model: str | None = None, **kwargs) -> LLMResponse:"
+          ]
+        ],
+        "ok": true,
+        "path": "src/sponsorfit/llm.py",
+        "sites": [
+          "src/sponsorfit/llm.py:1",
+          "src/sponsorfit/llm.py:2",
+          "src/sponsorfit/llm.py:3",
+          "src/sponsorfit/llm.py:4",
+          "src/sponsorfit/llm.py:5",
+          "src/sponsorfit/llm.py:6",
+          "src/sponsorfit/llm.py:7",
+          "src/sponsorfit/llm.py:8",
+          "src/sponsorfit/llm.py:9",
+          "src/sponsorfit/llm.py:10",
+          "src/sponsorfit/llm.py:11",
+          "src/sponsorfit/llm.py:12",
+          "src/sponsorfit/llm.py:13",
+          "src/sponsorfit/llm.py:14",
+          "src/sponsorfit/llm.py:15",
+          "src/sponsorfit/llm.py:16",
+          "src/sponsorfit/llm.py:17",
+          "src/sponsorfit/llm.py:18",
+          "src/sponsorfit/llm.py:19",
+          "src/sponsorfit/llm.py:20",
+          "src/sponsorfit/llm.py:21",
+          "src/sponsorfit/llm.py:22",
+          "src/sponsorfit/llm.py:23",
+          "src/sponsorfit/llm.py:24",
+          "src/sponsorfit/llm.py:25",
+          "src/sponsorfit/llm.py:26",
+          "src/sponsorfit/llm.py:27",
+          "src/sponsorfit/llm.py:28",
+          "src/sponsorfit/llm.py:29",
+          "src/sponsorfit/llm.py:30",
+          "src/sponsorfit/llm.py:31",
+          "src/sponsorfit/llm.py:32",
+          "src/sponsorfit/llm.py:33",
+          "src/sponsorfit/llm.py:34",
+          "src/sponsorfit/llm.py:35",
+          "src/sponsorfit/llm.py:36",
+          "src/sponsorfit/llm.py:37",
+          "src/sponsorfit/llm.py:38",
+          "src/sponsorfit/llm.py:39",
+          "src/sponsorfit/llm.py:40",
+          "src/sponsorfit/llm.py:41",
+          "src/sponsorfit/llm.py:42",
+          "src/sponsorfit/llm.py:43",
+          "src/sponsorfit/llm.py:44",
+          "src/sponsorfit/llm.py:45",
+          "src/sponsorfit/llm.py:46",
+          "src/sponsorfit/llm.py:47",
+          "src/sponsorfit/llm.py:48",
+          "src/sponsorfit/llm.py:49",
+          "src/sponsorfit/llm.py:50",
+          "src/sponsorfit/llm.py:51",
+          "src/sponsorfit/llm.py:52",
+          "src/sponsorfit/llm.py:53",
+          "src/sponsorfit/llm.py:54",
+          "src/sponsorfit/llm.py:55",
+          "src/sponsorfit/llm.py:56",
+          "src/sponsorfit/llm.py:57",
+          "src/sponsorfit/llm.py:58",
+          "src/sponsorfit/llm.py:59",
+          "src/sponsorfit/llm.py:60",
+          "src/sponsorfit/llm.py:61",
+          "src/sponsorfit/llm.py:62",
+          "src/sponsorfit/llm.py:63",
+          "src/sponsorfit/llm.py:64",
+          "src/sponsorfit/llm.py:65",
+          "src/sponsorfit/llm.py:66",
+          "src/sponsorfit/llm.py:67",
+          "src/sponsorfit/llm.py:68",
+          "src/sponsorfit/llm.py:69",
+          "src/sponsorfit/llm.py:70",
+          "src/sponsorfit/llm.py:71",
+          "src/sponsorfit/llm.py:72",
+          "src/sponsorfit/llm.py:73",
+          "src/sponsorfit/llm.py:74",
+          "src/sponsorfit/llm.py:75",
+          "src/sponsorfit/llm.py:76",
+          "src/sponsorfit/llm.py:77",
+          "src/sponsorfit/llm.py:78",
+          "src/sponsorfit/llm.py:79",
+          "src/sponsorfit/llm.py:80",
+          "src/sponsorfit/llm.py:81",
+          "src/sponsorfit/llm.py:82",
+          "src/sponsorfit/llm.py:83",
+          "src/sponsorfit/llm.py:84",
+          "src/sponsorfit/llm.py:85",
+          "src/sponsorfit/llm.py:86",
+          "src/sponsorfit/llm.py:87",
+          "src/sponsorfit/llm.py:88",
+          "src/sponsorfit/llm.py:89",
+          "src/sponsorfit/llm.py:90",
+          "src/sponsorfit/llm.py:91",
+          "src/sponsorfit/llm.py:92",
+          "src/sponsorfit/llm.py:93",
+          "src/sponsorfit/llm.py:94",
+          "src/sponsorfit/llm.py:95",
+          "src/sponsorfit/llm.py:96",
+          "src/sponsorfit/llm.py:97",
+          "src/sponsorfit/llm.py:98",
+          "src/sponsorfit/llm.py:99",
+          "src/sponsorfit/llm.py:100",
+          "src/sponsorfit/llm.py:101",
+          "src/sponsorfit/llm.py:102",
+          "src/sponsorfit/llm.py:103",
+          "src/sponsorfit/llm.py:104",
+          "src/sponsorfit/llm.py:105",
+          "src/sponsorfit/llm.py:106",
+          "src/sponsorfit/llm.py:107",
+          "src/sponsorfit/llm.py:108",
+          "src/sponsorfit/llm.py:109",
+          "src/sponsorfit/llm.py:110",
+          "src/sponsorfit/llm.py:111",
+          "src/sponsorfit/llm.py:112",
+          "src/sponsorfit/llm.py:113",
+          "src/sponsorfit/llm.py:114",
+          "src/sponsorfit/llm.py:115",
+          "src/sponsorfit/llm.py:116",
+          "src/sponsorfit/llm.py:117",
+          "src/sponsorfit/llm.py:118",
+          "src/sponsorfit/llm.py:119",
+          "src/sponsorfit/llm.py:120",
+          "src/sponsorfit/llm.py:121",
+          "src/sponsorfit/llm.py:122",
+          "src/sponsorfit/llm.py:123",
+          "src/sponsorfit/llm.py:124",
+          "src/sponsorfit/llm.py:125",
+          "src/sponsorfit/llm.py:126",
+          "src/sponsorfit/llm.py:127",
+          "src/sponsorfit/llm.py:128",
+          "src/sponsorfit/llm.py:129",
+          "src/sponsorfit/llm.py:130",
+          "src/sponsorfit/llm.py:131",
+          "src/sponsorfit/llm.py:132",
+          "src/sponsorfit/llm.py:133",
+          "src/sponsorfit/llm.py:134",
+          "src/sponsorfit/llm.py:135",
+          "src/sponsorfit/llm.py:136",
+          "src/sponsorfit/llm.py:137",
+          "src/sponsorfit/llm.py:138",
+          "src/sponsorfit/llm.py:139",
+          "src/sponsorfit/llm.py:140",
+          "src/sponsorfit/llm.py:141",
+          "src/sponsorfit/llm.py:142",
+          "src/sponsorfit/llm.py:143",
+          "src/sponsorfit/llm.py:144",
+          "src/sponsorfit/llm.py:145",
+          "src/sponsorfit/llm.py:146",
+          "src/sponsorfit/llm.py:147",
+          "src/sponsorfit/llm.py:148",
+          "src/sponsorfit/llm.py:149",
+          "src/sponsorfit/llm.py:150",
+          "src/sponsorfit/llm.py:151",
+          "src/sponsorfit/llm.py:152",
+          "src/sponsorfit/llm.py:153",
+          "src/sponsorfit/llm.py:154",
+          "src/sponsorfit/llm.py:155",
+          "src/sponsorfit/llm.py:156",
+          "src/sponsorfit/llm.py:157",
+          "src/sponsorfit/llm.py:158",
+          "src/sponsorfit/llm.py:159",
+          "src/sponsorfit/llm.py:160",
+          "src/sponsorfit/llm.py:161",
+          "src/sponsorfit/llm.py:162",
+          "src/sponsorfit/llm.py:163",
+          "src/sponsorfit/llm.py:164",
+          "src/sponsorfit/llm.py:165",
+          "src/sponsorfit/llm.py:166",
+          "src/sponsorfit/llm.py:167",
+          "src/sponsorfit/llm.py:168",
+          "src/sponsorfit/llm.py:169",
+          "src/sponsorfit/llm.py:170",
+          "src/sponsorfit/llm.py:171",
+          "src/sponsorfit/llm.py:172",
+          "src/sponsorfit/llm.py:173",
+          "src/sponsorfit/llm.py:174",
+          "src/sponsorfit/llm.py:175",
+          "src/sponsorfit/llm.py:176",
+          "src/sponsorfit/llm.py:177",
+          "src/sponsorfit/llm.py:178",
+          "src/sponsorfit/llm.py:179",
+          "src/sponsorfit/llm.py:180",
+          "src/sponsorfit/llm.py:181",
+          "src/sponsorfit/llm.py:182",
+          "src/sponsorfit/llm.py:183",
+          "src/sponsorfit/llm.py:184",
+          "src/sponsorfit/llm.py:185",
+          "src/sponsorfit/llm.py:186",
+          "src/sponsorfit/llm.py:187",
+          "src/sponsorfit/llm.py:188",
+          "src/sponsorfit/llm.py:189",
+          "src/sponsorfit/llm.py:190",
+          "src/sponsorfit/llm.py:191",
+          "src/sponsorfit/llm.py:192",
+          "src/sponsorfit/llm.py:193",
+          "src/sponsorfit/llm.py:194",
+          "src/sponsorfit/llm.py:195",
+          "src/sponsorfit/llm.py:196",
+          "src/sponsorfit/llm.py:197",
+          "src/sponsorfit/llm.py:198",
+          "src/sponsorfit/llm.py:199",
+          "src/sponsorfit/llm.py:200"
+        ],
+        "summary": "src/sponsorfit/llm.py:1-200 (200 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "end": 200,
+        "path": "src/sponsorfit/pricing.py",
+        "start": 1
+      },
+      "id": "call_5",
+      "model_id": "call_74c12d02-78ef-4468-b1ee-539f0ffc1049",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            1,
+            "\"\"\"Hardcoded per-model USD pricing. Update this table when providers change"
+          ],
+          [
+            2,
+            "prices — nothing else in the codebase should need to change.\"\"\""
+          ],
+          [
+            3,
+            ""
+          ],
+          [
+            4,
+            "# USD per 1,000,000 tokens."
+          ],
+          [
+            5,
+            "PRICING = {"
+          ],
+          [
+            6,
+            "    \"anthropic\": {"
+          ],
+          [
+            7,
+            "        \"claude-haiku-4-5-20251001\": {\"input\": 1.00, \"output\": 5.00},"
+          ],
+          [
+            8,
+            "        \"claude-sonnet-5\": {\"input\": 2.00, \"output\": 10.00},"
+          ],
+          [
+            9,
+            "        \"claude-opus-5\": {\"input\": 5.00, \"output\": 25.00},"
+          ],
+          [
+            10,
+            "    },"
+          ],
+          [
+            11,
+            "    \"openai\": {"
+          ],
+          [
+            12,
+            "        # TODO verify current prices at https://platform.openai.com/docs/pricing"
+          ],
+          [
+            13,
+            "        # before the first real OpenAI call — not independently verified here."
+          ],
+          [
+            14,
+            "        \"gpt-4o-mini\": {\"input\": 0.15, \"output\": 0.60},"
+          ],
+          [
+            15,
+            "        \"gpt-4o\": {\"input\": 2.50, \"output\": 10.00},"
+          ],
+          [
+            16,
+            "    },"
+          ],
+          [
+            17,
+            "}"
+          ],
+          [
+            18,
+            ""
+          ],
+          [
+            19,
+            ""
+          ],
+          [
+            20,
+            "def compute_cost_usd(provider: str, model: str, tokens_in: int, tokens_out: int) -> float:"
+          ],
+          [
+            21,
+            "    if provider == \"ollama\":"
+          ],
+          [
+            22,
+            "        return 0.0  # runs locally — no per-token API cost, regardless of model"
+          ],
+          [
+            23,
+            "    rates = PRICING[provider][model]  # KeyError on unknown model — fail loud, never log $0"
+          ],
+          [
+            24,
+            "    return (tokens_in / 1_000_000) * rates[\"input\"] + (tokens_out / 1_000_000) * rates[\"output\"]"
+          ]
+        ],
+        "ok": true,
+        "path": "src/sponsorfit/pricing.py",
+        "sites": [
+          "src/sponsorfit/pricing.py:1",
+          "src/sponsorfit/pricing.py:2",
+          "src/sponsorfit/pricing.py:3",
+          "src/sponsorfit/pricing.py:4",
+          "src/sponsorfit/pricing.py:5",
+          "src/sponsorfit/pricing.py:6",
+          "src/sponsorfit/pricing.py:7",
+          "src/sponsorfit/pricing.py:8",
+          "src/sponsorfit/pricing.py:9",
+          "src/sponsorfit/pricing.py:10",
+          "src/sponsorfit/pricing.py:11",
+          "src/sponsorfit/pricing.py:12",
+          "src/sponsorfit/pricing.py:13",
+          "src/sponsorfit/pricing.py:14",
+          "src/sponsorfit/pricing.py:15",
+          "src/sponsorfit/pricing.py:16",
+          "src/sponsorfit/pricing.py:17",
+          "src/sponsorfit/pricing.py:18",
+          "src/sponsorfit/pricing.py:19",
+          "src/sponsorfit/pricing.py:20",
+          "src/sponsorfit/pricing.py:21",
+          "src/sponsorfit/pricing.py:22",
+          "src/sponsorfit/pricing.py:23",
+          "src/sponsorfit/pricing.py:24"
+        ],
+        "summary": "src/sponsorfit/pricing.py:1-200 (24 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "sponsorfit.llm.Provider"
+      },
+      "id": "call_6",
+      "model_id": "call_8874dbe0-348e-4316-b9ef-11055ebba60f",
+      "name": "find_usages",
+      "result": {
+        "count": 0,
+        "ok": true,
+        "sites": [],
+        "summary": "0 sites use sponsorfit.llm.Provider (0 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "sponsorfit.pricing.PRICING"
+      },
+      "id": "call_7",
+      "model_id": "call_ba81315e-befc-4568-aaee-393656064867",
+      "name": "find_usages",
+      "result": {
+        "count": 0,
+        "ok": true,
+        "sites": [],
+        "summary": "0 sites use sponsorfit.pricing.PRICING (0 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "sponsorfit.llm.MeteredLLMClient._call_openai"
+      },
+      "id": "call_8",
+      "model_id": "call_f834f720-b564-4334-bc36-f00020c459be",
+      "name": "find_usages",
+      "result": {
+        "count": 0,
+        "ok": true,
+        "sites": [],
+        "summary": "0 sites use sponsorfit.llm.MeteredLLMClient._call_openai (0 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "end": 300,
+        "path": "src/sponsorfit/llm.py",
+        "start": 200
+      },
+      "id": "call_9",
+      "model_id": "call_ae3e0817-9367-493a-a621-55ed1ee27b8a",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            200,
+            "def call_llm(provider: Provider | None = None, model: str | None = None, **kwargs) -> LLMResponse:"
+          ],
+          [
+            201,
+            "    \"\"\"Module-level convenience wrapper for simple/ad-hoc scripts (no run_id tracking).\"\"\""
+          ],
+          [
+            202,
+            "    provider = provider or os.environ[\"SPONSORFIT_DEFAULT_PROVIDER\"]"
+          ],
+          [
+            203,
+            "    model = model or os.environ[\"SPONSORFIT_DEFAULT_MODEL\"]"
+          ],
+          [
+            204,
+            "    return MeteredLLMClient().call(provider=provider, model=model, **kwargs)"
+          ]
+        ],
+        "ok": true,
+        "path": "src/sponsorfit/llm.py",
+        "sites": [
+          "src/sponsorfit/llm.py:200",
+          "src/sponsorfit/llm.py:201",
+          "src/sponsorfit/llm.py:202",
+          "src/sponsorfit/llm.py:203",
+          "src/sponsorfit/llm.py:204"
+        ],
+        "summary": "src/sponsorfit/llm.py:200-300 (5 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "env": "after",
+        "module": "sponsorfit"
+      },
+      "id": "call_10",
+      "model_id": "call_6a62ee31-871b-43b3-bbe2-cf74810d67c6",
+      "name": "run_import_probe",
+      "result": {
+        "chain": [],
+        "error": {
+          "file": "<string>",
+          "func": "<module>",
+          "line": 1,
+          "site": "<string>:1"
+        },
+        "error_line": "ModuleNotFoundError: No module named 'sponsorfit'",
+        "ok": false,
+        "summary": "import sponsorfit in after fails: no in-repo frames",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import sys\nimport tempfile\nsys.path.insert(0, \"src\")\ntmp = tempfile.mkdtemp()\nfrom sponsorfit.llm import MeteredLLMClient\nclient = MeteredLLMClient(run_id=\"probe\", db_path=\":memory:\", traces_dir=tmp)\nclient.call(provider=\"meta\", model=\"muse-spark-1.3\", messages=[{\"role\": \"user\", \"content\": \"ping\"}])",
+        "env": "after"
+      },
+      "id": "call_11",
+      "model_id": "call_9d1fe840-942b-44f2-a21e-0c6742148055",
+      "name": "run_snippet",
+      "result": {
+        "chain": [
+          "sponsorfit.llm"
+        ],
+        "ok": false,
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 7, in <module>\n  File \"<root>/targets/sponsorfit/src/sponsorfit/llm.py\", line 78, in call\n    raise ValueError(f\"unknown provider: {provider}\")\nValueError: unknown provider: meta",
+        "stdout": "",
+        "summary": "snippet in after: failed",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import sys; sys.path.insert(0, \"src\")\nfrom sponsorfit import pricing\nprint(pricing.PRICING)\ntry:\n  print(pricing.compute_cost_usd(\"meta\", \"muse-spark-1.3\", 100, 100))\nexcept Exception as e:\n  print(f\"ERROR {type(e).__name__}: {e}\")",
+        "env": "after"
+      },
+      "id": "call_12",
+      "model_id": "call_5b561c50-f85b-4d45-b889-987b17b00221",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": true,
+        "stderr": "",
+        "stdout": "{'anthropic': {'claude-haiku-4-5-20251001': {'input': 1.0, 'output': 5.0}, 'claude-sonnet-5': {'input': 2.0, 'output': 10.0}, 'claude-opus-5': {'input': 5.0, 'output': 25.0}}, 'openai': {'gpt-4o-mini': {'input': 0.15, 'output': 0.6}, 'gpt-4o': {'input': 2.5, 'output': 10.0}}}\nERROR KeyError: 'meta'\n",
+        "summary": "snippet in after: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import sys; sys.path.insert(0, \"src\")\nfrom sponsorfit import pricing\n# direct Meta provider lookup - should fail loud (no except, to show failure)\nprint(pricing.compute_cost_usd(\"meta\", \"muse-spark-1.3\", 100, 100))",
+        "env": "after"
+      },
+      "id": "call_13",
+      "model_id": "call_0d5092d3-5000-4fa5-9d5c-572078b5d6c5",
+      "name": "run_snippet",
+      "result": {
+        "chain": [
+          "sponsorfit.pricing"
+        ],
+        "ok": false,
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 4, in <module>\n  File \"<root>/targets/sponsorfit/src/sponsorfit/pricing.py\", line 23, in compute_cost_usd\n    rates = PRICING[provider][model]  # KeyError on unknown model � fail loud, never log $0\n            ~~~~~~~^^^^^^^^^^\nKeyError: 'meta'",
+        "stdout": "",
+        "summary": "snippet in after: failed",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import sys; sys.path.insert(0, \"src\")\nimport inspect\nfrom sponsorfit.llm import MeteredLLMClient\nprint(inspect.signature(MeteredLLMClient._call_openai))\n# Meta endpoint requires base_url - try passing it (should fail on current code)\nimport tempfile\ntmp = tempfile.mkdtemp()\nc = MeteredLLMClient(run_id=\"probe\", db_path=\":memory:\", traces_dir=tmp)\ntry:\n  c._call_openai(\"muse-spark-1.3\", [{\"role\":\"user\",\"content\":\"hi\"}], None, 10, base_url=\"https://api.meta.ai/v1\")\nexcept Exception as e:\n  print(f\"ERROR {type(e).__name__}: {e}\")\n  raise",
+        "env": "after"
+      },
+      "id": "call_14",
+      "model_id": "call_19d5ad37-582b-453e-a693-00f505096074",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": false,
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 10, in <module>\nTypeError: MeteredLLMClient._call_openai() got an unexpected keyword argument 'base_url'",
+        "stdout": "(self, model, messages, system, max_tokens)\nERROR TypeError: MeteredLLMClient._call_openai() got an unexpected keyword argument 'base_url'\n",
+        "summary": "snippet in after: failed",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import sys; sys.path.insert(0, \"src\")\nfrom sponsorfit import pricing\nprint(\"keys:\", list(pricing.PRICING.keys()))\n# openai provider with Meta model name - inner missing_key\nprint(pricing.compute_cost_usd(\"openai\", \"muse-spark-1.3\", 100, 100))",
+        "env": "after"
+      },
+      "id": "call_15",
+      "model_id": "call_75553949-ff84-495e-a837-1ed53b785921",
+      "name": "run_snippet",
+      "result": {
+        "chain": [
+          "sponsorfit.pricing"
+        ],
+        "ok": false,
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n  File \"<root>/targets/sponsorfit/src/sponsorfit/pricing.py\", line 23, in compute_cost_usd\n    rates = PRICING[provider][model]  # KeyError on unknown model � fail loud, never log $0\n            ~~~~~~~~~~~~~~~~~^^^^^^^\nKeyError: 'muse-spark-1.3'",
+        "stdout": "keys: ['anthropic', 'openai']\n",
+        "summary": "snippet in after: failed",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import sys; sys.path.insert(0, \"src\")\nimport sponsorfit.llm as m\nimport sponsorfit.pricing as p\nprint(\"imports ok\", m.MeteredLLMClient, p.PRICING.keys())",
+        "env": "after"
+      },
+      "id": "call_16",
+      "model_id": "call_d49e8ed9-2362-4868-91bc-7d6f536bc9fa",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": true,
+        "stderr": "",
+        "stdout": "imports ok <class 'sponsorfit.llm.MeteredLLMClient'> dict_keys(['anthropic', 'openai'])\n",
+        "summary": "snippet in after: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "findings": [
+          {
+            "claim": "MeteredLLMClient.call(provider='meta', model='muse-spark-1.3', ...) raises ValueError: unknown provider: meta; Provider literal only allows anthropic/openai/ollama",
+            "confidence": "confirmed",
+            "evidence": [
+              "call_1",
+              "call_4",
+              "call_11"
+            ],
+            "id": "F1-provider-meta-rejected",
+            "kind": "breaks_call",
+            "sites": [
+              "src/sponsorfit/llm.py:14",
+              "src/sponsorfit/llm.py:46",
+              "src/sponsorfit/llm.py:78"
+            ],
+            "symbol": "sponsorfit.llm.Provider",
+            "tests": []
+          },
+          {
+            "claim": "MeteredLLMClient._call_openai signature is (self, model, messages, system, max_tokens) and rejects base_url='https://api.meta.ai/v1' with TypeError: got an unexpected keyword argument 'base_url'",
+            "confidence": "confirmed",
+            "evidence": [
+              "call_1",
+              "call_4",
+              "call_14"
+            ],
+            "id": "F2-call-openai-missing-base-url",
+            "kind": "breaks_call",
+            "sites": [
+              "src/sponsorfit/llm.py:156",
+              "src/sponsorfit/llm.py:69"
+            ],
+            "symbol": "sponsorfit.llm.MeteredLLMClient._call_openai",
+            "tests": []
+          },
+          {
+            "claim": "pricing.compute_cost_usd('meta','muse-spark-1.3',...) raises KeyError: 'meta' and compute_cost_usd('openai','muse-spark-1.3',...) raises KeyError: 'muse-spark-1.3'; PRICING keys are only anthropic/openai",
+            "confidence": "confirmed",
+            "evidence": [
+              "call_1",
+              "call_5",
+              "call_12",
+              "call_13",
+              "call_15"
+            ],
+            "id": "F3-pricing-missing-meta-key",
+            "kind": "breaks_call",
+            "sites": [
+              "src/sponsorfit/pricing.py:5",
+              "src/sponsorfit/pricing.py:23",
+              "src/sponsorfit/llm.py:103"
+            ],
+            "symbol": "sponsorfit.pricing.PRICING",
+            "tests": []
+          }
+        ],
+        "summary": "Switch to Meta Model API is blocked at 3 layers: imports of sponsorfit.llm/pricing still succeed (call_16) but any meta call fails. Decision preamble with provider='meta' fails with ValueError unknown provider (call_11). _call_openai has no base_url param (call_14). PRICING has no meta provider or muse-spark-1.3 model, failing loud with KeyError (call_13, call_15). Static propagate/find_usages report 0 external hits (call_2, call_6, call_7, call_8) because the break is the absence of new Meta support in definitions shown by source reads (call_4, call_5).",
+        "triage": [
+          {
+            "evidence": [
+              "call_2",
+              "call_4",
+              "call_6",
+              "call_11"
+            ],
+            "reason": "Defined in llm.py:14 as Literal[anthropic,openai,ollama] and used as annotation in call/call_llm; meta path attempted in decision preamble fails with ValueError",
+            "relevant": true,
+            "symbol": "sponsorfit.llm.Provider"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_4",
+              "call_8",
+              "call_14"
+            ],
+            "reason": "Defined in llm.py:156 and called in llm.py:69-71; current signature lacks base_url required for https://api.meta.ai/v1, probe rejects kwarg",
+            "relevant": true,
+            "symbol": "sponsorfit.llm.MeteredLLMClient._call_openai"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_5",
+              "call_7",
+              "call_13",
+              "call_15"
+            ],
+            "reason": "Defined in pricing.py:5 with only anthropic/openai keys and dereferenced in compute_cost_usd:23 and llm.py:103; both meta provider and muse-spark-1.3 model lookups raise KeyError",
+            "relevant": true,
+            "symbol": "sponsorfit.pricing.PRICING"
+          }
+        ]
+      },
+      "id": "call_17",
+      "model_id": "call_172c1639-71f8-4c66-8db0-06ec0891c81f",
+      "name": "submit_findings",
+      "result": {
+        "ok": true,
+        "summary": "findings accepted"
+      }
+    }
+  ],
+  "triage": [
+    {
+      "evidence": [
+        "call_2",
+        "call_4",
+        "call_6",
+        "call_11"
+      ],
+      "reason": "Defined in llm.py:14 as Literal[anthropic,openai,ollama] and used as annotation in call/call_llm; meta path attempted in decision preamble fails with ValueError",
+      "relevant": true,
+      "symbol": "sponsorfit.llm.Provider",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_4",
+        "call_8",
+        "call_14"
+      ],
+      "reason": "Defined in llm.py:156 and called in llm.py:69-71; current signature lacks base_url required for https://api.meta.ai/v1, probe rejects kwarg",
+      "relevant": true,
+      "symbol": "sponsorfit.llm.MeteredLLMClient._call_openai",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_5",
+        "call_7",
+        "call_13",
+        "call_15"
+      ],
+      "reason": "Defined in pricing.py:5 with only anthropic/openai keys and dereferenced in compute_cost_usd:23 and llm.py:103; both meta provider and muse-spark-1.3 model lookups raise KeyError",
+      "relevant": true,
+      "symbol": "sponsorfit.pricing.PRICING",
+      "verified": true,
+      "verify_reason": ""
+    }
+  ],
+  "usage": {
+    "probe_calls": 7,
+    "tokens": 58325,
+    "tool_calls": 17,
+    "turns": 7
+  }
+}

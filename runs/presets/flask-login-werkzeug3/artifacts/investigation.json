@@ -1,0 +1,2232 @@
+{
+  "findings": [
+    {
+      "claim": "flask_login fails to import in after env: flask_login.utils imports url_decode/url_encode from werkzeug.urls which no longer provides them, breaking flask_login -> flask_login.login_manager -> flask_login.utils",
+      "confidence": "confirmed",
+      "evidence": [
+        "call_2",
+        "call_3",
+        "call_4",
+        "call_5",
+        "call_6",
+        "call_7",
+        "call_8",
+        "call_10",
+        "call_11",
+        "call_12"
+      ],
+      "id": "F1",
+      "kind": "breaks_import",
+      "sites": [
+        "src/flask_login/utils.py:14",
+        "src/flask_login/utils.py:15",
+        "src/flask_login/utils.py:126",
+        "src/flask_login/utils.py:130"
+      ],
+      "symbol": "werkzeug.urls",
+      "tests": [
+        "tests/test_login.py::LoginTestCase::test_login_user",
+        "tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding"
+      ],
+      "verified": false,
+      "verify_reason": "test tests/test_login.py::LoginTestCase::test_login_user is in no cited covering/test result; test tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding is in no cited covering/test result"
+    }
+  ],
+  "status": "complete",
+  "summary": "Upgrade werkzeug 2.2->3.0 breaks flask_login import: only werkzeug.urls is used (url_decode/url_encode in utils.py login_url), confirmed by after-import failure vs before-import ok and direct url_decode/url_encode import failures. Other 40 symbols have zero uses per propagate and need no probes.",
+  "trace": [
+    {
+      "args": {},
+      "id": "call_1",
+      "model_id": "call_16317399-3b59-464f-9ea0-e2cd6b217170",
+      "name": "list_changes",
+      "result": {
+        "count": 42,
+        "items": [
+          {
+            "kind": "deprecated",
+            "quote": "`Client.charset` attributes are deprecated. Request and response data must always",
+            "release": "2.3.0",
+            "symbol": "Client.charset"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "The methods `WWWAuthenticate.set_basic` and `set_digest` are deprecated.",
+            "release": "2.3.0",
+            "symbol": "WWWAuthenticate.set_basic"
+          },
+          {
+            "kind": "removed",
+            "quote": "setting, and deleting `auth[key]` and `auth.key` syntax, as well as",
+            "release": "2.3.0",
+            "symbol": "auth.key"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "The `cookie_jar` attribute is deprecated. `http.cookiejar` is no longer used",
+            "release": "2.3.0",
+            "symbol": "http.cookiejar"
+          },
+          {
+            "kind": "removed",
+            "quote": "Remove usage of `warnings.catch_warnings`. #2690",
+            "release": "2.3.4",
+            "symbol": "warnings.catch_warnings"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "Deprecate the `safe_conversion` parameter of `iri_to_uri`. The `Location`",
+            "release": "2.3.0",
+            "symbol": "werkzeug.Location"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "Deprecate the `__version__` attribute. Use feature detection, or\n`importlib.metadata.version(\"werkzeug\")`, instead. #2770",
+            "release": "3.0.0",
+            "symbol": "werkzeug.__version__"
+          },
+          {
+            "kind": "removed",
+            "quote": "setting, and deleting `auth[key]` and `auth.key` syntax, as well as",
+            "release": "2.3.0",
+            "symbol": "werkzeug.auth"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "Passing bytes where strings are expected is deprecated, as well as the `charset`",
+            "release": "2.3.0",
+            "symbol": "werkzeug.charset"
+          },
+          {
+            "kind": "removed",
+            "quote": "The methods `WWWAuthenticate.set_basic` and `set_digest` are deprecated.\nInstead, an instance should be created and assigned to\n`response.www_authenticate`.",
+            "release": "2.3.0",
+            "symbol": "werkzeug.datastructures.WWWAuthenticate.set_basic"
+          },
+          {
+            "kind": "removed",
+            "quote": "The methods `WWWAuthenticate.set_basic` and `set_digest` are deprecated.\nInstead, an instance should be created and assigned to\n`response.www_authenticate`.",
+            "release": "2.3.0",
+            "symbol": "werkzeug.datastructures.WWWAuthenticate.set_digest"
+          },
+          {
+            "kind": "removed",
+            "quote": "`delete_cookie` is deprecated. Use the `domain` parameter instead.",
+            "release": "2.3.0",
+            "symbol": "werkzeug.delete_cookie"
+          },
+          {
+            "kind": "removed",
+            "quote": "Other parameters to `delete_cookie` besides `domain`, `path`, and",
+            "release": "2.3.0",
+            "symbol": "werkzeug.domain"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "Passing bytes to `parse_cookie` and `dump_cookie` is deprecated. The",
+            "release": "2.3.0",
+            "symbol": "werkzeug.dump_cookie"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`generate_password_hash` supports scrypt. Plain hash methods are deprecated, only",
+            "release": "2.3.0",
+            "symbol": "werkzeug.generate_password_hash"
+          },
+          {
+            "kind": "signature_changed",
+            "quote": "Passing bytes to `parse_cookie` and `dump_cookie` is deprecated. The\n`dump_cookie` `charset` parameter is deprecated.",
+            "release": "2.3.0",
+            "symbol": "werkzeug.http.dump_cookie"
+          },
+          {
+            "kind": "signature_changed",
+            "quote": "Deprecate the `extra_chars` parameter and passing bytes to `quote_header_value`,\nthe `allow_token` parameter to `dump_header`, and the `cls` parameter and\npassing bytes to `parse_dict_header`. #2618",
+            "release": "2.3.0",
+            "symbol": "werkzeug.http.dump_header"
+          },
+          {
+            "kind": "removed",
+            "quote": "Both classes have a `from_header` class method. `parse_authorization_header`\nand `parse_www_authenticate_header` are deprecated.",
+            "release": "2.3.0",
+            "symbol": "werkzeug.http.parse_authorization_header"
+          },
+          {
+            "kind": "signature_changed",
+            "quote": "Deprecate the `extra_chars` parameter and passing bytes to `quote_header_value`,\nthe `allow_token` parameter to `dump_header`, and the `cls` parameter and\npassing bytes to `parse_dict_header`. #2618",
+            "release": "2.3.0",
+            "symbol": "werkzeug.http.parse_dict_header"
+          },
+          {
+            "kind": "removed",
+            "quote": "Both classes have a `from_header` class method. `parse_authorization_header`\nand `parse_www_authenticate_header` are deprecated.",
+            "release": "2.3.0",
+            "symbol": "werkzeug.http.parse_www_authenticate_header"
+          },
+          {
+            "kind": "signature_changed",
+            "quote": "Deprecate the `extra_chars` parameter and passing bytes to `quote_header_value`,\nthe `allow_token` parameter to `dump_header`, and the `cls` parameter and\npassing bytes to `parse_dict_header`. #2618",
+            "release": "2.3.0",
+            "symbol": "werkzeug.http.quote_header_value"
+          },
+          {
+            "kind": "signature_changed",
+            "quote": "The `is_filename` parameter to `unquote_header_value` is deprecated. #2614",
+            "release": "2.3.0",
+            "symbol": "werkzeug.http.unquote_header_value"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "Deprecate the `safe_conversion` parameter of `iri_to_uri`. The `Location`",
+            "release": "2.3.0",
+            "symbol": "werkzeug.iri_to_uri"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`iri_to_uri` shows a deprecation warning instead of an error when passing bytes.",
+            "release": "2.3.5",
+            "symbol": "werkzeug.iri_to_uri"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "Deprecate `werkzeug.wsgi.make_line_iter` and `make_chunk_iter`. #2613",
+            "release": "2.3.0",
+            "symbol": "werkzeug.make_chunk_iter"
+          },
+          {
+            "kind": "removed",
+            "quote": "Remove `max_form_parts` restriction from standard form data parsing and only use",
+            "release": "2.3.4",
+            "symbol": "werkzeug.max_form_parts"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "Passing bytes to `parse_cookie` and `dump_cookie` is deprecated. The",
+            "release": "2.3.0",
+            "symbol": "werkzeug.parse_cookie"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "and `parse_www_authenticate_header` are deprecated.",
+            "release": "2.3.0",
+            "symbol": "werkzeug.parse_www_authenticate_header"
+          },
+          {
+            "kind": "removed",
+            "quote": "Other parameters to `delete_cookie` besides `domain`, `path`, and",
+            "release": "2.3.0",
+            "symbol": "werkzeug.path"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "Deprecate the `extra_chars` parameter and passing bytes to `quote_header_value`,",
+            "release": "2.3.0",
+            "symbol": "werkzeug.quote_header_value"
+          },
+          {
+            "kind": "removed",
+            "quote": "The `Map` `charset` parameter and `Request.url_charset` property are\ndeprecated. Percent encoding in URLs must always represent UTF-8 bytes. Invalid\nbytes are left percent encoded rather than replaced. #2602",
+            "release": "2.3.0",
+            "symbol": "werkzeug.routing.Map.charset"
+          },
+          {
+            "kind": "changed",
+            "quote": "`generate_password_hash` uses scrypt by default. #2769",
+            "release": "3.0.0",
+            "symbol": "werkzeug.security.generate_password_hash"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "The methods `WWWAuthenticate.set_basic` and `set_digest` are deprecated.",
+            "release": "2.3.0",
+            "symbol": "werkzeug.set_digest"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "The `is_filename` parameter to `unquote_header_value` is deprecated. #2614",
+            "release": "2.3.0",
+            "symbol": "werkzeug.unquote_header_value"
+          },
+          {
+            "kind": "removed",
+            "quote": "Deprecate the `werkzeug.urls` module, except for the `uri_to_iri` and\n`iri_to_uri` functions. Use the `urllib.parse` library instead. #2600",
+            "release": "2.3.0",
+            "symbol": "werkzeug.urls"
+          },
+          {
+            "kind": "signature_changed",
+            "quote": "Deprecate the `safe_conversion` parameter of `iri_to_uri`. The `Location`\nheader is converted to IRI using the same process as everywhere else. #2609",
+            "release": "2.3.0",
+            "symbol": "werkzeug.urls.iri_to_uri"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`value` are deprecated.",
+            "release": "2.3.0",
+            "symbol": "werkzeug.value"
+          },
+          {
+            "kind": "removed",
+            "quote": "The `Request.charset`, `Request.encoding_errors`, `Response.charset`, and\n`Client.charset` attributes are deprecated. Request and response data must always\nuse UTF-8. #2602",
+            "release": "2.3.0",
+            "symbol": "werkzeug.wrappers.Request.charset"
+          },
+          {
+            "kind": "changed",
+            "quote": "`Request.get_json()` will raise a `415 Unsupported Media Type` error if the\n`Content-Type` header is not `application/json`, instead of a generic 400.\n#2550",
+            "release": "2.3.0",
+            "symbol": "werkzeug.wrappers.Request.get_json"
+          },
+          {
+            "kind": "removed",
+            "quote": "The `Map` `charset` parameter and `Request.url_charset` property are\ndeprecated.",
+            "release": "2.3.0",
+            "symbol": "werkzeug.wrappers.Request.url_charset"
+          },
+          {
+            "kind": "removed",
+            "quote": "Deprecate `werkzeug.wsgi.make_line_iter` and `make_chunk_iter`. #2613",
+            "release": "2.3.0",
+            "symbol": "werkzeug.wsgi.make_chunk_iter"
+          },
+          {
+            "kind": "removed",
+            "quote": "Deprecate `werkzeug.wsgi.make_line_iter` and `make_chunk_iter`. #2613",
+            "release": "2.3.0",
+            "symbol": "werkzeug.wsgi.make_line_iter"
+          }
+        ],
+        "ok": true,
+        "summary": "42 change items",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbols": [
+          "Client.charset",
+          "WWWAuthenticate.set_basic",
+          "auth.key",
+          "http.cookiejar",
+          "warnings.catch_warnings",
+          "werkzeug.Location",
+          "werkzeug.__version__",
+          "werkzeug.auth",
+          "werkzeug.charset",
+          "werkzeug.datastructures.WWWAuthenticate.set_basic",
+          "werkzeug.datastructures.WWWAuthenticate.set_digest",
+          "werkzeug.delete_cookie",
+          "werkzeug.domain",
+          "werkzeug.dump_cookie",
+          "werkzeug.generate_password_hash",
+          "werkzeug.http.dump_cookie",
+          "werkzeug.http.dump_header",
+          "werkzeug.http.parse_authorization_header",
+          "werkzeug.http.parse_dict_header",
+          "werkzeug.http.parse_www_authenticate_header",
+          "werkzeug.http.quote_header_value",
+          "werkzeug.http.unquote_header_value",
+          "werkzeug.iri_to_uri",
+          "werkzeug.make_chunk_iter",
+          "werkzeug.max_form_parts",
+          "werkzeug.parse_cookie",
+          "werkzeug.parse_www_authenticate_header",
+          "werkzeug.path",
+          "werkzeug.quote_header_value",
+          "werkzeug.routing.Map.charset",
+          "werkzeug.security.generate_password_hash",
+          "werkzeug.set_digest",
+          "werkzeug.unquote_header_value",
+          "werkzeug.urls",
+          "werkzeug.urls.iri_to_uri",
+          "werkzeug.value",
+          "werkzeug.wrappers.Request.charset",
+          "werkzeug.wrappers.Request.get_json",
+          "werkzeug.wrappers.Request.url_charset",
+          "werkzeug.wsgi.make_chunk_iter",
+          "werkzeug.wsgi.make_line_iter"
+        ]
+      },
+      "id": "call_2",
+      "model_id": "call_c404d309-3de0-40cc-a9ea-f13d15d6ec0d",
+      "name": "propagate",
+      "result": {
+        "at_risk": [],
+        "at_risk_count": 0,
+        "chain_hops": [
+          {
+            "file": "src/flask_login/__init__.py",
+            "from": "flask_login",
+            "line": 11,
+            "site": "src/flask_login/__init__.py:11",
+            "to": "flask_login.login_manager"
+          },
+          {
+            "file": "src/flask_login/login_manager.py",
+            "from": "flask_login.login_manager",
+            "line": 31,
+            "site": "src/flask_login/login_manager.py:31",
+            "to": "flask_login.utils"
+          },
+          {
+            "file": "src/flask_login/utils.py",
+            "from": "flask_login.utils",
+            "line": 14,
+            "site": "src/flask_login/utils.py:14",
+            "to": "werkzeug.urls.url_decode"
+          }
+        ],
+        "hard": [
+          "flask_login",
+          "flask_login.__about__",
+          "flask_login.config",
+          "flask_login.login_manager",
+          "flask_login.mixins",
+          "flask_login.signals",
+          "flask_login.test_client",
+          "flask_login.utils"
+        ],
+        "hard_count": 8,
+        "ok": true,
+        "summary": "8 HARD + 0 AT_RISK modules; 1/41 symbols used; worst chain length 3",
+        "symbols": {
+          "Client.charset": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "WWWAuthenticate.set_basic": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "auth.key": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "http.cookiejar": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "warnings.catch_warnings": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.Location": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.__version__": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.auth": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.charset": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.datastructures.WWWAuthenticate.set_basic": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.datastructures.WWWAuthenticate.set_digest": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.delete_cookie": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.domain": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.dump_cookie": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.generate_password_hash": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.http.dump_cookie": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.http.dump_header": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.http.parse_authorization_header": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.http.parse_dict_header": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.http.parse_www_authenticate_header": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.http.quote_header_value": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.http.unquote_header_value": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.iri_to_uri": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.make_chunk_iter": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.max_form_parts": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.parse_cookie": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.parse_www_authenticate_header": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.path": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.quote_header_value": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.routing.Map.charset": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.security.generate_password_hash": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.set_digest": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.unquote_header_value": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.urls": {
+            "import_time": 2,
+            "sites": 4
+          },
+          "werkzeug.urls.iri_to_uri": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.value": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.wrappers.Request.charset": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.wrappers.Request.get_json": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.wrappers.Request.url_charset": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.wsgi.make_chunk_iter": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "werkzeug.wsgi.make_line_iter": {
+            "import_time": 0,
+            "sites": 0
+          }
+        },
+        "truncated": false,
+        "worst_chain": [
+          "flask_login",
+          "flask_login.login_manager",
+          "flask_login.utils"
+        ]
+      }
+    },
+    {
+      "args": {
+        "symbol": "werkzeug.urls"
+      },
+      "id": "call_3",
+      "model_id": "call_5f6c15b6-238e-41a1-9cae-bbe332b1e1cb",
+      "name": "find_usages",
+      "result": {
+        "count": 4,
+        "ok": true,
+        "sites": [
+          {
+            "code": "from werkzeug.urls import url_decode",
+            "def": null,
+            "file": "src/flask_login/utils.py",
+            "import_time": true,
+            "line": 14,
+            "site": "src/flask_login/utils.py:14"
+          },
+          {
+            "code": "from werkzeug.urls import url_encode",
+            "def": null,
+            "file": "src/flask_login/utils.py",
+            "import_time": true,
+            "line": 15,
+            "site": "src/flask_login/utils.py:15"
+          },
+          {
+            "code": "md = url_decode(parsed_result.query)",
+            "def": "flask_login.utils.login_url",
+            "file": "src/flask_login/utils.py",
+            "import_time": false,
+            "line": 126,
+            "site": "src/flask_login/utils.py:126"
+          },
+          {
+            "code": "netloc=netloc, query=url_encode(md, sort=True)",
+            "def": "flask_login.utils.login_url",
+            "file": "src/flask_login/utils.py",
+            "import_time": false,
+            "line": 130,
+            "site": "src/flask_login/utils.py:130"
+          }
+        ],
+        "summary": "4 sites use werkzeug.urls (2 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "module": "flask_login.utils"
+      },
+      "id": "call_4",
+      "model_id": "call_b77daf10-2c03-4ba5-b7a0-e84d8d9a8f60",
+      "name": "trace_importers",
+      "result": {
+        "chains": [
+          [
+            {
+              "file": "src/flask_login/utils.py",
+              "line": 1,
+              "module": "flask_login.utils",
+              "site": "src/flask_login/utils.py:1"
+            },
+            {
+              "file": "src/flask_login/__init__.py",
+              "line": 24,
+              "module": "flask_login",
+              "site": "src/flask_login/__init__.py:24"
+            }
+          ],
+          [
+            {
+              "file": "src/flask_login/utils.py",
+              "line": 1,
+              "module": "flask_login.utils",
+              "site": "src/flask_login/utils.py:1"
+            },
+            {
+              "file": "src/flask_login/login_manager.py",
+              "line": 31,
+              "module": "flask_login.login_manager",
+              "site": "src/flask_login/login_manager.py:31"
+            },
+            {
+              "file": "src/flask_login/__init__.py",
+              "line": 11,
+              "module": "flask_login",
+              "site": "src/flask_login/__init__.py:11"
+            }
+          ]
+        ],
+        "count": 2,
+        "ok": true,
+        "summary": "2 import chain(s) from flask_login.utils",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "end": 50,
+        "path": "src/flask_login/utils.py",
+        "start": 1
+      },
+      "id": "call_5",
+      "model_id": "call_c68cd8b7-6891-4be9-b0f5-dbc474183660",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            1,
+            "import hmac"
+          ],
+          [
+            2,
+            "from functools import wraps"
+          ],
+          [
+            3,
+            "from hashlib import sha512"
+          ],
+          [
+            4,
+            "from urllib.parse import urlparse"
+          ],
+          [
+            5,
+            "from urllib.parse import urlunparse"
+          ],
+          [
+            6,
+            ""
+          ],
+          [
+            7,
+            "from flask import current_app"
+          ],
+          [
+            8,
+            "from flask import g"
+          ],
+          [
+            9,
+            "from flask import has_request_context"
+          ],
+          [
+            10,
+            "from flask import request"
+          ],
+          [
+            11,
+            "from flask import session"
+          ],
+          [
+            12,
+            "from flask import url_for"
+          ],
+          [
+            13,
+            "from werkzeug.local import LocalProxy"
+          ],
+          [
+            14,
+            "from werkzeug.urls import url_decode"
+          ],
+          [
+            15,
+            "from werkzeug.urls import url_encode"
+          ],
+          [
+            16,
+            ""
+          ],
+          [
+            17,
+            "from .config import COOKIE_NAME"
+          ],
+          [
+            18,
+            "from .config import EXEMPT_METHODS"
+          ],
+          [
+            19,
+            "from .signals import user_logged_in"
+          ],
+          [
+            20,
+            "from .signals import user_logged_out"
+          ],
+          [
+            21,
+            "from .signals import user_login_confirmed"
+          ],
+          [
+            22,
+            ""
+          ],
+          [
+            23,
+            "#: A proxy for the current user. If no user is logged in, this will be an"
+          ],
+          [
+            24,
+            "#: anonymous user"
+          ],
+          [
+            25,
+            "current_user = LocalProxy(lambda: _get_user())"
+          ],
+          [
+            26,
+            ""
+          ],
+          [
+            27,
+            ""
+          ],
+          [
+            28,
+            "def encode_cookie(payload, key=None):"
+          ],
+          [
+            29,
+            "    \"\"\""
+          ],
+          [
+            30,
+            "    This will encode a ``str`` value into a cookie, and sign that cookie"
+          ],
+          [
+            31,
+            "    with the app's secret key."
+          ],
+          [
+            32,
+            ""
+          ],
+          [
+            33,
+            "    :param payload: The value to encode, as `str`."
+          ],
+          [
+            34,
+            "    :type payload: str"
+          ],
+          [
+            35,
+            ""
+          ],
+          [
+            36,
+            "    :param key: The key to use when creating the cookie digest. If not"
+          ],
+          [
+            37,
+            "                specified, the SECRET_KEY value from app config will be used."
+          ],
+          [
+            38,
+            "    :type key: str"
+          ],
+          [
+            39,
+            "    \"\"\""
+          ],
+          [
+            40,
+            "    return f\"{payload}|{_cookie_digest(payload, key=key)}\""
+          ],
+          [
+            41,
+            ""
+          ],
+          [
+            42,
+            ""
+          ],
+          [
+            43,
+            "def decode_cookie(cookie, key=None):"
+          ],
+          [
+            44,
+            "    \"\"\""
+          ],
+          [
+            45,
+            "    This decodes a cookie given by `encode_cookie`. If verification of the"
+          ],
+          [
+            46,
+            "    cookie fails, ``None`` will be implicitly returned."
+          ],
+          [
+            47,
+            ""
+          ],
+          [
+            48,
+            "    :param cookie: An encoded cookie."
+          ],
+          [
+            49,
+            "    :type cookie: str"
+          ],
+          [
+            50,
+            ""
+          ]
+        ],
+        "ok": true,
+        "path": "src/flask_login/utils.py",
+        "sites": [
+          "src/flask_login/utils.py:1",
+          "src/flask_login/utils.py:2",
+          "src/flask_login/utils.py:3",
+          "src/flask_login/utils.py:4",
+          "src/flask_login/utils.py:5",
+          "src/flask_login/utils.py:6",
+          "src/flask_login/utils.py:7",
+          "src/flask_login/utils.py:8",
+          "src/flask_login/utils.py:9",
+          "src/flask_login/utils.py:10",
+          "src/flask_login/utils.py:11",
+          "src/flask_login/utils.py:12",
+          "src/flask_login/utils.py:13",
+          "src/flask_login/utils.py:14",
+          "src/flask_login/utils.py:15",
+          "src/flask_login/utils.py:16",
+          "src/flask_login/utils.py:17",
+          "src/flask_login/utils.py:18",
+          "src/flask_login/utils.py:19",
+          "src/flask_login/utils.py:20",
+          "src/flask_login/utils.py:21",
+          "src/flask_login/utils.py:22",
+          "src/flask_login/utils.py:23",
+          "src/flask_login/utils.py:24",
+          "src/flask_login/utils.py:25",
+          "src/flask_login/utils.py:26",
+          "src/flask_login/utils.py:27",
+          "src/flask_login/utils.py:28",
+          "src/flask_login/utils.py:29",
+          "src/flask_login/utils.py:30",
+          "src/flask_login/utils.py:31",
+          "src/flask_login/utils.py:32",
+          "src/flask_login/utils.py:33",
+          "src/flask_login/utils.py:34",
+          "src/flask_login/utils.py:35",
+          "src/flask_login/utils.py:36",
+          "src/flask_login/utils.py:37",
+          "src/flask_login/utils.py:38",
+          "src/flask_login/utils.py:39",
+          "src/flask_login/utils.py:40",
+          "src/flask_login/utils.py:41",
+          "src/flask_login/utils.py:42",
+          "src/flask_login/utils.py:43",
+          "src/flask_login/utils.py:44",
+          "src/flask_login/utils.py:45",
+          "src/flask_login/utils.py:46",
+          "src/flask_login/utils.py:47",
+          "src/flask_login/utils.py:48",
+          "src/flask_login/utils.py:49",
+          "src/flask_login/utils.py:50"
+        ],
+        "summary": "src/flask_login/utils.py:1-50 (50 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "env": "after",
+        "module": "flask_login"
+      },
+      "id": "call_6",
+      "model_id": "call_969c51ff-bee2-4869-8729-115bd31ca7c9",
+      "name": "run_import_probe",
+      "result": {
+        "chain": [
+          "flask_login",
+          "flask_login.login_manager",
+          "flask_login.utils"
+        ],
+        "error": {
+          "file": "flask_login/utils.py",
+          "func": "<module>",
+          "line": 14,
+          "site": "flask_login/utils.py:14"
+        },
+        "error_line": "ImportError: cannot import name 'url_decode' from 'werkzeug.urls' (<env:after>/site-packages/werkzeug/urls.py)",
+        "ok": false,
+        "summary": "import flask_login in after fails: flask_login -> flask_login.login_manager -> flask_login.utils",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "env": "before",
+        "module": "flask_login"
+      },
+      "id": "call_7",
+      "model_id": "call_72ff9933-f78d-4443-b8dc-782e6ae4fe61",
+      "name": "run_import_probe",
+      "result": {
+        "chain": [],
+        "error": null,
+        "error_line": "",
+        "ok": true,
+        "summary": "import flask_login in before: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "end": 160,
+        "path": "src/flask_login/utils.py",
+        "start": 100
+      },
+      "id": "call_8",
+      "model_id": "call_694db8da-cc91-4339-91a1-230ce4d7693e",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            100,
+            "def login_url(login_view, next_url=None, next_field=\"next\"):"
+          ],
+          [
+            101,
+            "    \"\"\""
+          ],
+          [
+            102,
+            "    Creates a URL for redirecting to a login page. If only `login_view` is"
+          ],
+          [
+            103,
+            "    provided, this will just return the URL for it. If `next_url` is provided,"
+          ],
+          [
+            104,
+            "    however, this will append a ``next=URL`` parameter to the query string"
+          ],
+          [
+            105,
+            "    so that the login view can redirect back to that URL. Flask-Login's default"
+          ],
+          [
+            106,
+            "    unauthorized handler uses this function when redirecting to your login url."
+          ],
+          [
+            107,
+            "    To force the host name used, set `FORCE_HOST_FOR_REDIRECTS` to a host. This"
+          ],
+          [
+            108,
+            "    prevents from redirecting to external sites if request headers Host or"
+          ],
+          [
+            109,
+            "    X-Forwarded-For are present."
+          ],
+          [
+            110,
+            ""
+          ],
+          [
+            111,
+            "    :param login_view: The name of the login view. (Alternately, the actual"
+          ],
+          [
+            112,
+            "                       URL to the login view.)"
+          ],
+          [
+            113,
+            "    :type login_view: str"
+          ],
+          [
+            114,
+            "    :param next_url: The URL to give the login view for redirection."
+          ],
+          [
+            115,
+            "    :type next_url: str"
+          ],
+          [
+            116,
+            "    :param next_field: What field to store the next URL in. (It defaults to"
+          ],
+          [
+            117,
+            "                       ``next``.)"
+          ],
+          [
+            118,
+            "    :type next_field: str"
+          ],
+          [
+            119,
+            "    \"\"\""
+          ],
+          [
+            120,
+            "    base = expand_login_view(login_view)"
+          ],
+          [
+            121,
+            ""
+          ],
+          [
+            122,
+            "    if next_url is None:"
+          ],
+          [
+            123,
+            "        return base"
+          ],
+          [
+            124,
+            ""
+          ],
+          [
+            125,
+            "    parsed_result = urlparse(base)"
+          ],
+          [
+            126,
+            "    md = url_decode(parsed_result.query)"
+          ],
+          [
+            127,
+            "    md[next_field] = make_next_param(base, next_url)"
+          ],
+          [
+            128,
+            "    netloc = current_app.config.get(\"FORCE_HOST_FOR_REDIRECTS\") or parsed_result.netloc"
+          ],
+          [
+            129,
+            "    parsed_result = parsed_result._replace("
+          ],
+          [
+            130,
+            "        netloc=netloc, query=url_encode(md, sort=True)"
+          ],
+          [
+            131,
+            "    )"
+          ],
+          [
+            132,
+            "    return urlunparse(parsed_result)"
+          ],
+          [
+            133,
+            ""
+          ],
+          [
+            134,
+            ""
+          ],
+          [
+            135,
+            "def login_fresh():"
+          ],
+          [
+            136,
+            "    \"\"\""
+          ],
+          [
+            137,
+            "    This returns ``True`` if the current login is fresh."
+          ],
+          [
+            138,
+            "    \"\"\""
+          ],
+          [
+            139,
+            "    return session.get(\"_fresh\", False)"
+          ],
+          [
+            140,
+            ""
+          ],
+          [
+            141,
+            ""
+          ],
+          [
+            142,
+            "def login_remembered():"
+          ],
+          [
+            143,
+            "    \"\"\""
+          ],
+          [
+            144,
+            "    This returns ``True`` if the current login is remembered across sessions."
+          ],
+          [
+            145,
+            "    \"\"\""
+          ],
+          [
+            146,
+            "    config = current_app.config"
+          ],
+          [
+            147,
+            "    cookie_name = config.get(\"REMEMBER_COOKIE_NAME\", COOKIE_NAME)"
+          ],
+          [
+            148,
+            "    has_cookie = cookie_name in request.cookies and session.get(\"_remember\") != \"clear\""
+          ],
+          [
+            149,
+            "    if has_cookie:"
+          ],
+          [
+            150,
+            "        cookie = request.cookies[cookie_name]"
+          ],
+          [
+            151,
+            "        user_id = decode_cookie(cookie)"
+          ],
+          [
+            152,
+            "        return user_id is not None"
+          ],
+          [
+            153,
+            "    return False"
+          ],
+          [
+            154,
+            ""
+          ],
+          [
+            155,
+            ""
+          ],
+          [
+            156,
+            "def login_user(user, remember=False, duration=None, force=False, fresh=True):"
+          ],
+          [
+            157,
+            "    \"\"\""
+          ],
+          [
+            158,
+            "    Logs a user in. You should pass the actual user object to this. If the"
+          ],
+          [
+            159,
+            "    user's `is_active` property is ``False``, they will not be logged in"
+          ],
+          [
+            160,
+            "    unless `force` is ``True``."
+          ]
+        ],
+        "ok": true,
+        "path": "src/flask_login/utils.py",
+        "sites": [
+          "src/flask_login/utils.py:100",
+          "src/flask_login/utils.py:101",
+          "src/flask_login/utils.py:102",
+          "src/flask_login/utils.py:103",
+          "src/flask_login/utils.py:104",
+          "src/flask_login/utils.py:105",
+          "src/flask_login/utils.py:106",
+          "src/flask_login/utils.py:107",
+          "src/flask_login/utils.py:108",
+          "src/flask_login/utils.py:109",
+          "src/flask_login/utils.py:110",
+          "src/flask_login/utils.py:111",
+          "src/flask_login/utils.py:112",
+          "src/flask_login/utils.py:113",
+          "src/flask_login/utils.py:114",
+          "src/flask_login/utils.py:115",
+          "src/flask_login/utils.py:116",
+          "src/flask_login/utils.py:117",
+          "src/flask_login/utils.py:118",
+          "src/flask_login/utils.py:119",
+          "src/flask_login/utils.py:120",
+          "src/flask_login/utils.py:121",
+          "src/flask_login/utils.py:122",
+          "src/flask_login/utils.py:123",
+          "src/flask_login/utils.py:124",
+          "src/flask_login/utils.py:125",
+          "src/flask_login/utils.py:126",
+          "src/flask_login/utils.py:127",
+          "src/flask_login/utils.py:128",
+          "src/flask_login/utils.py:129",
+          "src/flask_login/utils.py:130",
+          "src/flask_login/utils.py:131",
+          "src/flask_login/utils.py:132",
+          "src/flask_login/utils.py:133",
+          "src/flask_login/utils.py:134",
+          "src/flask_login/utils.py:135",
+          "src/flask_login/utils.py:136",
+          "src/flask_login/utils.py:137",
+          "src/flask_login/utils.py:138",
+          "src/flask_login/utils.py:139",
+          "src/flask_login/utils.py:140",
+          "src/flask_login/utils.py:141",
+          "src/flask_login/utils.py:142",
+          "src/flask_login/utils.py:143",
+          "src/flask_login/utils.py:144",
+          "src/flask_login/utils.py:145",
+          "src/flask_login/utils.py:146",
+          "src/flask_login/utils.py:147",
+          "src/flask_login/utils.py:148",
+          "src/flask_login/utils.py:149",
+          "src/flask_login/utils.py:150",
+          "src/flask_login/utils.py:151",
+          "src/flask_login/utils.py:152",
+          "src/flask_login/utils.py:153",
+          "src/flask_login/utils.py:154",
+          "src/flask_login/utils.py:155",
+          "src/flask_login/utils.py:156",
+          "src/flask_login/utils.py:157",
+          "src/flask_login/utils.py:158",
+          "src/flask_login/utils.py:159",
+          "src/flask_login/utils.py:160"
+        ],
+        "summary": "src/flask_login/utils.py:100-160 (61 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "modules": [
+          "flask_login.utils",
+          "flask_login.login_manager",
+          "flask_login"
+        ]
+      },
+      "id": "call_9",
+      "model_id": "call_b78408f5-62b1-4e32-bad3-680185599e19",
+      "name": "tests_covering",
+      "result": {
+        "count": 106,
+        "ok": true,
+        "summary": "106 test(s) cover the query",
+        "test_ids": [
+          "tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding",
+          "tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding_with_key",
+          "tests/test_login.py::CustomTestClientTestCase::test_fresh_login_arg_to_test_client",
+          "tests/test_login.py::CustomTestClientTestCase::test_no_args_to_test_client",
+          "tests/test_login.py::CustomTestClientTestCase::test_session_protection_modes",
+          "tests/test_login.py::CustomTestClientTestCase::test_user_arg_to_test_client",
+          "tests/test_login.py::InitializationTestCase::test_class_init",
+          "tests/test_login.py::InitializationTestCase::test_init_app",
+          "tests/test_login.py::InitializationTestCase::test_no_user_loader_raises",
+          "tests/test_login.py::LoginTestCase::test_authentication_is_fresh",
+          "tests/test_login.py::LoginTestCase::test_confirm_login",
+          "tests/test_login.py::LoginTestCase::test_decorators_are_disabled",
+          "tests/test_login.py::LoginTestCase::test_defaults_anonymous",
+          "tests/test_login.py::LoginTestCase::test_fresh_login_required_decorator",
+          "tests/test_login.py::LoginTestCase::test_incorrect_id_logs_out",
+          "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie",
+          "tests/test_login.py::LoginTestCase::test_login_inactive_user",
+          "tests/test_login.py::LoginTestCase::test_login_inactive_user_forced",
+          "tests/test_login.py::LoginTestCase::test_login_invalid_user_with_request",
+          "tests/test_login.py::LoginTestCase::test_login_persists",
+          "tests/test_login.py::LoginTestCase::test_login_persists_with_many_x_forwarded_for",
+          "tests/test_login.py::LoginTestCase::test_login_persists_with_signle_x_forwarded_for",
+          "tests/test_login.py::LoginTestCase::test_login_required_decorator",
+          "tests/test_login.py::LoginTestCase::test_login_required_decorator_with_async",
+          "tests/test_login.py::LoginTestCase::test_login_user",
+          "tests/test_login.py::LoginTestCase::test_login_user_emits_signal",
+          "tests/test_login.py::LoginTestCase::test_login_user_not_fresh",
+          "tests/test_login.py::LoginTestCase::test_login_user_with_request",
+          "tests/test_login.py::LoginTestCase::test_logout_emits_signal",
+          "tests/test_login.py::LoginTestCase::test_logout_logs_out_current_user",
+          "tests/test_login.py::LoginTestCase::test_logout_persists",
+          "tests/test_login.py::LoginTestCase::test_logout_stays_logged_out_with_remember_me",
+          "tests/test_login.py::LoginTestCase::test_logout_stays_logged_out_with_remember_me_custom_duration",
+          "tests/test_login.py::LoginTestCase::test_logout_without_current_user",
+          "tests/test_login.py::LoginTestCase::test_needs_refresh_aborts_401",
+          "tests/test_login.py::LoginTestCase::test_needs_refresh_fires_flash_when_redirect_to_refresh_view",
+          "tests/test_login.py::LoginTestCase::test_needs_refresh_fires_needs_refresh_signal",
+          "tests/test_login.py::LoginTestCase::test_needs_refresh_flash_message_localized",
+          "tests/test_login.py::LoginTestCase::test_needs_refresh_uses_handler",
+          "tests/test_login.py::LoginTestCase::test_permanent_strong_session_protection_fires_signal",
+          "tests/test_login.py::LoginTestCase::test_permanent_strong_session_protection_marks_session_unfresh",
+          "tests/test_login.py::LoginTestCase::test_redirects_to_refresh_view",
+          "tests/test_login.py::LoginTestCase::test_refresh_with_next_in_session",
+          "tests/test_login.py::LoginTestCase::test_remember_me",
+          "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
+          "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration",
+          "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration_uses_custom_cookie",
+          "tests/test_login.py::LoginTestCase::test_remember_me_is_unfresh",
+          "tests/test_login.py::LoginTestCase::test_remember_me_refresh_every_request",
+          "tests/test_login.py::LoginTestCase::test_remember_me_uses_custom_cookie_parameters"
+        ],
+        "truncated": true
+      }
+    },
+    {
+      "args": {
+        "code": "from werkzeug.urls import url_decode; print(url_decode)",
+        "env": "after"
+      },
+      "id": "call_10",
+      "model_id": "call_4de1198e-b3b8-4d02-be59-310c97069972",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": false,
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nImportError: cannot import name 'url_decode' from 'werkzeug.urls' (<env:after>/site-packages/werkzeug/urls.py)",
+        "stdout": "",
+        "summary": "snippet in after: failed",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "from werkzeug.urls import url_encode; print(url_encode)",
+        "env": "after"
+      },
+      "id": "call_11",
+      "model_id": "call_ecbeda20-6da2-4970-b631-9ceee20d86b0",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": false,
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nImportError: cannot import name 'url_encode' from 'werkzeug.urls' (<env:after>/site-packages/werkzeug/urls.py)",
+        "stdout": "",
+        "summary": "snippet in after: failed",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import flask_login.utils; print(flask_login.utils.__name__)",
+        "env": "after"
+      },
+      "id": "call_12",
+      "model_id": "call_bd307844-b0ce-4d9f-a0bf-d85563128a60",
+      "name": "run_snippet",
+      "result": {
+        "chain": [
+          "flask_login",
+          "flask_login.login_manager",
+          "flask_login.utils"
+        ],
+        "ok": false,
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"<env:after>/site-packages/flask_login/__init__.py\", line 11, in <module>\n    from .login_manager import LoginManager\n  File \"<env:after>/site-packages/flask_login/login_manager.py\", line 31, in <module>\n    from .utils import _create_identifier\n  File \"<env:after>/site-packages/flask_login/utils.py\", line 14, in <module>\n    from werkzeug.urls import url_decode\nImportError: cannot import name 'url_decode' from 'werkzeug.urls' (<env:after>/site-packages/werkzeug/urls.py)",
+        "stdout": "",
+        "summary": "snippet in after: failed",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "findings": [
+          {
+            "claim": "flask_login fails to import in after env: flask_login.utils imports url_decode/url_encode from werkzeug.urls which no longer provides them, breaking flask_login -> flask_login.login_manager -> flask_login.utils",
+            "confidence": "confirmed",
+            "evidence": [
+              "call_2",
+              "call_3",
+              "call_4",
+              "call_5",
+              "call_6",
+              "call_7",
+              "call_8",
+              "call_10",
+              "call_11",
+              "call_12"
+            ],
+            "id": "F1",
+            "kind": "breaks_import",
+            "sites": [
+              "src/flask_login/utils.py:14",
+              "src/flask_login/utils.py:15",
+              "src/flask_login/utils.py:126",
+              "src/flask_login/utils.py:130"
+            ],
+            "symbol": "werkzeug.urls",
+            "tests": [
+              "tests/test_login.py::LoginTestCase::test_login_user",
+              "tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding"
+            ]
+          }
+        ],
+        "summary": "Upgrade werkzeug 2.2->3.0 breaks flask_login import: only werkzeug.urls is used (url_decode/url_encode in utils.py login_url), confirmed by after-import failure vs before-import ok and direct url_decode/url_encode import failures. Other 40 symbols have zero uses per propagate and need no probes.",
+        "triage": [
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "Client.charset"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "WWWAuthenticate.set_basic"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "auth.key"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "http.cookiejar"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "warnings.catch_warnings"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.Location"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.__version__"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.auth"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.charset"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.datastructures.WWWAuthenticate.set_basic"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.datastructures.WWWAuthenticate.set_digest"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.delete_cookie"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.domain"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.dump_cookie"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.generate_password_hash"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.http.dump_cookie"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.http.dump_header"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.http.parse_authorization_header"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.http.parse_dict_header"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.http.parse_www_authenticate_header"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.http.quote_header_value"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.http.unquote_header_value"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.iri_to_uri"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.make_chunk_iter"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.max_form_parts"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.parse_cookie"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.parse_www_authenticate_header"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.path"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.quote_header_value"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.routing.Map.charset"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.security.generate_password_hash"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.set_digest"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.unquote_header_value"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_3",
+              "call_6",
+              "call_10",
+              "call_11"
+            ],
+            "reason": "propagate shows 4 sites/2 import-time uses; find_usages confirms imports and login_url uses; after probes fail",
+            "relevant": true,
+            "symbol": "werkzeug.urls"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.urls.iri_to_uri"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.value"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.wrappers.Request.charset"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.wrappers.Request.get_json"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.wrappers.Request.url_charset"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.wsgi.make_chunk_iter"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate shows 0 sites/import-time uses",
+            "relevant": false,
+            "symbol": "werkzeug.wsgi.make_line_iter"
+          }
+        ]
+      },
+      "id": "call_13",
+      "model_id": "call_7e685bd0-3d5d-439c-8d14-63f57d55c7a5",
+      "name": "submit_findings",
+      "result": {
+        "ok": true,
+        "summary": "findings accepted"
+      }
+    }
+  ],
+  "triage": [
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "Client.charset",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "WWWAuthenticate.set_basic",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "auth.key",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "http.cookiejar",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "warnings.catch_warnings",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.Location",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.__version__",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.auth",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.charset",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.datastructures.WWWAuthenticate.set_basic",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.datastructures.WWWAuthenticate.set_digest",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.delete_cookie",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.domain",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.dump_cookie",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.generate_password_hash",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.http.dump_cookie",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.http.dump_header",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.http.parse_authorization_header",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.http.parse_dict_header",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.http.parse_www_authenticate_header",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.http.quote_header_value",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.http.unquote_header_value",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.iri_to_uri",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.make_chunk_iter",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.max_form_parts",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.parse_cookie",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.parse_www_authenticate_header",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.path",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.quote_header_value",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.routing.Map.charset",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.security.generate_password_hash",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.set_digest",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.unquote_header_value",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_3",
+        "call_6",
+        "call_10",
+        "call_11"
+      ],
+      "reason": "propagate shows 4 sites/2 import-time uses; find_usages confirms imports and login_url uses; after probes fail",
+      "relevant": true,
+      "symbol": "werkzeug.urls",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.urls.iri_to_uri",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.value",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.wrappers.Request.charset",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.wrappers.Request.get_json",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.wrappers.Request.url_charset",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.wsgi.make_chunk_iter",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate shows 0 sites/import-time uses",
+      "relevant": false,
+      "symbol": "werkzeug.wsgi.make_line_iter",
+      "verified": true,
+      "verify_reason": ""
+    }
+  ],
+  "usage": {
+    "probe_calls": 5,
+    "tokens": 49293,
+    "tool_calls": 13,
+    "turns": 6
+  }
+}

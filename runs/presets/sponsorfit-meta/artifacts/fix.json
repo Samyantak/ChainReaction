@@ -1,0 +1,185 @@
+{
+  "counts": {
+    "baseline_failures": 0,
+    "baseline_measured": true,
+    "error_files": {
+      "baseline": [],
+      "fixed": [],
+      "newly_broken": [],
+      "still_failing": []
+    },
+    "fixed": [],
+    "newly_broken": [],
+    "still_failing": [],
+    "suite_fresh": true
+  },
+  "final_status": "green",
+  "guards": {
+    "ok": true,
+    "violations": []
+  },
+  "patch": "fixes/final.patch",
+  "probe_start": {
+    "error": "",
+    "frames": [],
+    "modules": [],
+    "ok": true,
+    "site": null,
+    "trace": ""
+  },
+  "rounds": [
+    {
+      "attempts": [
+        {
+          "addresses": [
+            "sponsorfit.llm.Provider",
+            "sponsorfit.llm.MeteredLLMClient._call_openai",
+            "sponsorfit.pricing.PRICING"
+          ],
+          "applied": [
+            "src/sponsorfit/llm.py",
+            "src/sponsorfit/pricing.py"
+          ],
+          "attempt": 0,
+          "diff_lines": 36,
+          "prompt_hash": "c24d41bd68df9fa2d131e450335c6e6f0d9d3f021078407da0161f6a86448928",
+          "rationale": "Added \"meta\" to Provider, routed provider==\"meta\" via OpenAI-compatible client using base_url=\"https://api.meta.ai/v1\", and added PRICING[\"meta\"][\"muse-spark-1.3\"] rates per the documented replacements to fix the unknown-provider ValueError.",
+          "validation": []
+        }
+      ],
+      "before": null,
+      "duration_ms": 4,
+      "edits": [
+        "src/sponsorfit/llm.py",
+        "src/sponsorfit/pricing.py"
+      ],
+      "failure": {
+        "error": "ValueError: unknown provider: meta",
+        "frames": [
+          "src/sponsorfit/llm.py:78"
+        ],
+        "kind": "probe",
+        "site": "src/sponsorfit/llm.py:78",
+        "test": null
+      },
+      "full": null,
+      "items": [
+        "sponsorfit.llm.MeteredLLMClient._call_openai",
+        "sponsorfit.llm.Provider",
+        "sponsorfit.pricing.PRICING"
+      ],
+      "n": 1,
+      "probe": {
+        "error": "NameError: name 'openai' is not defined. Did you mean: 'open'?",
+        "frames": [
+          "src/sponsorfit/llm.py:79"
+        ],
+        "modules": [
+          "sponsorfit.llm"
+        ],
+        "ok": false,
+        "site": "src/sponsorfit/llm.py:79",
+        "trace": "Traceback (most recent call last):\n  File \"<string>\", line 83, in <module>\n  File \"<fixwork>/src/sponsorfit/llm.py\", line 79, in call\n    self._openai_client = openai.OpenAI(base_url=\"https://api.meta.ai/v1\")\n                          ^^^^^^\nNameError: name 'openai' is not defined. Did you mean: 'open'?"
+      },
+      "progress": true,
+      "targeted": null
+    },
+    {
+      "attempts": [
+        {
+          "addresses": [
+            "sponsorfit.llm.MeteredLLMClient._call_openai"
+          ],
+          "applied": [
+            "src/sponsorfit/llm.py"
+          ],
+          "attempt": 0,
+          "diff_lines": 11,
+          "prompt_hash": "db3e95fa7cfb416a31565eab9a639a3f303d63d3094b728b8f36c337484e0a58",
+          "rationale": "Fix NameError by importing openai before use while keeping the change item's required base_url=\"https://api.meta.ai/v1\" for sponsorfit.llm.MeteredLLMClient._call_openai.",
+          "validation": []
+        }
+      ],
+      "before": {
+        "ran": false,
+        "reason": "no before env in this run"
+      },
+      "duration_ms": 2435,
+      "edits": [
+        "src/sponsorfit/llm.py"
+      ],
+      "failure": {
+        "error": "NameError: name 'openai' is not defined. Did you mean: 'open'?",
+        "frames": [
+          "src/sponsorfit/llm.py:79"
+        ],
+        "kind": "probe",
+        "site": "src/sponsorfit/llm.py:79",
+        "test": null
+      },
+      "full": {
+        "counts": {
+          "passed": 43
+        },
+        "error_files": [],
+        "escalated": false,
+        "failed": [],
+        "total": 43
+      },
+      "items": [
+        "sponsorfit.llm.MeteredLLMClient._call_openai",
+        "sponsorfit.llm.Provider",
+        "sponsorfit.pricing.PRICING"
+      ],
+      "n": 2,
+      "probe": {
+        "error": "",
+        "frames": [],
+        "modules": [],
+        "ok": true,
+        "site": null,
+        "trace": ""
+      },
+      "progress": true,
+      "targeted": {
+        "counts": {
+          "passed": 43
+        },
+        "method": "full-suite (no correspondent tests)",
+        "ran_full": true
+      }
+    }
+  ],
+  "seeded": {
+    "baseline": {
+      "counts": {
+        "passed": 43
+      },
+      "env": "sponsorfit",
+      "error_files": [],
+      "escalated": false,
+      "failed": [],
+      "ran": true,
+      "total": 43
+    },
+    "red": {
+      "counts": {
+        "passed": 43
+      },
+      "failed": [],
+      "ran": true,
+      "reused_baseline_run": true
+    }
+  },
+  "status": "green",
+  "stop_reason": "green",
+  "total_cmd_ms": 5526,
+  "touched": [
+    "src/sponsorfit/llm.py",
+    "src/sponsorfit/pricing.py"
+  ],
+  "upstream": {
+    "ran": false,
+    "reason": "no ground-truth PR files"
+  }
+}

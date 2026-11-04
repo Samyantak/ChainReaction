@@ -31,6 +31,7 @@ def parse_args(argv):
     parser.add_argument("--package", default="")
     parser.add_argument("--record-as", default="")
     parser.add_argument("--timeout", type=int, default=5400)
+    parser.add_argument("--fix-rounds", type=int, default=None)
     return parser.parse_args(argv)
 
 
@@ -50,7 +51,7 @@ def main(argv=None) -> int:
     run_id = worker.create_run(worker.RunRequest(
         mode="live", repo_url=args.repo, ref=args.ref,
         decision=args.decision, guide_url=args.guide, package=args.package,
-        allow_untrusted=True))
+        allow_untrusted=True, fix_rounds=args.fix_rounds))
     print(f"live run: {run_id}", flush=True)
     worker.submit_run(run_id)
     try:

@@ -1,0 +1,36 @@
+--- a/src/sponsorfit/llm.py
++++ b/src/sponsorfit/llm.py
+@@ -11,7 +11,7 @@
+ 
+ from sponsorfit import costs, pricing, tracing
+ 
+-Provider = Literal["anthropic", "openai", "ollama"]
++Provider = Literal["anthropic", "openai", "ollama", "meta"]
+ 
+ 
+ @dataclass
+@@ -74,6 +74,12 @@
+                 text, tokens_in, tokens_out, raw = self._call_ollama(
+                     model, messages, system, max_tokens, json_schema, ollama_options
+                 )
++            elif provider == "meta":
++                if self._openai_client is None:
++                    self._openai_client = openai.OpenAI(base_url="https://api.meta.ai/v1")
++                text, tokens_in, tokens_out, raw = self._call_openai(
++                    model, messages, system, max_tokens
++                )
+             else:
+                 raise ValueError(f"unknown provider: {provider}")
+         except Exception as e:
+--- a/src/sponsorfit/pricing.py
++++ b/src/sponsorfit/pricing.py
+@@ -14,6 +14,9 @@
+         "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+         "gpt-4o": {"input": 2.50, "output": 10.00},
+     },
++    "meta": {
++        "muse-spark-1.3": {"input": 0.50, "output": 1.50},
++    },
+ }
+ 
+ 

@@ -1,0 +1,24 @@
+--- a/src/flask_login/utils.py
++++ b/src/flask_login/utils.py
+@@ -11,8 +11,19 @@
+ from flask import session
+ from flask import url_for
+ from werkzeug.local import LocalProxy
+-from werkzeug.urls import url_decode
+-from werkzeug.urls import url_encode
++from urllib.parse import parse_qsl
++from urllib.parse import urlencode
++from werkzeug.datastructures import MultiDict
++
++
++def url_decode(s, **kwargs):
++    return MultiDict(parse_qsl(s, keep_blank_values=True))
++
++
++def url_encode(obj, **kwargs):
++    if isinstance(obj, MultiDict):
++        return urlencode(list(obj.items(multi=True)), doseq=True)
++    return urlencode(obj, doseq=True)
+ 
+ from .config import COOKIE_NAME
+ from .config import EXEMPT_METHODS

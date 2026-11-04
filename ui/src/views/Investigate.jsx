@@ -53,9 +53,9 @@ export function normalizeCalls(data) {
     id: c.id || c.call_id || `call_${i + 1}`,
     name: c.name || c.tool || 'tool',
     args: c.args || c.arguments || {},
-    summary: c.summary || c.result_summary || '',
-    ok: c.ok !== false,
-    truncated: !!c.truncated,
+    summary: c.summary || c.result_summary || c.result?.summary || '',
+    ok: (c.ok ?? c.result?.ok) !== false,
+    truncated: !!(c.truncated ?? c.result?.truncated),
     durationMs: c.duration_ms ?? null,
     result: c.result ?? null,
   }))
@@ -107,7 +107,7 @@ function CallRow({ call, index, open, lit, onToggle, rowRef }) {
 
 function FindingCard({ finding, onEvidence, onHover, callIds }) {
   const verified = finding.verified !== false
-  const reason = finding.reason || finding.verified_reason || null
+  const reason = finding.reason || finding.verify_reason || finding.verified_reason || null
   const conf = finding.confidence || (verified ? 'verified' : 'unverified')
   return (
     <Sheet
@@ -163,8 +163,8 @@ function FindingCard({ finding, onEvidence, onHover, callIds }) {
   )
 }
 
-function Measures({ calls, findings, triage, status }) {
-  const probes = calls.filter((c) => TOOL_GROUP[c.name] === 'probe').length
+function Measures({ calls, findings, triage, status, usage }) {
+  const probes = usage?.probe_calls ?? calls.filter((c) => TOOL_GROUP[c.name] === 'probe').length
   const verified = findings.filter((f) => f.verified !== false).length
   const relevant = triage.filter((t) => t.relevant).length
   return (
@@ -173,7 +173,11 @@ function Measures({ calls, findings, triage, status }) {
         <DimensionRule />
         <div className="measure-value">{calls.length}</div>
         <div className="measure-label">tool calls</div>
-        <div className="measure-note mono">{probes} real probes / test runs</div>
+        <div className="measure-note mono">
+          {probes} real probes / test runs
+          {usage?.turns ? ` · ${usage.turns} model turns` : ''}
+          {usage?.tokens ? ` · ${Math.round(usage.tokens / 1000)}k tokens` : ''}
+        </div>
       </div>
       <div className="measure">
         <DimensionRule />
@@ -227,7 +231,7 @@ function InvestigationBody({ data, demo }) {
         </p>
       )}
       {data.summary && <p className="invest-summary">{data.summary}</p>}
-      <Measures calls={calls} findings={findings} triage={triage} status={data.status} />
+      <Measures calls={calls} findings={findings} triage={triage} status={data.status} usage={data.usage} />
 
       <div className="invest-grid">
         <section>
@@ -240,7 +244,7 @@ function InvestigationBody({ data, demo }) {
             <Sheet className="card triage-card">
               <h3>Triage</h3>
               <ul className="triage-list">
-                {triage.map((t) => (
+                {[...triage].sort((a, b) => Number(!!b.relevant) - Number(!!a.relevant)).map((t) => (
                   <li key={t.symbol} className={t.relevant ? '' : 'triage-out'}>
                     <Status tone={t.relevant ? 'ok' : 'mute'} text={t.relevant ? 'relevant' : 'not relevant'} />
                     <span className="mono triage-symbol">{t.symbol}</span>

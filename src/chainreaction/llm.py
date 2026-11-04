@@ -75,15 +75,12 @@ def cache_dir() -> Path | None:
     return Path(os.environ.get(CACHE_ENV, DEFAULT_CACHE_DIR))
 
 
-def cache_key(system: str, user: str, response_format=None) -> str:
-    """Stable hash of a prompt (model + messages + schema)."""
-    blob = json.dumps({
-        "model": model_name(),
-        "system": system,
-        "user": user,
-        "response_format": response_format,
-    }, sort_keys=True)
-    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+def cache_key(system: str, user: str, response_format=None,
+              reasoning_effort=None, tools=None,
+              tool_choice=None) -> str:
+    """Stable hash of a prompt (model + messages + schema + effort + tools)."""
+    return cache_key_for(model_name(), system, user, response_format,
+                         reasoning_effort, tools, tool_choice)
 
 
 def _read_cache_entry(key: str) -> tuple[str | None, str | None]:
@@ -130,15 +127,23 @@ def has_key() -> bool:
 
 
 def cache_key_for(model: str, system: str, user: str,
-                  response_format=None) -> str:
-    """Stable hash of a prompt (model + messages + schema)."""
-    blob = json.dumps({
-        "model": model,
-        "system": system,
-        "user": user,
-        "response_format": response_format,
-    }, sort_keys=True)
-    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+                  response_format=None, reasoning_effort=None, tools=None,
+                  tool_choice=None) -> str:
+    """Stable hash of a prompt (model + messages + schema + effort + tools).
+
+    reasoning_effort, tools, and tool_choice join the key only when set:
+    existing recordings hashed without them must keep matching.
+    """
+    blob = {"model": model, "system": system, "user": user,
+            "response_format": response_format}
+    if reasoning_effort is not None:
+        blob["reasoning_effort"] = reasoning_effort
+    if tools is not None:
+        blob["tools"] = tools
+    if tool_choice is not None:
+        blob["tool_choice"] = tool_choice
+    return hashlib.sha256(
+        json.dumps(blob, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 @dataclass
@@ -149,6 +154,9 @@ class ChatResult:
     finish_reason: str | None
     cached: bool
     cache_mtime: str | None  # original entry time (disk hits only)
+    # Tool calls requested by the model (None for plain-text turns).
+    # Each entry: {"id": str, "name": str, "arguments": dict | str}.
+    tool_calls: list | None = None
 
 
 @dataclass
@@ -187,18 +195,57 @@ def _usage_dict(resp) -> dict | None:
     }
 
 
+def _normalize_tool_calls(message) -> list:
+    """Model tool calls as id/name/arguments dicts (tolerates SDK drift)."""
+    calls = []
+    for item in getattr(message, "tool_calls", None) or []:
+        fn = getattr(item, "function", None)
+        raw_args = getattr(fn, "arguments", None) if fn is not None else None
+        try:
+            args = json.loads(raw_args) if isinstance(raw_args,
+                                                      str) else raw_args
+        except (ValueError, TypeError):
+            args = raw_args
+        calls.append({"id": getattr(item, "id", None),
+                      "name": getattr(fn, "name", None),
+                      "arguments": args})
+    return calls
+
+
+def _split_tool_cache_entry(hit: str) -> tuple[str, list | None]:
+    """Cache envelope (content + tool calls) or a legacy plain-text entry."""
+    try:
+        envelope = json.loads(hit)
+    except ValueError:
+        return hit, None
+    if not isinstance(envelope, dict) or "content" not in envelope:
+        return hit, None
+    calls = envelope.get("tool_calls")
+    content = envelope.get("content") or ""
+    return content, calls if calls else None
+
+
 def chat_full(system: str, user: str, max_tokens: int = 8000,
-              response_format=None) -> ChatResult:
+              response_format=None, reasoning_effort=None, tools=None,
+              tool_choice=None) -> ChatResult:
     """One system+user call with usage + cache metadata (raises on failure).
 
     Same contract as chat(): repeat prompts are served from cache
-    without needing MODEL_API_KEY.
+    without needing MODEL_API_KEY. With tools set, the reply's tool
+    calls are returned on the result and the cache entry stores a JSON
+    envelope (content + tool calls); legacy plain-text entries still
+    replay as content with no tool calls.
     """
     model = model_name()
-    key = cache_key_for(model, system, user, response_format)
+    key = cache_key_for(model, system, user, response_format,
+                        reasoning_effort, tools, tool_choice)
     hit, mtime = _read_cache_entry(key)
     if hit is not None:
-        return ChatResult(hit, model, None, None, True, mtime)
+        if tools is None:
+            return ChatResult(hit, model, None, None, True, mtime)
+        content, calls = _split_tool_cache_entry(hit)
+        return ChatResult(content, model, None, None, True, mtime,
+                          tool_calls=calls)
     kwargs: dict = {
         "model": model,
         "messages": [{"role": "system", "content": system},
@@ -207,9 +254,17 @@ def chat_full(system: str, user: str, max_tokens: int = 8000,
     }
     if response_format is not None:
         kwargs["response_format"] = response_format
+    if reasoning_effort is not None:
+        kwargs["reasoning_effort"] = reasoning_effort
+    if tools is not None:
+        kwargs["tools"] = tools
+    if tool_choice is not None:
+        kwargs["tool_choice"] = tool_choice
     resp = client().chat.completions.create(**kwargs)
-    content = resp.choices[0].message.content
-    if not content:
+    message = resp.choices[0].message
+    content = message.content
+    calls = _normalize_tool_calls(message) if tools is not None else []
+    if not content and not calls:
         reason = resp.choices[0].finish_reason
         raise RuntimeError(
             f"empty response from model (finish_reason={reason})")
@@ -218,9 +273,15 @@ def chat_full(system: str, user: str, max_tokens: int = 8000,
         # A truncated reply must never poison the prompt's entry: the
         # cache key excludes max_tokens, so the length retry would
         # re-serve the truncated text instead of going live again.
-        _write_cache(key, content)
-    return ChatResult(content, model, _usage_dict(resp),
-                      finish_reason, False, None)
+        if tools is None:
+            _write_cache(key, content)
+        else:
+            _write_cache(key, json.dumps(
+                {"content": content or "",
+                 "tool_calls": calls or None}, sort_keys=True))
+    return ChatResult(content or "", model, _usage_dict(resp),
+                      finish_reason, False, None,
+                      tool_calls=calls or None)
 
 
 def _message_texts(output) -> tuple[str, list, int]:
@@ -303,7 +364,7 @@ def web_search(query: str) -> WebSearchResult:
 
 
 def chat(system: str, user: str, max_tokens: int = 8000,
-         response_format=None) -> str:
+         response_format=None, reasoning_effort=None) -> str:
     """One system+user call; returns the message text (raises on failure).
 
     Budgets run large because muse-spark reasons first: even a trivial
@@ -311,4 +372,5 @@ def chat(system: str, user: str, max_tokens: int = 8000,
     Replies are cached by prompt hash (memory + disk), so reruns are
     free and repeatable — and cache hits don't need MODEL_API_KEY.
     """
-    return chat_full(system, user, max_tokens, response_format).content
+    return chat_full(system, user, max_tokens, response_format,
+                     reasoning_effort).content

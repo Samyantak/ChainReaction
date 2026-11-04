@@ -1,0 +1,68 @@
+--- a/src/flask_login/test_client.py
++++ b/src/flask_login/test_client.py
+@@ -1,4 +1,9 @@
++import importlib.metadata
++
++import werkzeug
+ from flask.testing import FlaskClient
++
++werkzeug.__version__ = importlib.metadata.version("werkzeug")
+ 
+ 
+ class FlaskLoginClient(FlaskClient):
+--- a/src/flask_login/utils.py
++++ b/src/flask_login/utils.py
+@@ -11,8 +11,19 @@
+ from flask import session
+ from flask import url_for
+ from werkzeug.local import LocalProxy
+-from werkzeug.urls import url_decode
+-from werkzeug.urls import url_encode
++from urllib.parse import parse_qsl
++from urllib.parse import urlencode
++from werkzeug.datastructures import MultiDict
++
++
++def url_decode(s, **kwargs):
++    return MultiDict(parse_qsl(s, keep_blank_values=True))
++
++
++def url_encode(obj, **kwargs):
++    if isinstance(obj, MultiDict):
++        return urlencode(list(obj.items(multi=True)), doseq=True)
++    return urlencode(obj, doseq=True)
+ 
+ from .config import COOKIE_NAME
+ from .config import EXEMPT_METHODS
+--- a/tests/test_login.py
++++ b/tests/test_login.py
+@@ -740,9 +740,17 @@
+             result = c.get("/login-notch-remember")
+             self.assertEqual(result.status_code, 200)
+ 
+-            cookie = c.cookie_jar._cookies[domain]["/"][name]
+-
+-            expiration_date = datetime.utcfromtimestamp(cookie.expires)
++            cookie = c.get_cookie(name, domain=domain, origin_only=False)
++            if cookie is None:
++                cookie = c.get_cookie(
++                    name, domain=domain.lstrip("."), origin_only=False
++                )
++
++            expires = cookie.expires
++            if isinstance(expires, datetime):
++                expiration_date = expires.replace(tzinfo=None)
++            else:
++                expiration_date = datetime.utcfromtimestamp(expires)
+             expected_date = datetime.utcnow() + duration
+             difference = expected_date - expiration_date
+ 
+@@ -1016,7 +1024,7 @@
+             c.get("/login-notch-remember")
+             with c.session_transaction() as sess:
+                 sess["_user_id"] = None
+-            c.set_cookie(domain, self.remember_cookie_name, "foo")
++            c.set_cookie(self.remember_cookie_name, "foo", domain=domain)
+             result = c.get("/username")
+             self.assertEqual("Anonymous", result.data.decode("utf-8"))
+ 

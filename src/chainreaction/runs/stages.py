@@ -1,11 +1,10 @@
-"""The eight run stages (M1).
+"""The eight run stages (M1..M5).
 
-setup/interpret/predict/verify/report run the real pipeline through
-the RunContext gateways; investigate/fix are stubs until M4/M5 and say
-so in the event stream. Replay follows the manifest provenance
-(changeset_source/narrative_source), never the environment: a replay
-with a key still serves the recording, and a replay without one still
-works.
+setup/interpret/investigate/predict/verify/fix/report run the real
+pipeline through the RunContext gateways. Replay follows the manifest
+provenance (changeset_source/narrative_source), never the environment:
+a replay with a key still serves the recording, and a replay without
+one still works.
 """
 
 import re
@@ -50,7 +49,12 @@ from chainreaction.interpret import (
     split_out_of_package,
 )
 from chainreaction.pipeline import build_layers, build_report, spine_for_scenario
-from chainreaction.propagate import predicted_chain, probe_entries, propagate
+from chainreaction.propagate import (
+    order_config_by_entry,
+    predicted_chain,
+    probe_entries,
+    propagate,
+)
 from chainreaction.scorer import used_breaking_symbols
 from chainreaction.runs.context import CommitMismatch, ReplayMiss
 from chainreaction.runs.scrub import ROOT
@@ -500,9 +504,107 @@ def stage_interpret(ctx) -> None:
     })
 
 
+def _record_skipped_investigation(ctx, reason: str) -> None:
+    inv = {"status": "skipped", "reason": reason, "findings": [],
+           "triage": [], "summary": "", "trace": [], "usage": {}}
+    ctx.save_artifact("investigation.json", inv)
+    ctx.state["investigation"] = inv
+    ctx.emit("log", {"message": f"investigate: skipped ({reason})"})
+
+
+def _investigate_fix_hints(ctx, g) -> list[str]:
+    """Vendor-ordered config symbols (probe-hit order when known)."""
+    scen = ctx.state["scenario"]
+    cfg = list(ctx.state.get("config") or [])
+    entries = probe_entries(scen.probe_code or "", scen.package, g)
+    ordered = (order_config_by_entry(g, entries, cfg, scen.package)
+               if entries else cfg)
+    return [f"{item.symbol} ({item.kind})" for item in ordered]
+
+
+def _investigate_layers(ctx, scen, generic: bool) -> list[dict]:
+    """Probe layers for the agent: what to confirm, what peels next."""
+    if generic:
+        layers = [{"name": "after-import", "kind": "import",
+                   "module": scen.package, "env": "after"}]
+        if scen.before_env:
+            layers.append({"name": "before-import", "kind": "import",
+                           "module": scen.package, "env": "before"})
+        return layers
+    if scen.probe_code:
+        return [{"name": "decision", "kind": "decision",
+                 "module": scen.package, "code": scen.probe_code}]
+    layers = [{"name": "layer1", "kind": "import", "module": scen.package,
+               "env": "after"}]
+    if scen.peel_preamble:
+        layers.append({"name": "layer2 (peeled)", "kind": "peeled",
+                       "module": scen.package, "env": "after",
+                       "code": scen.peel_preamble})
+    if scen.before_env:
+        layers.append({"name": f"before ({scen.before_env})",
+                       "kind": "import", "module": scen.package,
+                       "env": "before"})
+    return layers
+
+
 def stage_investigate(ctx) -> None:
-    ctx.emit("log", {"message":
-                     f"investigator agent arrives in M4 ({NOT_IN_M1})"})
+    from chainreaction import investigate as inv_mod
+
+    scen = ctx.state["scenario"]
+    generic = ctx.manifest.get("preset") is None
+    if generic:
+        from chainreaction.generic import package_imported_anywhere
+
+        parsed = ctx.state.get("decision_parsed")
+        if parsed is not None and not package_imported_anywhere(
+                ROOT / scen.target, parsed.package):
+            ctx.state["untouched"] = True
+            _record_skipped_investigation(ctx, "untouched")
+            return
+    ctx.state["untouched"] = False
+    g = build_graph_from_repo(scen.target, scen.package)
+    ctx.state["graph"] = g
+    testmap = None
+    baseline: dict = {}
+    prefix = ""
+    if generic:
+        before, before_out, testmap = _run_before_suite(ctx)
+        ctx.state["testmap_ready"] = True
+        ctx.state["before_suite"] = before
+        ctx.state["before_output"] = before_out
+        ctx.state["testmap"] = testmap
+        prefix = ctx.state["workspace"] + "/"
+        if before is not None:
+            baseline = {"failed": sorted(before.failed),
+                        "passed": before.counts.get("passed", 0),
+                        "total": before.total}
+    if ctx.mode == "live" and not llm_mod.has_key():
+        _record_skipped_investigation(ctx, "no MODEL_API_KEY")
+        return
+    tenv = inv_mod.ToolEnv(
+        ctx=ctx, workspace=(ROOT / scen.target).resolve(),
+        package=scen.package, graph=g,
+        changeset=ctx.state.get("changeset"), testmap=testmap,
+        before_env=scen.before_env or None, after_env=scen.verify_env,
+        probe_code=scen.probe_code or "", test_id_prefix=prefix)
+    inv = inv_mod.run_investigation(
+        ctx, tenv, decision=scen.decision, baseline=baseline,
+        fix_hints=_investigate_fix_hints(ctx, g),
+        layers=_investigate_layers(ctx, scen, generic))
+    inv = inv_mod.verify_investigation(inv)
+    ctx.save_artifact("investigation.json", inv)
+    ctx.state["investigation"] = inv
+    if inv["status"] == "complete":
+        n_verified = sum(1 for f in inv["findings"] if f.get("verified"))
+        ctx.emit("log", {"message":
+                         f"investigate: complete, {len(inv['findings'])} "
+                         f"finding(s), {n_verified} verified, "
+                         f"{len(inv['trace'])} tool call(s)"})
+    else:
+        ctx.emit("log", {"message":
+                         f"investigate: {inv['status']} "
+                         f"({inv.get('reason', '')}); continuing on the "
+                         "static prediction"})
 
 
 def _stage_predict_untouched(ctx, scen) -> None:
@@ -512,7 +614,8 @@ def _stage_predict_untouched(ctx, scen) -> None:
     ctx.state["hard"] = []
     ctx.state["at_risk"] = []
     ctx.state["untouched"] = True
-    ctx.save_artifact("prediction.json", {
+    ctx.state["static"] = {"hard": [], "at_risk": [], "spine": []}
+    record = {
         "hard": [], "at_risk": [], "spine": [], "spine_evidence": [],
         "change_symbols": sorted(symbols),
         "used_symbols": [],
@@ -523,7 +626,9 @@ def _stage_predict_untouched(ctx, scen) -> None:
             f"this decision doesn't touch {scen.target}: "
             f"{ctx.state['decision_parsed'].package} is not imported "
             "anywhere in the repo"),
-    })
+    }
+    ctx.save_artifact("prediction_static.json", record)
+    ctx.save_artifact("prediction.json", record)
     ctx.emit("log", {"message":
                      "predict: decision package not imported anywhere; "
                      "empty prediction (warning, not a failure)"})
@@ -542,35 +647,79 @@ def stage_predict(ctx) -> None:
             _stage_predict_untouched(ctx, scen)
             return
     ctx.state["untouched"] = False
-    g = build_graph_from_repo(scen.target, scen.package)
+    # Investigate already built the graph (and the agent used it); rebuild
+    # only when this stage runs without it.
+    if "graph" not in ctx.state or ctx.state["graph"] is None:
+        ctx.state["graph"] = build_graph_from_repo(scen.target,
+                                                   scen.package)
+    g = ctx.state["graph"]
     entries = probe_entries(scen.probe_code or "", scen.package, g)
     changeset = ctx.state.get("changeset")
     excluded = seed_exclusions(changeset) if changeset else {}
     sig = signature_seeds(changeset) if changeset else {}
-    impacts = propagate(g, symbols, config, scen.package,
+    static = _propagate_record(ctx, g, set(symbols), config, scen,
+                               entries, excluded, sig)
+    ctx.save_artifact("prediction_static.json", static["record"])
+    ctx.state["static"] = {"hard": static["record"]["hard"],
+                           "at_risk": static["record"]["at_risk"],
+                           "spine": static["record"]["spine"]}
+    triaged = _triaged_symbols(ctx.state.get("investigation"))
+    seeds = set(symbols) - triaged
+    if triaged:
+        adjusted = _propagate_record(ctx, g, seeds, config, scen,
+                                     entries, excluded, sig)
+    else:
+        adjusted = static
+    ctx.state["graph"] = g
+    ctx.state["impacts"] = adjusted["impacts"]
+    ctx.state["hard"] = adjusted["record"]["hard"]
+    ctx.state["at_risk"] = adjusted["record"]["at_risk"]
+    ctx.save_artifact("prediction.json", adjusted["record"])
+    hard, at_risk, spine = (adjusted["record"]["hard"],
+                            adjusted["record"]["at_risk"],
+                            adjusted["record"]["spine"])
+    ctx.emit("log", {"message":
+                     f"predict: HARD={len(hard)} AT_RISK={len(at_risk)} "
+                     f"spine={' -> '.join(spine) or '(clean)'}"
+                     + (f" (agent triaged out {len(triaged)} symbol(s))"
+                        if triaged else "")})
+
+
+def _propagate_record(ctx, g, seeds: set, config, scen, entries,
+                      excluded, sig) -> dict:
+    """impacts + prediction.json-shaped record for one seed set."""
+    symbols = ctx.state["symbols"]
+    impacts = propagate(g, seeds, config, scen.package,
                         entries=tuple(entries), excluded=excluded,
                         sig_seeds=sig)
     hard = sorted(n for n, i in impacts.items() if i.status == "HARD")
     at_risk = sorted(n for n, i in impacts.items() if i.status == "AT_RISK")
-    spine_evidence = spine_for_scenario(g, impacts, symbols, scen, config,
+    spine_evidence = spine_for_scenario(g, impacts, seeds, scen, config,
                                         excluded, sig)
     spine = predicted_chain(g, spine_evidence)
-    ctx.state["graph"] = g
-    ctx.state["impacts"] = impacts
-    ctx.state["hard"] = hard
-    ctx.state["at_risk"] = at_risk
-    ctx.save_artifact("prediction.json", {
-        "hard": hard, "at_risk": at_risk, "spine": spine,
-        "spine_evidence": spine_evidence,
-        "change_symbols": sorted(symbols),
-        "used_symbols": sorted(used_breaking_symbols(g, symbols)),
-        "deprecated_symbols": sorted(ctx.state["deprecated"]),
-        "changed_symbols": sorted(ctx.state["changed"]),
-        "probe_entries": entries,
-    })
-    ctx.emit("log", {"message":
-                     f"predict: HARD={len(hard)} AT_RISK={len(at_risk)} "
-                     f"spine={' -> '.join(spine) or '(clean)'}"})
+    return {"impacts": impacts,
+            "record": {
+                "hard": hard, "at_risk": at_risk, "spine": spine,
+                "spine_evidence": spine_evidence,
+                "change_symbols": sorted(symbols),
+                "used_symbols": sorted(used_breaking_symbols(g, seeds)),
+                "deprecated_symbols": sorted(ctx.state["deprecated"]),
+                "changed_symbols": sorted(ctx.state["changed"]),
+                "probe_entries": entries,
+            }}
+
+
+def _triaged_symbols(investigation: dict | None) -> set[str]:
+    """Verified relevant:false triage symbols (unverified ones stay seeded).
+
+    A triage entry the checker rejected must never silence a seed:
+    fail-safe keeps the noise rather than hiding a break.
+    """
+    if not investigation or investigation.get("status") != "complete":
+        return set()
+    return {t.get("symbol") for t in investigation.get("triage") or []
+            if t.get("relevant") is False and t.get("verified")
+            and t.get("symbol")}
 
 
 def _suite_log(role: str, result, output: str, extra: str = "") -> str:
@@ -685,8 +834,83 @@ def _decision_versions(ctx) -> tuple:
     return decision, before, after
 
 
-def _stage_verify_generic(ctx) -> None:
+def _run_before_suite(ctx):
+    """Before suite + coverage map; (SuiteResult|None, stdout|None, map|None).
+
+    Moved here from verify in M4: the investigator needs the coverage
+    map and baseline before predict, and verify reuses the result via
+    ctx.state (testmap_ready) instead of running the suite twice.
+    """
     from chainreaction import testmap as testmap_mod
+    from chainreaction.testmap import parse_suite
+
+    scen = ctx.state["scenario"]
+    info = ctx.state["project"]
+    ws_rel = ctx.state["workspace"]
+    target_abs = str(ROOT / ws_rel)
+    if not info.has_suite:
+        ctx.emit("log", {"message":
+                         "investigate: no test suite; import probes only"})
+        return None, None, None
+    before_run = _env_adapter(ctx, scen.before_env, timeout=1200)
+    before_py = ctx.env_python(scen.before_env)
+    # Replay follows the recording's coverage decision: a coverage
+    # parse failure on a machine without the envs must not silently
+    # fall back to a plain run the recording never made (ReplayMiss).
+    if ctx.mode == "replay":
+        has_cov, has_plain = _recording_before_pytests(ctx)
+        use_cov = has_cov or not has_plain
+    else:
+        use_cov, has_plain = True, True
+    if use_cov:
+        # Per-line detail only for files with removed-symbol uses
+        # (full detail explodes to ~200MB); deterministic from the
+        # graph + changeset, so live and replay pass identical argv.
+        focus: set[str] = set()
+        _graph = ctx.state.get("graph")
+        _symbols = set(ctx.state.get("symbols", set()))
+        if _graph is not None and _symbols:
+            focus = {hit.rsplit(":", 1)[0] for hit in
+                     testmap_mod.break_lines(_graph, _symbols,
+                                             scen.target)}
+        try:
+            testmap, cov_output = testmap_mod.build_map_with(
+                before_run, before_py, target_abs, info.package, ".",
+                timeout=1200, built_with=scen.before_env,
+                id_prefix=ws_rel + "/",
+                focus_files=focus)
+            before = parse_suite(cov_output, ws_rel, testmap)
+            testmap.target = ws_rel
+            if ctx.mode == "live":
+                ctx.set_manifest(coverage_used=True)
+            return before, cov_output, testmap
+        except RuntimeError as exc:
+            if "timed out" in str(exc):
+                raise
+            if ctx.mode == "replay" and not has_plain:
+                # The recording ran coverage and never fell back: a
+                # parse failure here is a replay bug, not a plain run.
+                raise RuntimeError(
+                    f"coverage replay failed ({exc}); the recording "
+                    "ran the before suite under coverage") from exc
+            ctx.emit("log", {"message":
+                             f"investigate: coverage unavailable ({exc}); "
+                             "test-level scoring skipped"})
+            before, output = _run_plain_before(
+                before_run, before_py, target_abs, ws_rel)
+            if ctx.mode == "live":
+                ctx.set_manifest(coverage_used=False)
+            return before, output, None
+    # Recording ran plain (no coverage): skip straight to it.
+    ctx.emit("log", {"message":
+                     "investigate: recording ran the before suite "
+                     "without coverage; test-level scoring skipped"})
+    before, output = _run_plain_before(
+        before_run, before_py, target_abs, ws_rel)
+    return before, output, None
+
+
+def _stage_verify_generic(ctx) -> None:
     from chainreaction.generic import (
         log_tail,
         new_failures,
@@ -708,7 +932,12 @@ def _stage_verify_generic(ctx) -> None:
                           "# untouched: decision package not imported; "
                           "suites skipped\n")
         scores = {"suites": "skipped-untouched", "test_precision": None,
-                  "test_recall": None, "predicted_failing": [],
+                  "test_recall": None, "static_precision": None,
+                  "static_recall": None, "static_predicted_failing": [],
+                  "agent_added_tests": [],
+                  "behavior": {"predicted": [], "precision": None,
+                               "recall": None, "confirmed": 0},
+                  "predicted_failing": [],
                   "actual_new": [], "failure_groups": [], "test_chain": None,
                   "baseline_failed": [],
                   "baseline_counts": {}, "after_counts": {},
@@ -719,70 +948,19 @@ def _stage_verify_generic(ctx) -> None:
         ctx.state["testmap"] = None
         ctx.emit("log", {"message": "verify: untouched; suites skipped"})
         return
+    outputs: dict = {}
+    if ctx.state.get("testmap_ready"):
+        # Investigate already ran the before suite for the coverage
+        # map + baseline; verify reuses it instead of re-running.
+        before = ctx.state.get("before_suite")
+        before_out = ctx.state.get("before_output")
+        testmap = ctx.state.get("testmap")
+    else:
+        before, before_out, testmap = _run_before_suite(ctx)
+    if before_out is not None:
+        outputs["before"] = before_out
     before_run = _env_adapter(ctx, scen.before_env, timeout=1200)
     before_py = ctx.env_python(scen.before_env)
-    outputs: dict = {}
-    testmap = None
-    if info.has_suite:
-        # Replay follows the recording's coverage decision: a coverage
-        # parse failure on a machine without the envs must not silently
-        # fall back to a plain run the recording never made (ReplayMiss).
-        if ctx.mode == "replay":
-            has_cov, has_plain = _recording_before_pytests(ctx)
-            use_cov = has_cov or not has_plain
-        else:
-            use_cov, has_plain = True, True
-        if use_cov:
-            # Per-line detail only for files with removed-symbol uses
-            # (full detail explodes to ~200MB); deterministic from the
-            # graph + changeset, so live and replay pass identical argv.
-            focus: set[str] = set()
-            _graph = ctx.state.get("graph")
-            _symbols = set(ctx.state.get("symbols", set()))
-            if _graph is not None and _symbols:
-                focus = {hit.rsplit(":", 1)[0] for hit in
-                         testmap_mod.break_lines(_graph, _symbols,
-                                                 scen.target)}
-            try:
-                testmap, cov_output = testmap_mod.build_map_with(
-                    before_run, before_py, target_abs, info.package, ".",
-                    timeout=1200, built_with=scen.before_env,
-                    id_prefix=ws_rel + "/",
-                    focus_files=focus)
-                before = parse_suite(cov_output, ws_rel, testmap)
-                outputs["before"] = cov_output
-                testmap.target = ws_rel
-                if ctx.mode == "live":
-                    ctx.set_manifest(coverage_used=True)
-            except RuntimeError as exc:
-                if "timed out" in str(exc):
-                    raise
-                if ctx.mode == "replay" and not has_plain:
-                    # The recording ran coverage and never fell back: a
-                    # parse failure here is a replay bug, not a plain run.
-                    raise RuntimeError(
-                        f"coverage replay failed ({exc}); the recording "
-                        "ran the before suite under coverage") from exc
-                testmap = None
-                ctx.emit("log", {"message":
-                                 f"verify: coverage unavailable ({exc}); "
-                                 "test-level scoring skipped"})
-                before, outputs["before"] = _run_plain_before(
-                    before_run, before_py, target_abs, ws_rel)
-                if ctx.mode == "live":
-                    ctx.set_manifest(coverage_used=False)
-        else:
-            # Recording ran plain (no coverage): skip straight to it.
-            testmap = None
-            ctx.emit("log", {"message":
-                             "verify: recording ran the before suite "
-                             "without coverage; test-level scoring skipped"})
-            before, outputs["before"] = _run_plain_before(
-                before_run, before_py, target_abs, ws_rel)
-    else:
-        before = None
-        ctx.emit("log", {"message":
-                         "verify: no test suite; import probes only"})
     after = None
     after_escalated = False
     if info.has_suite and conflict is None:
@@ -818,18 +996,39 @@ def _stage_verify_generic(ctx) -> None:
             ctx.save_artifact(f"verify/{role}-suite.log",
                               _suite_log(role, result, outputs[role]))
     predicted: set = set()
+    static_predicted: set = set()
+    agent_added: set = set()
+    behavior_predicted: set = set()
+    behavior_confirmed = 0
     actual_new: set = set()
     precision = recall = None
+    static_precision = static_recall = None
+    behavior_precision = behavior_recall = None
     groups: list = []
     chain: dict | None = None
     if before is not None and after is not None:
         actual_new = new_failures(before.failed, after.failed)
+        (agent_added, behavior_sites, behavior_tests,
+         behavior_confirmed) = _agent_test_inputs(
+             ctx.state.get("investigation"))
         if testmap is not None and ctx.state.get("graph") is not None:
-            predicted = predicted_failing(
-                testmap, ctx.state["graph"], set(ctx.state.get("hard", [])),
-                scen.target, set(ctx.state.get("at_risk", [])),
-                set(ctx.state.get("symbols", set())))
+            static_sets = ctx.state.get("static") or {}
+            s_hard = set(static_sets.get("hard",
+                                         ctx.state.get("hard", [])))
+            s_risk = set(static_sets.get("at_risk",
+                                         ctx.state.get("at_risk", [])))
+            static_predicted = predicted_failing(
+                testmap, ctx.state["graph"], s_hard, scen.target,
+                s_risk, set(ctx.state.get("symbols", set())))
+            predicted = static_predicted | agent_added
             precision, recall = test_precision_recall(predicted, actual_new)
+            static_precision, static_recall = test_precision_recall(
+                static_predicted, actual_new)
+            if behavior_sites or behavior_tests:
+                behavior_predicted = set(testmap.hitting(
+                    behavior_sites)) | behavior_tests
+                behavior_precision, behavior_recall = \
+                    test_precision_recall(behavior_predicted, actual_new)
             from chainreaction.testmap import test_call_chain as _chain
 
             hit = _chain(testmap, ctx.state["graph"], actual_new,
@@ -856,6 +1055,14 @@ def _stage_verify_generic(ctx) -> None:
                     else ("skipped-no-suite" if before is None
                           else "skipped-no-coverage"))),
         "test_precision": precision, "test_recall": recall,
+        "static_precision": static_precision,
+        "static_recall": static_recall,
+        "static_predicted_failing": sorted(static_predicted),
+        "agent_added_tests": sorted(agent_added),
+        "behavior": {"predicted": sorted(behavior_predicted),
+                     "precision": behavior_precision,
+                     "recall": behavior_recall,
+                     "confirmed": behavior_confirmed},
         "predicted_failing": sorted(predicted),
         "actual_new": sorted(actual_new),
         "failure_groups": groups,
@@ -878,6 +1085,29 @@ def _stage_verify_generic(ctx) -> None:
     ctx.emit("log", {"message":
                      f"verify: {len(probes)} probe(s), "
                      f"{len(actual_new)} new failure(s){detail}"})
+
+
+def _agent_test_inputs(investigation: dict | None) -> tuple:
+    """Agent test inputs: (breaks_call tests, behavior sites, behavior
+    tests, confirmed behavior count). Only verified + confirmed
+    findings count; anything else is the model speculating."""
+    added: set[str] = set()
+    sites: set[str] = set()
+    btests: set[str] = set()
+    n_behavior = 0
+    if not investigation or investigation.get("status") != "complete":
+        return added, sites, btests, n_behavior
+    for finding in investigation.get("findings") or []:
+        if not finding.get("verified") \
+                or finding.get("confidence") != "confirmed":
+            continue
+        if finding.get("kind") == "breaks_call":
+            added.update(t for t in finding.get("tests") or [] if t)
+        elif finding.get("kind") == "behavior_change":
+            n_behavior += 1
+            sites.update(s for s in finding.get("sites") or [] if s)
+            btests.update(t for t in finding.get("tests") or [] if t)
+    return added, sites, btests, n_behavior
 
 
 def stage_verify(ctx) -> None:
@@ -925,8 +1155,143 @@ def stage_verify(ctx) -> None:
                                  for n, p in probes)})
 
 
+def _verify_found_failures(ctx) -> bool:
+    """True when verify blamed the decision for any failure."""
+    for name, probe in ctx.state.get("probes") or []:
+        lowered = str(name).lower()
+        if lowered.startswith("before") or "untouched" in lowered:
+            continue
+        if not probe.ok:
+            return True
+    scores = ctx.state.get("scores") or {}
+    return bool(scores.get("actual_new"))
+
+
+def _stage_fix_skipped(ctx, stop_reason: str, detail: str) -> None:
+    from chainreaction import fixloop as fixloop_mod
+
+    record = fixloop_mod.skipped_record(stop_reason, detail)
+    ctx.save_artifact("fix.json", record)
+    ctx.state["fix"] = record
+    if ctx.mode == "live":
+        ctx.set_manifest(fix_source=stop_reason,
+                         fix_status=record["status"])
+    ctx.emit("log", {"message": f"fix: skipped ({detail})"})
+
+
 def stage_fix(ctx) -> None:
-    ctx.emit("log", {"message": f"fix loop arrives in M5 ({NOT_IN_M1})"})
+    from chainreaction import fixloop as fixloop_mod
+
+    if ctx.mode == "replay":
+        # Replay follows the recording's fix decision, never local
+        # state (a key existing now must not invent rounds then).
+        source = ctx.manifest.get("fix_source") or ""
+        if source != "muse-spark":
+            _stage_fix_skipped(ctx, source or "skipped-unknown",
+                               source or "unknown skip reason")
+            return
+        ctx.state["fix"] = fixloop_mod.run_loop(ctx)
+        return
+    if not llm_mod.has_key():
+        _stage_fix_skipped(ctx, "skipped-no-key", "no MODEL_API_KEY")
+        return
+    if ctx.state.get("untouched"):
+        _stage_fix_skipped(ctx, "skipped-untouched",
+                           "decision package not imported")
+        return
+    if ctx.state.get("dependency_conflict") is not None:
+        _stage_fix_skipped(ctx, "skipped-conflict",
+                           "after env has a dependency conflict")
+        return
+    if not _verify_found_failures(ctx):
+        _stage_fix_skipped(ctx, "skipped-clean",
+                           "verify found no decision failures")
+        return
+    record = fixloop_mod.run_loop(ctx)
+    ctx.state["fix"] = record
+    ctx.set_manifest(fix_source="muse-spark", fix_status=record["status"])
+
+
+def _investigation_summary(ctx) -> dict:
+    inv = ctx.state.get("investigation") or {"status": "missing"}
+    findings = inv.get("findings") or []
+    kinds: dict[str, int] = {}
+    for finding in findings:
+        kind = finding.get("kind", "?")
+        kinds[kind] = kinds.get(kind, 0) + 1
+    return {"status": inv.get("status", "missing"),
+            "reason": inv.get("reason", ""),
+            "findings": len(findings),
+            "verified": sum(1 for f in findings if f.get("verified")),
+            "kinds": kinds,
+            "triaged_out": sorted(_triaged_symbols(inv))}
+
+
+def _ablation_note(summary: dict, static_match, agent_match,
+                   sp, sr, ap, ar, behavior_n: int) -> str:
+    status = summary.get("status", "missing")
+    if status == "skipped":
+        return (f"Investigation skipped ({summary.get('reason', '')}); "
+                "agent prediction equals static.")
+    if status != "complete":
+        reason = summary.get("reason", "") or status
+        return (f"Investigation incomplete ({reason}); agent prediction "
+                "equals static.")
+    parts = []
+    if sp is not None and ap is not None:
+        if ap >= sp and ar >= sr and (ap, ar) != (sp, sr):
+            parts.append(f"Agent improved test scores (P {sp:.2f}→{ap:.2f}, "
+                         f"R {sr:.2f}→{ar:.2f}).")
+        else:
+            parts.append(f"Agent did not improve test scores (P "
+                         f"{sp:.2f}→{ap:.2f}, R {sr:.2f}→{ar:.2f}).")
+    else:
+        parts.append("No test suite to score.")
+    words = {True: "MATCH", False: "DIFFERS", None: "unknown"}
+    if static_match == agent_match:
+        parts.append(f"Chain match unchanged ({words[agent_match]}).")
+    else:
+        parts.append(f"Chain match changed ({words[static_match]}→"
+                     f"{words[agent_match]}).")
+    if summary.get("triaged_out"):
+        out = summary["triaged_out"]
+        parts.append(f"Agent triaged out {len(out)} symbol(s): "
+                     + ", ".join(out) + ".")
+    if behavior_n:
+        parts.append(f"Agent confirmed {behavior_n} behavior change(s) "
+                     "static propagation can't see.")
+    return " ".join(parts)
+
+
+def _attach_investigation(ctx, report, layers) -> None:
+    """Set report.investigation + report.ablation (static vs agent)."""
+    from chainreaction.scorer import chain_match
+
+    summary = _investigation_summary(ctx)
+    static_sets = ctx.state.get("static") or {}
+    static_spine = static_sets.get("spine", report.spine)
+    static_match = (chain_match(
+        static_spine, layers[0].actual,
+        failed=not layers[0].ok).match if layers else None)
+    scores = ctx.state.get("scores") or {}
+    behavior = scores.get("behavior") or {}
+    sp, sr = scores.get("static_precision"), scores.get("static_recall")
+    ap, ar = scores.get("test_precision"), scores.get("test_recall")
+    report.investigation = summary
+    report.ablation = {
+        "static": {"hard": static_sets.get("hard", report.hard),
+                   "at_risk": static_sets.get("at_risk", report.at_risk),
+                   "spine": static_spine, "spine_match": static_match},
+        "agent": {"hard": report.hard, "at_risk": report.at_risk,
+                  "spine": report.spine,
+                  "spine_match": report.spine_match},
+        "test": {"static_precision": sp, "static_recall": sr,
+                 "agent_precision": ap, "agent_recall": ar},
+        "behavior_confirmed": behavior.get("confirmed", 0),
+        "note": _ablation_note(summary, static_match,
+                               report.spine_match, sp, sr, ap, ar,
+                               behavior.get("confirmed", 0)),
+    }
 
 
 def _stage_report_generic(ctx) -> None:
@@ -954,7 +1319,9 @@ def _stage_report_generic(ctx) -> None:
         scen, changeset, symbols, g, impacts, layers,
         probes[0][1].numpy_version, before_numpy, grep_count, ruff_count,
         ctx.state.get("interpret_stats"), decision_package=decision_package,
-        before_version=before_version, after_version=after_version)
+        before_version=before_version, after_version=after_version,
+        fix=ctx.state.get("fix"))
+    _attach_investigation(ctx, report, layers)
     scores = ctx.state.get("scores") or {}
     extra = {
         "scores": scores,
@@ -1040,7 +1407,9 @@ def stage_report(ctx) -> None:
     report = build_report(scen, changeset, symbols, g, impacts, layers,
                           probes[0][1].numpy_version, before_numpy,
                           grep_count, ruff_count,
-                          ctx.state.get("interpret_stats"))
+                          ctx.state.get("interpret_stats"),
+                          fix=ctx.state.get("fix"))
+    _attach_investigation(ctx, report, layers)
     if ctx.mode == "replay":
         want_narrative = (ctx.manifest.get("narrative_source")
                           == "muse-spark")

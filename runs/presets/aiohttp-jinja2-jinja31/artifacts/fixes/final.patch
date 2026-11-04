@@ -1,0 +1,20 @@
+--- a/aiohttp_jinja2/helpers.py
++++ b/aiohttp_jinja2/helpers.py
+@@ -20,7 +20,7 @@
+     _Context = Dict[str, Any]
+ 
+ 
+-@jinja2.contextfunction
++@jinja2.pass_context
+ def url_for(
+     context: _Context,
+     __route_name: str,
+@@ -58,7 +58,7 @@
+     return url
+ 
+ 
+-@jinja2.contextfunction
++@jinja2.pass_context
+ def static_url(context: _Context, static_file_path: str) -> str:
+     """Filter for generating urls for static files.
+ 

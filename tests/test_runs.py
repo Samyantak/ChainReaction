@@ -118,6 +118,98 @@ def test_llm_length_retry_records_both_attempts(tmp_runs):
     assert replay.replay_warnings() == []
 
 
+def test_llm_failed_call_records_tombstone_and_replay_reraises(tmp_runs):
+    calls = []
+
+    def fake(system, user, max_tokens, response_format):
+        calls.append(user)
+        if len(calls) == 1:
+            raise RuntimeError(
+                "empty response from model (finish_reason=length)")
+        return llm_mod.ChatResult("recovered", llm_mod.model_name(),
+                                  None, "stop", False, None)
+
+    live = RunContext(run_id="u1", manifest=_live_manifest("u1"),
+                      mode="live", live_llm=fake)
+    with pytest.raises(RuntimeError, match="finish_reason=length"):
+        live.llm("sys", "a")
+    assert live.llm("sys", "b") == "recovered"
+    recs = store.read_jsonl(live.dir / store.LLM_CALLS)
+    assert len(recs) == 2
+    assert recs[0]["response"] is None
+    assert recs[0]["error_class"] == "RuntimeError"
+    assert recs[0]["error"] == \
+        "empty response from model (finish_reason=length)"
+
+    replay = RunContext(
+        run_id="u2", manifest=_live_manifest("u2", mode="replay"),
+        mode="replay", source_dir=live.dir)
+    with pytest.raises(RuntimeError, match="finish_reason=length"):
+        replay.llm("sys", "a")
+    assert replay.llm("sys", "b") == "recovered"
+    assert replay.replay_warnings() == []
+
+
+def test_chat_turn_records_and_replays_tool_calls(tmp_runs):
+    tools = [{"type": "function",
+              "function": {"name": "changes",
+                           "description": "List change-set items.",
+                           "parameters": {"type": "object",
+                                          "properties": {}}}}]
+
+    def fake(system, user, max_tokens, response_format, turn_tools,
+             tool_choice):
+        assert list(turn_tools) == tools
+        assert tool_choice == "auto"
+        return llm_mod.ChatResult(
+            "checking", "fake-model", {"total_tokens": 9}, "tool_calls",
+            False, None,
+            tool_calls=[{"id": "call_1", "name": "changes",
+                         "arguments": {}}])
+
+    live = RunContext(run_id="u1", manifest=_live_manifest("u1"),
+                      mode="live", live_llm=fake)
+    got = live.chat_turn("sys", "go", tools=tools, tool_choice="auto")
+    assert got.content == "checking"
+    assert got.tool_calls == [{"id": "call_1", "name": "changes",
+                               "arguments": {}}]
+    assert got.cached is False
+    recs = store.read_jsonl(live.dir / store.LLM_CALLS)
+    assert len(recs) == 1
+    assert recs[0]["response"] == "checking"
+    assert recs[0]["params"]["tools"] == tools
+    assert recs[0]["params"]["tool_choice"] == "auto"
+    assert recs[0]["tool_calls"] == [{"id": "call_1", "name": "changes",
+                                      "arguments": {}}]
+
+    replay = RunContext(
+        run_id="u2", manifest=_live_manifest("u2", mode="replay",
+                                             model="fake-model"),
+        mode="replay", source_dir=live.dir)
+    again = replay.chat_turn("sys", "go", tools=tools, tool_choice="auto")
+    assert again.content == "checking"
+    assert again.tool_calls == got.tool_calls
+    assert again.cached is True
+    assert replay.replay_warnings() == []
+
+
+def test_chat_turn_replays_legacy_record_without_tool_calls(tmp_runs):
+    def fake(system, user, max_tokens, response_format):
+        return llm_mod.ChatResult("legacy", "fake-model", None, "stop",
+                                  False, None)
+
+    live = RunContext(run_id="u1", manifest=_live_manifest("u1"),
+                      mode="live", live_llm=fake)
+    assert live.llm("sys", "a") == "legacy"
+    replay = RunContext(
+        run_id="u2", manifest=_live_manifest("u2", mode="replay",
+                                             model="fake-model"),
+        mode="replay", source_dir=live.dir)
+    got = replay.chat_turn("sys", "a")
+    assert got.content == "legacy"
+    assert got.tool_calls is None
+
+
 def test_fetch_records_and_replays(tmp_runs):
     def fake(url, timeout):
         return 200, b"<html><body>guide words</body></html>"
@@ -533,7 +625,7 @@ def _patch_fakes(monkeypatch):
     calls = {"llm": 0, "fetch": 0}
 
     def fake_chat_full(system, user, max_tokens=8000,
-                       response_format=None):
+                       response_format=None, reasoning_effort=None):
         calls["llm"] += 1
         return llm_mod.ChatResult(f"reply:{user}", llm_mod.model_name(),
                                   {"total_tokens": 3}, "stop", False, None)
@@ -946,6 +1038,22 @@ def test_preset_replay_matches_committed(monkeypatch, tmp_path, preset_id):
     replay_report = (store.run_dir(replay) / "artifacts"
                      / "report.json").read_bytes()
     assert live_report == replay_report
+    # M5 acceptance #7: the fix artifacts reproduce byte-identical
+    # (fix.json plus every round diff and final.patch) when the
+    # preset recorded a fix loop.
+    live_fixes = dest / "artifacts" / "fixes"
+    replay_fixes = store.run_dir(replay) / "artifacts" / "fixes"
+    live_fix_json = dest / "artifacts" / "fix.json"
+    if live_fix_json.is_file():
+        assert live_fix_json.read_bytes() == (
+            store.run_dir(replay) / "artifacts" / "fix.json").read_bytes()
+    if live_fixes.is_dir():
+        assert replay_fixes.is_dir()
+        assert sorted(p.name for p in live_fixes.iterdir()) == sorted(
+            p.name for p in replay_fixes.iterdir())
+        for diff in live_fixes.iterdir():
+            assert diff.read_bytes() == (
+                replay_fixes / diff.name).read_bytes()
     if preset_id == "nibabel-numpy2":
         # Non-vacuous layers: the recorded break maps to the documented
         # layer-1 chain (an empty `actual` with recall 1.0 is the tell).

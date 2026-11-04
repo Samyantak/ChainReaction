@@ -1,0 +1,757 @@
+{
+  "counts": {
+    "baseline_failures": 0,
+    "baseline_measured": true,
+    "error_files": {
+      "baseline": [],
+      "fixed": [],
+      "newly_broken": [],
+      "still_failing": []
+    },
+    "fixed": [
+      "tests/test_login.py::AnonymousUserTestCase::test_values",
+      "tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding",
+      "tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding_with_key",
+      "tests/test_login.py::CustomTestClientTestCase::test_fresh_login_arg_to_test_client",
+      "tests/test_login.py::CustomTestClientTestCase::test_no_args_to_test_client",
+      "tests/test_login.py::CustomTestClientTestCase::test_session_protection_modes",
+      "tests/test_login.py::CustomTestClientTestCase::test_user_arg_to_test_client",
+      "tests/test_login.py::InitializationTestCase::test_class_init",
+      "tests/test_login.py::InitializationTestCase::test_init_app",
+      "tests/test_login.py::InitializationTestCase::test_no_user_loader_raises",
+      "tests/test_login.py::LoginTestCase::test_authentication_is_fresh",
+      "tests/test_login.py::LoginTestCase::test_confirm_login",
+      "tests/test_login.py::LoginTestCase::test_decorators_are_disabled",
+      "tests/test_login.py::LoginTestCase::test_defaults_anonymous",
+      "tests/test_login.py::LoginTestCase::test_fresh_login_required_decorator",
+      "tests/test_login.py::LoginTestCase::test_incorrect_id_logs_out",
+      "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie",
+      "tests/test_login.py::LoginTestCase::test_login_inactive_user",
+      "tests/test_login.py::LoginTestCase::test_login_inactive_user_forced",
+      "tests/test_login.py::LoginTestCase::test_login_invalid_user_with_request",
+      "tests/test_login.py::LoginTestCase::test_login_persists",
+      "tests/test_login.py::LoginTestCase::test_login_persists_with_many_x_forwarded_for",
+      "tests/test_login.py::LoginTestCase::test_login_persists_with_signle_x_forwarded_for",
+      "tests/test_login.py::LoginTestCase::test_login_required_decorator",
+      "tests/test_login.py::LoginTestCase::test_login_required_decorator_with_async",
+      "tests/test_login.py::LoginTestCase::test_login_user",
+      "tests/test_login.py::LoginTestCase::test_login_user_emits_signal",
+      "tests/test_login.py::LoginTestCase::test_login_user_not_fresh",
+      "tests/test_login.py::LoginTestCase::test_login_user_with_request",
+      "tests/test_login.py::LoginTestCase::test_logout_emits_signal",
+      "tests/test_login.py::LoginTestCase::test_logout_logs_out_current_user",
+      "tests/test_login.py::LoginTestCase::test_logout_persists",
+      "tests/test_login.py::LoginTestCase::test_logout_stays_logged_out_with_remember_me",
+      "tests/test_login.py::LoginTestCase::test_logout_stays_logged_out_with_remember_me_custom_duration",
+      "tests/test_login.py::LoginTestCase::test_logout_without_current_user",
+      "tests/test_login.py::LoginTestCase::test_needs_refresh_aborts_401",
+      "tests/test_login.py::LoginTestCase::test_needs_refresh_fires_flash_when_redirect_to_refresh_view",
+      "tests/test_login.py::LoginTestCase::test_needs_refresh_fires_needs_refresh_signal",
+      "tests/test_login.py::LoginTestCase::test_needs_refresh_flash_message_localized",
+      "tests/test_login.py::LoginTestCase::test_needs_refresh_uses_handler",
+      "tests/test_login.py::LoginTestCase::test_permanent_strong_session_protection_fires_signal",
+      "tests/test_login.py::LoginTestCase::test_permanent_strong_session_protection_marks_session_unfresh",
+      "tests/test_login.py::LoginTestCase::test_redirects_to_refresh_view",
+      "tests/test_login.py::LoginTestCase::test_refresh_with_next_in_session",
+      "tests/test_login.py::LoginTestCase::test_remember_me",
+      "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration",
+      "tests/test_login.py::LoginTestCase::test_remember_me_is_unfresh",
+      "tests/test_login.py::LoginTestCase::test_remember_me_with_invalid_custom_duration_returns_500_resp",
+      "tests/test_login.py::LoginTestCase::test_remember_me_with_invalid_duration_returns_500_response",
+      "tests/test_login.py::LoginTestCase::test_requests_without_accessing_session",
+      "tests/test_login.py::LoginTestCase::test_session_not_modified",
+      "tests/test_login.py::LoginTestCase::test_session_protection_basic_fires_signal",
+      "tests/test_login.py::LoginTestCase::test_session_protection_basic_marks_session_unfresh",
+      "tests/test_login.py::LoginTestCase::test_session_protection_basic_passes_successive_requests",
+      "tests/test_login.py::LoginTestCase::test_session_protection_basic_skips_when_remember_me",
+      "tests/test_login.py::LoginTestCase::test_session_protection_skip_when_basic_and_anonymous",
+      "tests/test_login.py::LoginTestCase::test_session_protection_skip_when_off_and_anonymous",
+      "tests/test_login.py::LoginTestCase::test_session_protection_strong_deletes_session",
+      "tests/test_login.py::LoginTestCase::test_session_protection_strong_fires_signal_user_agent",
+      "tests/test_login.py::LoginTestCase::test_session_protection_strong_fires_signal_x_forwarded_for",
+      "tests/test_login.py::LoginTestCase::test_session_protection_strong_passes_successive_requests",
+      "tests/test_login.py::LoginTestCase::test_session_protection_strong_skips_when_remember_me",
+      "tests/test_login.py::LoginTestCase::test_set_cookie_with_invalid_custom_duration_raises_exception",
+      "tests/test_login.py::LoginTestCase::test_set_cookie_with_invalid_duration_raises_exception",
+      "tests/test_login.py::LoginTestCase::test_set_login_view_without_blueprints",
+      "tests/test_login.py::LoginTestCase::test_test_request_context_users_are_anonymous",
+      "tests/test_login.py::LoginTestCase::test_unauthorized_aborts_with_401",
+      "tests/test_login.py::LoginTestCase::test_unauthorized_fires_unauthorized_signal",
+      "tests/test_login.py::LoginTestCase::test_unauthorized_flash_message_localized",
+      "tests/test_login.py::LoginTestCase::test_unauthorized_flashes_message_with_login_view",
+      "tests/test_login.py::LoginTestCase::test_unauthorized_redirects_to_login_view",
+      "tests/test_login.py::LoginTestCase::test_unauthorized_uses_authorized_handler",
+      "tests/test_login.py::LoginTestCase::test_unauthorized_uses_blueprint_login_view",
+      "tests/test_login.py::LoginTestCase::test_unauthorized_with_next_in_session",
+      "tests/test_login.py::LoginTestCase::test_unauthorized_with_next_in_strong_session",
+      "tests/test_login.py::LoginTestCase::test_user_context_processor",
+      "tests/test_login.py::LoginTestCase::test_user_loaded_from_cookie_fired",
+      "tests/test_login.py::LoginTestCase::test_user_loaded_from_request_fired",
+      "tests/test_login.py::LoginTestCase::test_user_login_confirmed_signal_fired",
+      "tests/test_login.py::LoginViaRequestTestCase::test_defaults_anonymous",
+      "tests/test_login.py::LoginViaRequestTestCase::test_has_no_user_loader_callback",
+      "tests/test_login.py::LoginViaRequestTestCase::test_login_invalid_user_with_request",
+      "tests/test_login.py::LoginViaRequestTestCase::test_login_invalid_user_with_request_when_already_logged_in",
+      "tests/test_login.py::LoginViaRequestTestCase::test_login_user_with_request_does_not_modify_session",
+      "tests/test_login.py::LoginViaRequestTestCase::test_login_via_request",
+      "tests/test_login.py::LoginViaRequestTestCase::test_login_via_request_uses_cookie_when_already_logged_in",
+      "tests/test_login.py::LoginViaRequestTestCase::test_request_context_users_are_anonymous",
+      "tests/test_login.py::MethodViewLoginTestCase::test_options_call_exempt",
+      "tests/test_login.py::SecretKeyTestCase::test_bytes",
+      "tests/test_login.py::SecretKeyTestCase::test_default",
+      "tests/test_login.py::SecretKeyTestCase::test_native",
+      "tests/test_login.py::StaticTestCase::test_static_loads_anonymous",
+      "tests/test_login.py::StaticTestCase::test_static_loads_without_accessing_session",
+      "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_ignores_host_from_x_forwarded_for_header",
+      "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_config_when_available",
+      "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_next_url",
+      "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_x_forwarded_for_header",
+      "tests/test_login.py::TestLoginUrlGeneration::test_login_url_generation",
+      "tests/test_login.py::TestLoginUrlGeneration::test_login_url_generation_with_view",
+      "tests/test_login.py::TestLoginUrlGeneration::test_login_url_no_next_url",
+      "tests/test_login.py::TestLoginUrlGeneration::test_make_next_param",
+      "tests/test_login.py::UnicodeCookieUserIDTestCase::test_remember_me_user_id",
+      "tests/test_login.py::UnicodeCookieUserIDTestCase::test_remember_me_username",
+      "tests/test_login.py::UserMixinTestCase::test_default_values",
+      "tests/test_login.py::UserMixinTestCase::test_equality",
+      "tests/test_login.py::UserMixinTestCase::test_get_id_from_id_attribute",
+      "tests/test_login.py::UserMixinTestCase::test_get_id_not_implemented"
+    ],
+    "newly_broken": [],
+    "still_failing": [
+      "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
+      "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration_uses_custom_cookie",
+      "tests/test_login.py::LoginTestCase::test_remember_me_refresh_every_request",
+      "tests/test_login.py::LoginTestCase::test_remember_me_uses_custom_cookie_parameters"
+    ],
+    "suite_fresh": true
+  },
+  "final_status": "partial",
+  "guards": {
+    "ok": true,
+    "violations": []
+  },
+  "patch": "fixes/final.patch",
+  "probe_start": {
+    "error": "",
+    "frames": [],
+    "modules": [],
+    "ok": true,
+    "site": null,
+    "trace": ""
+  },
+  "rounds": [
+    {
+      "attempts": [
+        {
+          "addresses": [
+            "werkzeug.urls"
+          ],
+          "applied": [
+            "src/flask_login/utils.py"
+          ],
+          "attempt": 0,
+          "diff_lines": 24,
+          "prompt_hash": "3ede4f31b2fe411d9aa18253f0201335b446a150d0ba1e4cbe123b442c115d56",
+          "rationale": "werkzeug.urls was removed in Werkzeug 3.x, so replace url_decode/url_encode imports with urllib.parse-based shims preserving MultiDict behavior for existing call sites.",
+          "validation": []
+        }
+      ],
+      "before": {
+        "counts": {
+          "passed": 97
+        },
+        "failed": [],
+        "method": "coverage",
+        "newly_broken": [],
+        "ran": true,
+        "tests": 97
+      },
+      "duration_ms": 3239,
+      "edits": [
+        "src/flask_login/utils.py"
+      ],
+      "failure": {
+        "error": "ImportError: cannot import name 'url_decode' from 'werkzeug.urls' (<env:after>/site-packages/werkzeug/urls.py)",
+        "frames": [
+          "src/flask_login/utils.py:14",
+          "src/flask_login/login_manager.py:31",
+          "src/flask_login/__init__.py:11"
+        ],
+        "kind": "probe",
+        "site": "src/flask_login/utils.py:14",
+        "test": null
+      },
+      "full": {
+        "counts": {
+          "failed": 80,
+          "passed": 33
+        },
+        "error_files": [],
+        "escalated": false,
+        "failed": [
+          "tests/test_login.py::CustomTestClientTestCase::test_fresh_login_arg_to_test_client",
+          "tests/test_login.py::CustomTestClientTestCase::test_no_args_to_test_client",
+          "tests/test_login.py::CustomTestClientTestCase::test_session_protection_modes",
+          "tests/test_login.py::CustomTestClientTestCase::test_user_arg_to_test_client",
+          "tests/test_login.py::LoginTestCase::test_authentication_is_fresh",
+          "tests/test_login.py::LoginTestCase::test_confirm_login",
+          "tests/test_login.py::LoginTestCase::test_decorators_are_disabled",
+          "tests/test_login.py::LoginTestCase::test_defaults_anonymous",
+          "tests/test_login.py::LoginTestCase::test_fresh_login_required_decorator",
+          "tests/test_login.py::LoginTestCase::test_incorrect_id_logs_out",
+          "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie",
+          "tests/test_login.py::LoginTestCase::test_login_invalid_user_with_request",
+          "tests/test_login.py::LoginTestCase::test_login_persists",
+          "tests/test_login.py::LoginTestCase::test_login_persists_with_many_x_forwarded_for",
+          "tests/test_login.py::LoginTestCase::test_login_persists_with_signle_x_forwarded_for",
+          "tests/test_login.py::LoginTestCase::test_login_required_decorator",
+          "tests/test_login.py::LoginTestCase::test_login_required_decorator_with_async",
+          "tests/test_login.py::LoginTestCase::test_login_user_with_request",
+          "tests/test_login.py::LoginTestCase::test_logout_persists",
+          "tests/test_login.py::LoginTestCase::test_logout_stays_logged_out_with_remember_me",
+          "tests/test_login.py::LoginTestCase::test_logout_stays_logged_out_with_remember_me_custom_duration",
+          "tests/test_login.py::LoginTestCase::test_needs_refresh_aborts_401",
+          "tests/test_login.py::LoginTestCase::test_needs_refresh_fires_flash_when_redirect_to_refresh_view",
+          "tests/test_login.py::LoginTestCase::test_needs_refresh_fires_needs_refresh_signal",
+          "tests/test_login.py::LoginTestCase::test_needs_refresh_flash_message_localized",
+          "tests/test_login.py::LoginTestCase::test_needs_refresh_uses_handler",
+          "tests/test_login.py::LoginTestCase::test_permanent_strong_session_protection_fires_signal",
+          "tests/test_login.py::LoginTestCase::test_permanent_strong_session_protection_marks_session_unfresh",
+          "tests/test_login.py::LoginTestCase::test_redirects_to_refresh_view",
+          "tests/test_login.py::LoginTestCase::test_refresh_with_next_in_session",
+          "tests/test_login.py::LoginTestCase::test_remember_me",
+          "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
+          "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration",
+          "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration_uses_custom_cookie",
+          "tests/test_login.py::LoginTestCase::test_remember_me_is_unfresh",
+          "tests/test_login.py::LoginTestCase::test_remember_me_refresh_every_request",
+          "tests/test_login.py::LoginTestCase::test_remember_me_uses_custom_cookie_parameters",
+          "tests/test_login.py::LoginTestCase::test_remember_me_with_invalid_custom_duration_returns_500_resp",
+          "tests/test_login.py::LoginTestCase::test_remember_me_with_invalid_duration_returns_500_response",
+          "tests/test_login.py::LoginTestCase::test_requests_without_accessing_session",
+          "tests/test_login.py::LoginTestCase::test_session_not_modified",
+          "tests/test_login.py::LoginTestCase::test_session_protection_basic_fires_signal",
+          "tests/test_login.py::LoginTestCase::test_session_protection_basic_marks_session_unfresh",
+          "tests/test_login.py::LoginTestCase::test_session_protection_basic_passes_successive_requests",
+          "tests/test_login.py::LoginTestCase::test_session_protection_basic_skips_when_remember_me",
+          "tests/test_login.py::LoginTestCase::test_session_protection_skip_when_basic_and_anonymous",
+          "tests/test_login.py::LoginTestCase::test_session_protection_skip_when_off_and_anonymous",
+          "tests/test_login.py::LoginTestCase::test_session_protection_strong_deletes_session",
+          "tests/test_login.py::LoginTestCase::test_session_protection_strong_fires_signal_user_agent",
+          "tests/test_login.py::LoginTestCase::test_session_protection_strong_fires_signal_x_forwarded_for",
+          "tests/test_login.py::LoginTestCase::test_session_protection_strong_passes_successive_requests",
+          "tests/test_login.py::LoginTestCase::test_session_protection_strong_skips_when_remember_me",
+          "tests/test_login.py::LoginTestCase::test_set_login_view_without_blueprints",
+          "tests/test_login.py::LoginTestCase::test_unauthorized_aborts_with_401",
+          "tests/test_login.py::LoginTestCase::test_unauthorized_fires_unauthorized_signal",
+          "tests/test_login.py::LoginTestCase::test_unauthorized_flash_message_localized",
+          "tests/test_login.py::LoginTestCase::test_unauthorized_flashes_message_with_login_view",
+          "tests/test_login.py::LoginTestCase::test_unauthorized_redirects_to_login_view",
+          "tests/test_login.py::LoginTestCase::test_unauthorized_uses_authorized_handler",
+          "tests/test_login.py::LoginTestCase::test_unauthorized_uses_blueprint_login_view",
+          "tests/test_login.py::LoginTestCase::test_unauthorized_with_next_in_session",
+          "tests/test_login.py::LoginTestCase::test_unauthorized_with_next_in_strong_session",
+          "tests/test_login.py::LoginTestCase::test_user_loaded_from_cookie_fired",
+          "tests/test_login.py::LoginTestCase::test_user_loaded_from_request_fired",
+          "tests/test_login.py::LoginTestCase::test_user_login_confirmed_signal_fired",
+          "tests/test_login.py::LoginViaRequestTestCase::test_defaults_anonymous",
+          "tests/test_login.py::LoginViaRequestTestCase::test_login_invalid_user_with_request",
+          "tests/test_login.py::LoginViaRequestTestCase::test_login_invalid_user_with_request_when_already_logged_in",
+          "tests/test_login.py::LoginViaRequestTestCase::test_login_user_with_request_does_not_modify_session",
+          "tests/test_login.py::LoginViaRequestTestCase::test_login_via_request",
+          "tests/test_login.py::LoginViaRequestTestCase::test_login_via_request_uses_cookie_when_already_logged_in",
+          "tests/test_login.py::MethodViewLoginTestCase::test_options_call_exempt",
+          "tests/test_login.py::StaticTestCase::test_static_loads_anonymous",
+          "tests/test_login.py::StaticTestCase::test_static_loads_without_accessing_session",
+          "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_ignores_host_from_x_forwarded_for_header",
+          "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_config_when_available",
+          "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_next_url",
+          "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_x_forwarded_for_header",
+          "tests/test_login.py::UnicodeCookieUserIDTestCase::test_remember_me_user_id",
+          "tests/test_login.py::UnicodeCookieUserIDTestCase::test_remember_me_username"
+        ],
+        "total": 113
+      },
+      "items": [
+        "werkzeug.urls"
+      ],
+      "n": 1,
+      "probe": {
+        "error": "",
+        "frames": [],
+        "modules": [],
+        "ok": true,
+        "site": null,
+        "trace": ""
+      },
+      "progress": true,
+      "targeted": {
+        "counts": {
+          "failed": 80,
+          "passed": 33
+        },
+        "method": "full-suite (targeted set too large)",
+        "ran_full": true
+      }
+    },
+    {
+      "attempts": [
+        {
+          "addresses": [
+            "werkzeug.__version__"
+          ],
+          "applied": [
+            "src/flask_login/test_client.py"
+          ],
+          "attempt": 0,
+          "diff_lines": 12,
+          "prompt_hash": "38210d91c3c1756b9ed0bb5653b2a63f25d5ad81aa4e3ec75bbd602d34ec6438",
+          "rationale": "Flask's test client accesses deprecated werkzeug.__version__. Pre-cache it via importlib.metadata.version(\"werkzeug\") per #2770 so Werkzeug's deprecated __getattr__ is not triggered.",
+          "validation": [
+            "src/flask_login/test_client.py: test files need test_file=true and a test-only failure"
+          ]
+        }
+      ],
+      "before": {
+        "counts": {
+          "passed": 113
+        },
+        "failed": [],
+        "method": "full-suite (no covering tests)",
+        "newly_broken": [],
+        "ran": true,
+        "tests": 113
+      },
+      "duration_ms": 56922,
+      "edits": [
+        "src/flask_login/test_client.py"
+      ],
+      "failure": {
+        "error": "E   DeprecationWarning: The '__version__' attribute is deprecated and will be removed in Werkzeug 3.1. Use feature detection or 'importlib.metadata.version(\"werkzeug\")' instead.",
+        "frames": [
+          "src/flask_login/test_client.py:14",
+          "tests/test_login.py:1768"
+        ],
+        "kind": "test",
+        "site": "src/flask_login/test_client.py:14",
+        "test": "tests/test_login.py::CustomTestClientTestCase::test_fresh_login_arg_to_test_client"
+      },
+      "full": {
+        "counts": {
+          "failed": 5,
+          "passed": 108
+        },
+        "error_files": [],
+        "escalated": false,
+        "failed": [
+          "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie",
+          "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
+          "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration_uses_custom_cookie",
+          "tests/test_login.py::LoginTestCase::test_remember_me_refresh_every_request",
+          "tests/test_login.py::LoginTestCase::test_remember_me_uses_custom_cookie_parameters"
+        ],
+        "total": 113
+      },
+      "items": [
+        "werkzeug.__version__"
+      ],
+      "n": 2,
+      "probe": {
+        "error": "",
+        "frames": [],
+        "modules": [],
+        "ok": true,
+        "site": null,
+        "trace": ""
+      },
+      "progress": true,
+      "targeted": {
+        "counts": {
+          "failed": 5,
+          "passed": 108
+        },
+        "method": "coverage (no covering tests; running full suite)",
+        "ran_full": true
+      }
+    },
+    {
+      "attempts": [
+        {
+          "addresses": [
+            "test_invalid_remember_cookie"
+          ],
+          "applied": [
+            "tests/test_login.py"
+          ],
+          "attempt": 0,
+          "diff_lines": 11,
+          "prompt_hash": "e24abd11360ac0216e5f3139c0f9bc05463d371359342a94e2e42ef704e24b7f",
+          "rationale": "Werkzeug 3.x changed Client.set_cookie to set_cookie(key, value, *, domain=...), so the old positional (domain, key, value) call fails; update test to the new keyword form.",
+          "validation": []
+        }
+      ],
+      "before": {
+        "counts": {
+          "failed": 1,
+          "passed": 112
+        },
+        "failed": [
+          "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie"
+        ],
+        "method": "full-suite (no covering tests)",
+        "newly_broken": [
+          "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie"
+        ],
+        "ran": true,
+        "tests": 113
+      },
+      "duration_ms": 28069,
+      "edits": [
+        "tests/test_login.py"
+      ],
+      "failure": {
+        "error": "E   TypeError: Client.set_cookie() takes from 2 to 3 positional arguments but 4 were given",
+        "frames": [
+          "tests/test_login.py:1019"
+        ],
+        "kind": "test",
+        "site": "tests/test_login.py:1019",
+        "test": "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie"
+      },
+      "full": {
+        "counts": {
+          "failed": 4,
+          "passed": 109
+        },
+        "error_files": [],
+        "escalated": false,
+        "failed": [
+          "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
+          "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration_uses_custom_cookie",
+          "tests/test_login.py::LoginTestCase::test_remember_me_refresh_every_request",
+          "tests/test_login.py::LoginTestCase::test_remember_me_uses_custom_cookie_parameters"
+        ],
+        "total": 113
+      },
+      "items": [],
+      "n": 3,
+      "probe": {
+        "error": "",
+        "frames": [],
+        "modules": [],
+        "ok": true,
+        "site": null,
+        "trace": ""
+      },
+      "progress": true,
+      "targeted": {
+        "counts": {
+          "failed": 4,
+          "passed": 109
+        },
+        "method": "coverage (no covering tests; running full suite)",
+        "ran_full": true
+      }
+    },
+    {
+      "attempts": [
+        {
+          "addresses": [
+            "test_remember_me_accepts_duration_as_int"
+          ],
+          "applied": [
+            "tests/test_login.py"
+          ],
+          "attempt": 0,
+          "diff_lines": 19,
+          "prompt_hash": "05182addf70a06934b9de1b17e4575c541a0b178541275aac1a196f96a3f4d5e",
+          "rationale": "Werkzeug 3.x removed Client.cookie_jar in favor of Client.get_cookie(), whose Cookie.expires is a datetime. Use get_cookie with domain lookup and handle both datetime and timestamp expires.",
+          "validation": []
+        }
+      ],
+      "before": {
+        "counts": {
+          "failed": 2,
+          "passed": 111
+        },
+        "failed": [
+          "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie",
+          "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int"
+        ],
+        "method": "full-suite (no covering tests)",
+        "newly_broken": [
+          "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie",
+          "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int"
+        ],
+        "ran": true,
+        "tests": 113
+      },
+      "duration_ms": 53044,
+      "edits": [
+        "tests/test_login.py"
+      ],
+      "failure": {
+        "error": "E   AttributeError: 'FlaskClient' object has no attribute 'cookie_jar'",
+        "frames": [
+          "tests/test_login.py:743"
+        ],
+        "kind": "test",
+        "site": "tests/test_login.py:743",
+        "test": "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int"
+      },
+      "full": {
+        "counts": {
+          "failed": 4,
+          "passed": 109
+        },
+        "error_files": [],
+        "escalated": false,
+        "failed": [
+          "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
+          "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration_uses_custom_cookie",
+          "tests/test_login.py::LoginTestCase::test_remember_me_refresh_every_request",
+          "tests/test_login.py::LoginTestCase::test_remember_me_uses_custom_cookie_parameters"
+        ],
+        "total": 113
+      },
+      "items": [],
+      "n": 4,
+      "probe": {
+        "error": "",
+        "frames": [],
+        "modules": [],
+        "ok": true,
+        "site": null,
+        "trace": ""
+      },
+      "progress": false,
+      "targeted": {
+        "counts": {
+          "failed": 4,
+          "passed": 109
+        },
+        "method": "coverage (no covering tests; running full suite)",
+        "ran_full": true
+      }
+    },
+    {
+      "attempts": [
+        {
+          "addresses": [
+            "test_remember_me_accepts_duration_as_int"
+          ],
+          "applied": [
+            "tests/test_login.py"
+          ],
+          "attempt": 0,
+          "diff_lines": 15,
+          "prompt_hash": "5d299dd46f3368f355e23b6f2dd3c55cfaaaf2a8c8597e55a654e9cb49010a67",
+          "rationale": "Werkzeug 3.x Client.get_cookie defaults to origin_only=True, so cookies set with an explicit REMEMBER_COOKIE_DOMAIN are filtered out and return None. Passing origin_only=False with leading-dot fallback restores the documented retrieval.",
+          "validation": [
+            "model_error: RuntimeError: empty response from model (finish_reason=length)"
+          ]
+        }
+      ],
+      "before": {
+        "counts": {
+          "failed": 2,
+          "passed": 111
+        },
+        "failed": [
+          "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie",
+          "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int"
+        ],
+        "method": "full-suite (no covering tests)",
+        "newly_broken": [
+          "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie",
+          "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int"
+        ],
+        "ran": true,
+        "tests": 113
+      },
+      "duration_ms": 96217,
+      "edits": [
+        "tests/test_login.py"
+      ],
+      "failure": {
+        "error": "E   AttributeError: 'NoneType' object has no attribute 'expires'",
+        "frames": [
+          "tests/test_login.py:745"
+        ],
+        "kind": "test",
+        "site": "tests/test_login.py:745",
+        "test": "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int"
+      },
+      "full": {
+        "counts": {
+          "failed": 4,
+          "passed": 109
+        },
+        "error_files": [],
+        "escalated": false,
+        "failed": [
+          "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
+          "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration_uses_custom_cookie",
+          "tests/test_login.py::LoginTestCase::test_remember_me_refresh_every_request",
+          "tests/test_login.py::LoginTestCase::test_remember_me_uses_custom_cookie_parameters"
+        ],
+        "total": 113
+      },
+      "items": [],
+      "n": 5,
+      "probe": {
+        "error": "",
+        "frames": [],
+        "modules": [],
+        "ok": true,
+        "site": null,
+        "trace": ""
+      },
+      "progress": false,
+      "targeted": {
+        "counts": {
+          "failed": 4,
+          "passed": 109
+        },
+        "method": "coverage (no covering tests; running full suite)",
+        "ran_full": true
+      }
+    }
+  ],
+  "seeded": {
+    "baseline": {
+      "failed": [],
+      "ran": true,
+      "reused_from": "verify"
+    },
+    "red": {
+      "failed": [
+        "tests/test_login.py::AnonymousUserTestCase::test_values",
+        "tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding",
+        "tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding_with_key",
+        "tests/test_login.py::CustomTestClientTestCase::test_fresh_login_arg_to_test_client",
+        "tests/test_login.py::CustomTestClientTestCase::test_no_args_to_test_client",
+        "tests/test_login.py::CustomTestClientTestCase::test_session_protection_modes",
+        "tests/test_login.py::CustomTestClientTestCase::test_user_arg_to_test_client",
+        "tests/test_login.py::InitializationTestCase::test_class_init",
+        "tests/test_login.py::InitializationTestCase::test_init_app",
+        "tests/test_login.py::InitializationTestCase::test_no_user_loader_raises",
+        "tests/test_login.py::LoginTestCase::test_authentication_is_fresh",
+        "tests/test_login.py::LoginTestCase::test_confirm_login",
+        "tests/test_login.py::LoginTestCase::test_decorators_are_disabled",
+        "tests/test_login.py::LoginTestCase::test_defaults_anonymous",
+        "tests/test_login.py::LoginTestCase::test_fresh_login_required_decorator",
+        "tests/test_login.py::LoginTestCase::test_incorrect_id_logs_out",
+        "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie",
+        "tests/test_login.py::LoginTestCase::test_login_inactive_user",
+        "tests/test_login.py::LoginTestCase::test_login_inactive_user_forced",
+        "tests/test_login.py::LoginTestCase::test_login_invalid_user_with_request",
+        "tests/test_login.py::LoginTestCase::test_login_persists",
+        "tests/test_login.py::LoginTestCase::test_login_persists_with_many_x_forwarded_for",
+        "tests/test_login.py::LoginTestCase::test_login_persists_with_signle_x_forwarded_for",
+        "tests/test_login.py::LoginTestCase::test_login_required_decorator",
+        "tests/test_login.py::LoginTestCase::test_login_required_decorator_with_async",
+        "tests/test_login.py::LoginTestCase::test_login_user",
+        "tests/test_login.py::LoginTestCase::test_login_user_emits_signal",
+        "tests/test_login.py::LoginTestCase::test_login_user_not_fresh",
+        "tests/test_login.py::LoginTestCase::test_login_user_with_request",
+        "tests/test_login.py::LoginTestCase::test_logout_emits_signal",
+        "tests/test_login.py::LoginTestCase::test_logout_logs_out_current_user",
+        "tests/test_login.py::LoginTestCase::test_logout_persists",
+        "tests/test_login.py::LoginTestCase::test_logout_stays_logged_out_with_remember_me",
+        "tests/test_login.py::LoginTestCase::test_logout_stays_logged_out_with_remember_me_custom_duration",
+        "tests/test_login.py::LoginTestCase::test_logout_without_current_user",
+        "tests/test_login.py::LoginTestCase::test_needs_refresh_aborts_401",
+        "tests/test_login.py::LoginTestCase::test_needs_refresh_fires_flash_when_redirect_to_refresh_view",
+        "tests/test_login.py::LoginTestCase::test_needs_refresh_fires_needs_refresh_signal",
+        "tests/test_login.py::LoginTestCase::test_needs_refresh_flash_message_localized",
+        "tests/test_login.py::LoginTestCase::test_needs_refresh_uses_handler",
+        "tests/test_login.py::LoginTestCase::test_permanent_strong_session_protection_fires_signal",
+        "tests/test_login.py::LoginTestCase::test_permanent_strong_session_protection_marks_session_unfresh",
+        "tests/test_login.py::LoginTestCase::test_redirects_to_refresh_view",
+        "tests/test_login.py::LoginTestCase::test_refresh_with_next_in_session",
+        "tests/test_login.py::LoginTestCase::test_remember_me",
+        "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
+        "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration",
+        "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration_uses_custom_cookie",
+        "tests/test_login.py::LoginTestCase::test_remember_me_is_unfresh",
+        "tests/test_login.py::LoginTestCase::test_remember_me_refresh_every_request",
+        "tests/test_login.py::LoginTestCase::test_remember_me_uses_custom_cookie_parameters",
+        "tests/test_login.py::LoginTestCase::test_remember_me_with_invalid_custom_duration_returns_500_resp",
+        "tests/test_login.py::LoginTestCase::test_remember_me_with_invalid_duration_returns_500_response",
+        "tests/test_login.py::LoginTestCase::test_requests_without_accessing_session",
+        "tests/test_login.py::LoginTestCase::test_session_not_modified",
+        "tests/test_login.py::LoginTestCase::test_session_protection_basic_fires_signal",
+        "tests/test_login.py::LoginTestCase::test_session_protection_basic_marks_session_unfresh",
+        "tests/test_login.py::LoginTestCase::test_session_protection_basic_passes_successive_requests",
+        "tests/test_login.py::LoginTestCase::test_session_protection_basic_skips_when_remember_me",
+        "tests/test_login.py::LoginTestCase::test_session_protection_skip_when_basic_and_anonymous",
+        "tests/test_login.py::LoginTestCase::test_session_protection_skip_when_off_and_anonymous",
+        "tests/test_login.py::LoginTestCase::test_session_protection_strong_deletes_session",
+        "tests/test_login.py::LoginTestCase::test_session_protection_strong_fires_signal_user_agent",
+        "tests/test_login.py::LoginTestCase::test_session_protection_strong_fires_signal_x_forwarded_for",
+        "tests/test_login.py::LoginTestCase::test_session_protection_strong_passes_successive_requests",
+        "tests/test_login.py::LoginTestCase::test_session_protection_strong_skips_when_remember_me",
+        "tests/test_login.py::LoginTestCase::test_set_cookie_with_invalid_custom_duration_raises_exception",
+        "tests/test_login.py::LoginTestCase::test_set_cookie_with_invalid_duration_raises_exception",
+        "tests/test_login.py::LoginTestCase::test_set_login_view_without_blueprints",
+        "tests/test_login.py::LoginTestCase::test_test_request_context_users_are_anonymous",
+        "tests/test_login.py::LoginTestCase::test_unauthorized_aborts_with_401",
+        "tests/test_login.py::LoginTestCase::test_unauthorized_fires_unauthorized_signal",
+        "tests/test_login.py::LoginTestCase::test_unauthorized_flash_message_localized",
+        "tests/test_login.py::LoginTestCase::test_unauthorized_flashes_message_with_login_view",
+        "tests/test_login.py::LoginTestCase::test_unauthorized_redirects_to_login_view",
+        "tests/test_login.py::LoginTestCase::test_unauthorized_uses_authorized_handler",
+        "tests/test_login.py::LoginTestCase::test_unauthorized_uses_blueprint_login_view",
+        "tests/test_login.py::LoginTestCase::test_unauthorized_with_next_in_session",
+        "tests/test_login.py::LoginTestCase::test_unauthorized_with_next_in_strong_session",
+        "tests/test_login.py::LoginTestCase::test_user_context_processor",
+        "tests/test_login.py::LoginTestCase::test_user_loaded_from_cookie_fired",
+        "tests/test_login.py::LoginTestCase::test_user_loaded_from_request_fired",
+        "tests/test_login.py::LoginTestCase::test_user_login_confirmed_signal_fired",
+        "tests/test_login.py::LoginViaRequestTestCase::test_defaults_anonymous",
+        "tests/test_login.py::LoginViaRequestTestCase::test_has_no_user_loader_callback",
+        "tests/test_login.py::LoginViaRequestTestCase::test_login_invalid_user_with_request",
+        "tests/test_login.py::LoginViaRequestTestCase::test_login_invalid_user_with_request_when_already_logged_in",
+        "tests/test_login.py::LoginViaRequestTestCase::test_login_user_with_request_does_not_modify_session",
+        "tests/test_login.py::LoginViaRequestTestCase::test_login_via_request",
+        "tests/test_login.py::LoginViaRequestTestCase::test_login_via_request_uses_cookie_when_already_logged_in",
+        "tests/test_login.py::LoginViaRequestTestCase::test_request_context_users_are_anonymous",
+        "tests/test_login.py::MethodViewLoginTestCase::test_options_call_exempt",
+        "tests/test_login.py::SecretKeyTestCase::test_bytes",
+        "tests/test_login.py::SecretKeyTestCase::test_default",
+        "tests/test_login.py::SecretKeyTestCase::test_native",
+        "tests/test_login.py::StaticTestCase::test_static_loads_anonymous",
+        "tests/test_login.py::StaticTestCase::test_static_loads_without_accessing_session",
+        "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_ignores_host_from_x_forwarded_for_header",
+        "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_config_when_available",
+        "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_next_url",
+        "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_x_forwarded_for_header",
+        "tests/test_login.py::TestLoginUrlGeneration::test_login_url_generation",
+        "tests/test_login.py::TestLoginUrlGeneration::test_login_url_generation_with_view",
+        "tests/test_login.py::TestLoginUrlGeneration::test_login_url_no_next_url",
+        "tests/test_login.py::TestLoginUrlGeneration::test_make_next_param",
+        "tests/test_login.py::UnicodeCookieUserIDTestCase::test_remember_me_user_id",
+        "tests/test_login.py::UnicodeCookieUserIDTestCase::test_remember_me_username",
+        "tests/test_login.py::UserMixinTestCase::test_default_values",
+        "tests/test_login.py::UserMixinTestCase::test_equality",
+        "tests/test_login.py::UserMixinTestCase::test_get_id_from_id_attribute",
+        "tests/test_login.py::UserMixinTestCase::test_get_id_not_implemented"
+      ],
+      "reused_from": "verify"
+    }
+  },
+  "status": "partial",
+  "stop_reason": "no-progress-twice",
+  "total_cmd_ms": 11410,
+  "touched": [
+    "src/flask_login/test_client.py",
+    "src/flask_login/utils.py",
+    "tests/test_login.py"
+  ],
+  "upstream": {
+    "ran": false,
+    "reason": "no ground-truth PR files"
+  }
+}

@@ -1,0 +1,4009 @@
+{
+  "findings": [
+    {
+      "claim": "import nibabel fails in after env because nibabel.casting.ok_floats() uses np.sctypes which was removed in NumPy 2.0",
+      "confidence": "confirmed",
+      "evidence": [
+        "call_12",
+        "call_13",
+        "call_3",
+        "call_2"
+      ],
+      "id": "F-sctypes",
+      "kind": "breaks_import",
+      "sites": [
+        "nibabel/casting.py:717",
+        "nibabel/casting.py:753",
+        "nibabel/tests/test_arraywriters.py:27"
+      ],
+      "symbol": "numpy.sctypes",
+      "tests": [],
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "claim": "after shimming sctypes, import nibabel still fails at nibabel/quaternions.py:32 because np.maximum_sctype was removed",
+      "confidence": "confirmed",
+      "evidence": [
+        "call_14",
+        "call_4",
+        "call_18"
+      ],
+      "id": "F-maximum_sctype",
+      "kind": "breaks_import",
+      "sites": [
+        "nibabel/quaternions.py:32",
+        "nibabel/tests/test_scaling.py:191"
+      ],
+      "symbol": "numpy.maximum_sctype",
+      "tests": [],
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "claim": "ndarray.newbyteorder calls used in ecat, trk, arraywriters and tests fail in after env; direct ndarray.newbyteorder probe raises removed-API AttributeError",
+      "confidence": "confirmed",
+      "evidence": [
+        "call_7",
+        "call_19"
+      ],
+      "id": "F-newbyteorder",
+      "kind": "breaks_call",
+      "sites": [
+        "nibabel/ecat.py:926",
+        "nibabel/streamlines/trk.py:580",
+        "nibabel/tests/test_arraywriters.py:64"
+      ],
+      "symbol": "numpy.ndarray.newbyteorder",
+      "tests": [],
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "claim": "np.longcomplex references in nibabel/casting.py:255, nibabel/nifti1.py:92 and tests will fail where executed; nifti1 import-time use is conditional so top-level import can succeed when have_binary128 is False",
+      "confidence": "likely",
+      "evidence": [
+        "call_5",
+        "call_18",
+        "call_16"
+      ],
+      "id": "F-longcomplex",
+      "kind": "breaks_call",
+      "sites": [
+        "nibabel/casting.py:255",
+        "nibabel/nifti1.py:92",
+        "nibabel/tests/test_nifti1.py:82"
+      ],
+      "symbol": "numpy.longcomplex",
+      "tests": [],
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "claim": "np.row_stack still works in after env (DeprecationWarning only), so brikhead and ecat uses do not break import or call",
+      "confidence": "confirmed",
+      "evidence": [
+        "call_8",
+        "call_20"
+      ],
+      "id": "F-row_stack",
+      "kind": "not_affected",
+      "sites": [
+        "nibabel/brikhead.py:393",
+        "nibabel/ecat.py:392"
+      ],
+      "symbol": "numpy.row_stack",
+      "tests": [],
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "claim": "numpy.compat.py3k.asbytes import still works in after env (deprecation warning only), so streamlines test import does not break",
+      "confidence": "confirmed",
+      "evidence": [
+        "call_6",
+        "call_21"
+      ],
+      "id": "F-compat",
+      "kind": "not_affected",
+      "sites": [
+        "nibabel/streamlines/tests/test_streamlines.py:10"
+      ],
+      "symbol": "numpy.compat",
+      "tests": [],
+      "verified": true,
+      "verify_reason": ""
+    }
+  ],
+  "status": "complete",
+  "summary": "numpy 2.0 upgrade blocks `import nibabel`: first at np.sctypes in nibabel/casting.py:717 (confirmed after-fail/before-ok), second at np.maximum_sctype in nibabel/quaternions.py:32 (confirmed by peeled snippet). Shimming both allows import. Deeper: ndarray.newbyteorder is removed and will break call paths (confirmed probe); np.longcomplex is removed and will break call paths where executed (likely, conditional import masks it); np.row_stack and numpy.compat still work with deprecation warnings (confirmed not breaking). NEP50 float32/promote_types changes remain unconfirmed behavior risk.",
+  "trace": [
+    {
+      "args": {},
+      "id": "call_1",
+      "model_id": "call_39a3de57-6f39-46c0-90e6-0477c6732109",
+      "name": "list_changes",
+      "result": {
+        "count": 69,
+        "items": [
+          {
+            "kind": "removed",
+            "quote": "DataSource It’s still available as np.lib.npyio.DataSource .",
+            "release": "",
+            "symbol": "numpy.DataSource"
+          },
+          {
+            "kind": "removed",
+            "quote": "Inf Use np.inf instead.",
+            "release": "",
+            "symbol": "numpy.Inf"
+          },
+          {
+            "kind": "removed",
+            "quote": "Infinity Use np.inf instead.",
+            "release": "",
+            "symbol": "numpy.Infinity"
+          },
+          {
+            "kind": "removed",
+            "quote": "NINF Use -np.inf instead.",
+            "release": "",
+            "symbol": "numpy.NINF"
+          },
+          {
+            "kind": "removed",
+            "quote": "NZERO Use -0.0 instead.",
+            "release": "",
+            "symbol": "numpy.NZERO"
+          },
+          {
+            "kind": "removed",
+            "quote": "NaN Use np.nan instead.",
+            "release": "",
+            "symbol": "numpy.NaN"
+          },
+          {
+            "kind": "removed",
+            "quote": "PINF Use np.inf instead.",
+            "release": "",
+            "symbol": "numpy.PINF"
+          },
+          {
+            "kind": "removed",
+            "quote": "PZERO Use 0.0 instead.",
+            "release": "",
+            "symbol": "numpy.PZERO"
+          },
+          {
+            "kind": "removed",
+            "quote": "add_docstring It’s still available as np.lib.add_docstring .",
+            "release": "",
+            "symbol": "numpy.add_docstring"
+          },
+          {
+            "kind": "removed",
+            "quote": "add_newdoc It’s still available as np.lib.add_newdoc .",
+            "release": "",
+            "symbol": "numpy.add_newdoc"
+          },
+          {
+            "kind": "removed",
+            "quote": "add_newdoc_ufunc It’s an internal function and doesn’t have a replacement.",
+            "release": "",
+            "symbol": "numpy.add_newdoc_ufunc"
+          },
+          {
+            "kind": "removed",
+            "quote": "alltrue Use np.all instead.",
+            "release": "",
+            "symbol": "numpy.alltrue"
+          },
+          {
+            "kind": "removed",
+            "quote": "asfarray Use np.asarray with a float dtype instead.",
+            "release": "",
+            "symbol": "numpy.asfarray"
+          },
+          {
+            "kind": "removed",
+            "quote": "byte_bounds Now it’s available under np.lib.array_utils.byte_bounds",
+            "release": "",
+            "symbol": "numpy.byte_bounds"
+          },
+          {
+            "kind": "removed",
+            "quote": "cast Use np.asarray(arr, dtype=dtype) instead.",
+            "release": "",
+            "symbol": "numpy.cast"
+          },
+          {
+            "kind": "removed",
+            "quote": "cfloat Use np.complex128 instead.",
+            "release": "",
+            "symbol": "numpy.cfloat"
+          },
+          {
+            "kind": "removed",
+            "quote": "charrarray It’s still available as np.char.chararray .",
+            "release": "",
+            "symbol": "numpy.charrarray"
+          },
+          {
+            "kind": "removed",
+            "quote": "clongfloat Use np.clongdouble instead.",
+            "release": "",
+            "symbol": "numpy.clongfloat"
+          },
+          {
+            "kind": "removed",
+            "quote": "compare_chararrays It’s still available as np.char.compare_chararrays .",
+            "release": "",
+            "symbol": "numpy.compare_chararrays"
+          },
+          {
+            "kind": "removed",
+            "quote": "compat There’s no replacement, as Python 2 is no longer supported.",
+            "release": "",
+            "symbol": "numpy.compat"
+          },
+          {
+            "kind": "removed",
+            "quote": "complex_ Use np.complex128 instead.",
+            "release": "",
+            "symbol": "numpy.complex_"
+          },
+          {
+            "kind": "renamed",
+            "quote": "The np.core namespace is now officially private and has been renamed to np._core .",
+            "release": "",
+            "symbol": "numpy.core"
+          },
+          {
+            "kind": "removed",
+            "quote": "cumproduct Use np.cumprod instead.",
+            "release": "",
+            "symbol": "numpy.cumproduct"
+          },
+          {
+            "kind": "removed",
+            "quote": "deprecate Emit DeprecationWarning with warnings.warn directly, or use typing.deprecated .",
+            "release": "",
+            "symbol": "numpy.deprecate"
+          },
+          {
+            "kind": "removed",
+            "quote": "deprecate_with_doc Emit DeprecationWarning with warnings.warn directly, or use typing.deprecated .",
+            "release": "",
+            "symbol": "numpy.deprecate_with_doc"
+          },
+          {
+            "kind": "removed",
+            "quote": "disp Use your own printing function instead.",
+            "release": "",
+            "symbol": "numpy.disp"
+          },
+          {
+            "kind": "removed",
+            "quote": "fastCopyAndTranspose Use arr.T.copy() instead.",
+            "release": "",
+            "symbol": "numpy.fastCopyAndTranspose"
+          },
+          {
+            "kind": "removed",
+            "quote": "find_common_type Use numpy.promote_types or numpy.result_type instead.",
+            "release": "",
+            "symbol": "numpy.find_common_type"
+          },
+          {
+            "kind": "changed",
+            "quote": "np.float32(3) + 3. now returns a float32 when it previously returned a float64.",
+            "release": "",
+            "symbol": "numpy.float32"
+          },
+          {
+            "kind": "removed",
+            "quote": "float_ Use np.float64 instead.",
+            "release": "",
+            "symbol": "numpy.float_"
+          },
+          {
+            "kind": "removed",
+            "quote": "format_parser It’s still available as np.rec.format_parser .",
+            "release": "",
+            "symbol": "numpy.format_parser"
+          },
+          {
+            "kind": "removed",
+            "quote": "get_array_wrap",
+            "release": "",
+            "symbol": "numpy.get_array_wrap"
+          },
+          {
+            "kind": "removed",
+            "quote": "geterrobj Use the np.errstate context manager instead.",
+            "release": "",
+            "symbol": "numpy.geterrobj"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "in1d Use np.isin instead.",
+            "release": "",
+            "symbol": "numpy.in1d"
+          },
+          {
+            "kind": "removed",
+            "quote": "infty Use np.inf instead.",
+            "release": "",
+            "symbol": "numpy.infty"
+          },
+          {
+            "kind": "changed",
+            "quote": "The default integer used by NumPy is now 64bit on all 64bit systems (and 32bit on 32bit system).",
+            "release": "",
+            "symbol": "numpy.intp"
+          },
+          {
+            "kind": "removed",
+            "quote": "issctype Use issubclass(rep, np.generic) instead.",
+            "release": "",
+            "symbol": "numpy.issctype"
+          },
+          {
+            "kind": "removed",
+            "quote": "issubclass_ Use issubclass builtin instead.",
+            "release": "",
+            "symbol": "numpy.issubclass_"
+          },
+          {
+            "kind": "removed",
+            "quote": "issubsctype Use np.issubdtype instead.",
+            "release": "",
+            "symbol": "numpy.issubsctype"
+          },
+          {
+            "kind": "removed",
+            "quote": "longcomplex Use np.clongdouble instead.",
+            "release": "",
+            "symbol": "numpy.longcomplex"
+          },
+          {
+            "kind": "removed",
+            "quote": "longfloat Use np.longdouble instead.",
+            "release": "",
+            "symbol": "numpy.longfloat"
+          },
+          {
+            "kind": "removed",
+            "quote": "lookfor Search NumPy’s documentation directly.",
+            "release": "",
+            "symbol": "numpy.lookfor"
+          },
+          {
+            "kind": "removed",
+            "quote": "mat Use np.asmatrix instead.",
+            "release": "",
+            "symbol": "numpy.mat"
+          },
+          {
+            "kind": "removed",
+            "quote": "maximum_sctype Use a specific dtype instead.",
+            "release": "",
+            "symbol": "numpy.maximum_sctype"
+          },
+          {
+            "kind": "removed",
+            "quote": "nbytes Use np.dtype(<dtype>).itemsize instead.",
+            "release": "",
+            "symbol": "numpy.nbytes"
+          },
+          {
+            "kind": "removed",
+            "quote": "newbyteorder Use arr.view(arr.dtype.newbyteorder(order)) instead.",
+            "release": "",
+            "symbol": "numpy.ndarray.newbyteorder"
+          },
+          {
+            "kind": "removed",
+            "quote": "ptp Use np.ptp(arr, ...) instead.",
+            "release": "",
+            "symbol": "numpy.ndarray.ptp"
+          },
+          {
+            "kind": "removed",
+            "quote": "setitem Use arr[index] = value instead.",
+            "release": "",
+            "symbol": "numpy.ndarray.setitem"
+          },
+          {
+            "kind": "removed",
+            "quote": "obj2sctype Use np.dtype(obj).type instead.",
+            "release": "",
+            "symbol": "numpy.obj2sctype"
+          },
+          {
+            "kind": "removed",
+            "quote": "product Use np.prod instead.",
+            "release": "",
+            "symbol": "numpy.product"
+          },
+          {
+            "kind": "changed",
+            "quote": "NumPy 2.0 changes promotion (the result of combining dissimilar data types) as per NEP 50 .",
+            "release": "",
+            "symbol": "numpy.promote_types"
+          },
+          {
+            "kind": "removed",
+            "quote": "recfromcsv Use np.genfromtxt with comma delimiter instead.",
+            "release": "",
+            "symbol": "numpy.recfromcsv"
+          },
+          {
+            "kind": "removed",
+            "quote": "recfromtxt Use np.genfromtxt instead.",
+            "release": "",
+            "symbol": "numpy.recfromtxt"
+          },
+          {
+            "kind": "removed",
+            "quote": "round_ Use np.round instead.",
+            "release": "",
+            "symbol": "numpy.round_"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "row_stack Use np.vstack instead ( row_stack was an alias for vstack ).",
+            "release": "",
+            "symbol": "numpy.row_stack"
+          },
+          {
+            "kind": "removed",
+            "quote": "safe_eval Use ast.literal_eval instead.",
+            "release": "",
+            "symbol": "numpy.safe_eval"
+          },
+          {
+            "kind": "removed",
+            "quote": "sctype2char Use np.dtype(obj).char instead.",
+            "release": "",
+            "symbol": "numpy.sctype2char"
+          },
+          {
+            "kind": "removed",
+            "quote": "sctypes Access dtypes explicitly instead.",
+            "release": "",
+            "symbol": "numpy.sctypes"
+          },
+          {
+            "kind": "removed",
+            "quote": "set_numeric_ops For the general case, use PyUFunc_ReplaceLoopBySignature .",
+            "release": "",
+            "symbol": "numpy.set_numeric_ops"
+          },
+          {
+            "kind": "removed",
+            "quote": "set_string_function Use np.set_printoptions instead with a formatter for custom printing of NumPy objects.",
+            "release": "",
+            "symbol": "numpy.set_string_function"
+          },
+          {
+            "kind": "removed",
+            "quote": "seterrobj Use the np.errstate context manager instead.",
+            "release": "",
+            "symbol": "numpy.seterrobj"
+          },
+          {
+            "kind": "removed",
+            "quote": "singlecomplex Use np.complex64 instead.",
+            "release": "",
+            "symbol": "numpy.singlecomplex"
+          },
+          {
+            "kind": "removed",
+            "quote": "sometrue Use np.any instead.",
+            "release": "",
+            "symbol": "numpy.sometrue"
+          },
+          {
+            "kind": "removed",
+            "quote": "source Use inspect.getsource instead.",
+            "release": "",
+            "symbol": "numpy.source"
+          },
+          {
+            "kind": "removed",
+            "quote": "string_ Use np.bytes_ instead.",
+            "release": "",
+            "symbol": "numpy.string_"
+          },
+          {
+            "kind": "removed",
+            "quote": "tracemalloc_domain It’s now available from np.lib .",
+            "release": "",
+            "symbol": "numpy.tracemalloc_domain"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "trapz Use np.trapezoid or a scipy.integrate function instead.",
+            "release": "",
+            "symbol": "numpy.trapz"
+          },
+          {
+            "kind": "removed",
+            "quote": "unicode_ Use np.str_ instead.",
+            "release": "",
+            "symbol": "numpy.unicode_"
+          },
+          {
+            "kind": "removed",
+            "quote": "who Use an IDE variable explorer or locals() instead.",
+            "release": "",
+            "symbol": "numpy.who"
+          }
+        ],
+        "ok": true,
+        "summary": "69 change items",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbols": [
+          "numpy.DataSource",
+          "numpy.Inf",
+          "numpy.Infinity",
+          "numpy.NINF",
+          "numpy.NZERO",
+          "numpy.NaN",
+          "numpy.PINF",
+          "numpy.PZERO",
+          "numpy.add_docstring",
+          "numpy.add_newdoc",
+          "numpy.add_newdoc_ufunc",
+          "numpy.alltrue",
+          "numpy.asfarray",
+          "numpy.byte_bounds",
+          "numpy.cast",
+          "numpy.cfloat",
+          "numpy.charrarray",
+          "numpy.clongfloat",
+          "numpy.compare_chararrays",
+          "numpy.compat",
+          "numpy.complex_",
+          "numpy.core",
+          "numpy.cumproduct",
+          "numpy.deprecate",
+          "numpy.deprecate_with_doc",
+          "numpy.disp",
+          "numpy.fastCopyAndTranspose",
+          "numpy.find_common_type",
+          "numpy.float32",
+          "numpy.float_",
+          "numpy.format_parser",
+          "numpy.get_array_wrap",
+          "numpy.geterrobj",
+          "numpy.in1d",
+          "numpy.infty",
+          "numpy.intp",
+          "numpy.issctype",
+          "numpy.issubclass_",
+          "numpy.issubsctype",
+          "numpy.longcomplex",
+          "numpy.longfloat",
+          "numpy.lookfor",
+          "numpy.mat",
+          "numpy.maximum_sctype",
+          "numpy.nbytes",
+          "numpy.ndarray.newbyteorder",
+          "numpy.ndarray.ptp",
+          "numpy.ndarray.setitem",
+          "numpy.obj2sctype",
+          "numpy.product",
+          "numpy.promote_types",
+          "numpy.recfromcsv",
+          "numpy.recfromtxt",
+          "numpy.round_",
+          "numpy.row_stack",
+          "numpy.safe_eval",
+          "numpy.sctype2char",
+          "numpy.sctypes",
+          "numpy.set_numeric_ops",
+          "numpy.set_string_function",
+          "numpy.seterrobj",
+          "numpy.singlecomplex",
+          "numpy.sometrue",
+          "numpy.source",
+          "numpy.string_",
+          "numpy.tracemalloc_domain",
+          "numpy.trapz",
+          "numpy.unicode_",
+          "numpy.who"
+        ]
+      },
+      "id": "call_2",
+      "model_id": "call_0d355137-97ea-4336-a13a-f878d9769d35",
+      "name": "propagate",
+      "result": {
+        "at_risk": [],
+        "at_risk_count": 0,
+        "chain_hops": [
+          {
+            "file": "nibabel/__init__.py",
+            "from": "nibabel",
+            "line": 41,
+            "site": "nibabel/__init__.py:41",
+            "to": "nibabel.analyze"
+          },
+          {
+            "file": "nibabel/analyze.py",
+            "from": "nibabel.analyze",
+            "line": 88,
+            "site": "nibabel/analyze.py:88",
+            "to": "nibabel.arrayproxy"
+          },
+          {
+            "file": "nibabel/arrayproxy.py",
+            "from": "nibabel.arrayproxy",
+            "line": 39,
+            "site": "nibabel/arrayproxy.py:39",
+            "to": "nibabel.volumeutils"
+          },
+          {
+            "file": "nibabel/volumeutils.py",
+            "from": "nibabel.volumeutils",
+            "line": 23,
+            "site": "nibabel/volumeutils.py:23",
+            "to": "nibabel.casting"
+          },
+          {
+            "file": "nibabel/casting.py",
+            "from": "nibabel.casting",
+            "line": 723,
+            "site": "nibabel/casting.py:723",
+            "to": "nibabel.casting.ok_floats"
+          },
+          {
+            "file": "nibabel/casting.py",
+            "from": "nibabel.casting.ok_floats",
+            "line": 717,
+            "site": "nibabel/casting.py:717",
+            "to": "numpy.sctypes"
+          }
+        ],
+        "hard": [
+          "nibabel",
+          "nibabel._compression",
+          "nibabel.affines",
+          "nibabel.analyze",
+          "nibabel.arrayproxy",
+          "nibabel.arraywriters",
+          "nibabel.batteryrunners",
+          "nibabel.benchmarks",
+          "nibabel.benchmarks.bench_array_to_file",
+          "nibabel.benchmarks.bench_arrayproxy_slicing",
+          "nibabel.benchmarks.bench_fileslice",
+          "nibabel.benchmarks.bench_finite_range",
+          "nibabel.benchmarks.bench_load_save",
+          "nibabel.benchmarks.butils",
+          "nibabel.brikhead",
+          "nibabel.caret",
+          "nibabel.casting",
+          "nibabel.cifti2",
+          "nibabel.cifti2.cifti2",
+          "nibabel.cifti2.cifti2_axes",
+          "nibabel.cifti2.parse_cifti2",
+          "nibabel.cifti2.tests",
+          "nibabel.cifti2.tests.test_axes",
+          "nibabel.cifti2.tests.test_cifti2",
+          "nibabel.cifti2.tests.test_cifti2io_axes",
+          "nibabel.cifti2.tests.test_cifti2io_header",
+          "nibabel.cifti2.tests.test_name",
+          "nibabel.cifti2.tests.test_new_cifti2",
+          "nibabel.cmdline",
+          "nibabel.cmdline.conform",
+          "nibabel.cmdline.convert",
+          "nibabel.cmdline.dicomfs",
+          "nibabel.cmdline.diff",
+          "nibabel.cmdline.ls",
+          "nibabel.cmdline.nifti_dx",
+          "nibabel.cmdline.parrec2nii",
+          "nibabel.cmdline.roi",
+          "nibabel.cmdline.stats",
+          "nibabel.cmdline.tck2trk",
+          "nibabel.cmdline.tests",
+          "nibabel.cmdline.tests.test_conform",
+          "nibabel.cmdline.tests.test_convert",
+          "nibabel.cmdline.tests.test_parrec2nii",
+          "nibabel.cmdline.tests.test_roi",
+          "nibabel.cmdline.tests.test_stats",
+          "nibabel.cmdline.tests.test_utils",
+          "nibabel.cmdline.trk2tck",
+          "nibabel.cmdline.utils",
+          "nibabel.conftest",
+          "nibabel.data"
+        ],
+        "hard_count": 226,
+        "ok": true,
+        "summary": "226 HARD + 0 AT_RISK modules; 9/69 symbols used; worst chain length 5",
+        "symbols": {
+          "numpy.DataSource": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.Inf": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.Infinity": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.NINF": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.NZERO": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.NaN": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.PINF": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.PZERO": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.add_docstring": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.add_newdoc": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.add_newdoc_ufunc": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.alltrue": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.asfarray": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.byte_bounds": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.cast": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.cfloat": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.charrarray": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.clongfloat": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.compare_chararrays": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.compat": {
+            "import_time": 1,
+            "sites": 2
+          },
+          "numpy.complex_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.core": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.cumproduct": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.deprecate": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.deprecate_with_doc": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.disp": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.fastCopyAndTranspose": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.find_common_type": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.float32": {
+            "import_time": 11,
+            "sites": 101
+          },
+          "numpy.float_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.format_parser": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.get_array_wrap": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.geterrobj": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.in1d": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.infty": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.intp": {
+            "import_time": 0,
+            "sites": 1
+          },
+          "numpy.issctype": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.issubclass_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.issubsctype": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.longcomplex": {
+            "import_time": 1,
+            "sites": 3
+          },
+          "numpy.longfloat": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.lookfor": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.mat": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.maximum_sctype": {
+            "import_time": 1,
+            "sites": 2
+          },
+          "numpy.nbytes": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.ndarray.newbyteorder": {
+            "import_time": 0,
+            "sites": 6
+          },
+          "numpy.ndarray.ptp": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.ndarray.setitem": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.obj2sctype": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.product": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.promote_types": {
+            "import_time": 0,
+            "sites": 3
+          },
+          "numpy.recfromcsv": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.recfromtxt": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.round_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.row_stack": {
+            "import_time": 0,
+            "sites": 2
+          },
+          "numpy.safe_eval": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.sctype2char": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.sctypes": {
+            "import_time": 4,
+            "sites": 19
+          },
+          "numpy.set_numeric_ops": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.set_string_function": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.seterrobj": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.singlecomplex": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.sometrue": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.source": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.string_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.tracemalloc_domain": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.trapz": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.unicode_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.who": {
+            "import_time": 0,
+            "sites": 0
+          }
+        },
+        "truncated": true,
+        "worst_chain": [
+          "nibabel",
+          "nibabel.analyze",
+          "nibabel.arrayproxy",
+          "nibabel.volumeutils",
+          "nibabel.casting"
+        ]
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.sctypes"
+      },
+      "id": "call_3",
+      "model_id": "call_d9d866da-251e-447a-9134-bda5a65028a5",
+      "name": "find_usages",
+      "result": {
+        "count": 19,
+        "ok": true,
+        "sites": [
+          {
+            "code": "floats = np.sctypes['float'][:]",
+            "def": "nibabel.casting.ok_floats",
+            "file": "nibabel/casting.py",
+            "import_time": true,
+            "line": 717,
+            "site": "nibabel/casting.py:717"
+          },
+          {
+            "code": "for ityp in np.sctypes['uint']:",
+            "def": "nibabel.casting.able_int_type",
+            "file": "nibabel/casting.py",
+            "import_time": false,
+            "line": 753,
+            "site": "nibabel/casting.py:753"
+          },
+          {
+            "code": "FLOAT_TYPES = np.sctypes['float']",
+            "def": null,
+            "file": "nibabel/tests/test_arraywriters.py",
+            "import_time": true,
+            "line": 27,
+            "site": "nibabel/tests/test_arraywriters.py:27"
+          },
+          {
+            "code": "for ft in np.sctypes['float']:",
+            "def": "nibabel.tests.test_casting.test_shared_range",
+            "file": "nibabel/tests/test_casting.py",
+            "import_time": false,
+            "line": 27,
+            "site": "nibabel/tests/test_casting.py:27"
+          },
+          {
+            "code": "for ft in np.sctypes['float']:",
+            "def": "nibabel.tests.test_casting.test_casting",
+            "file": "nibabel/tests/test_casting.py",
+            "import_time": false,
+            "line": 93,
+            "site": "nibabel/tests/test_casting.py:93"
+          },
+          {
+            "code": "for itype in np.sctypes['int']:",
+            "def": "nibabel.tests.test_casting.test_int_abs",
+            "file": "nibabel/tests/test_casting.py",
+            "import_time": false,
+            "line": 143,
+            "site": "nibabel/tests/test_casting.py:143"
+          },
+          {
+            "code": "types = np.sctypes['int'] + np.sctypes['uint']",
+            "def": "nibabel.tests.test_casting.test_able_casting",
+            "file": "nibabel/tests/test_casting.py",
+            "import_time": false,
+            "line": 191,
+            "site": "nibabel/tests/test_casting.py:191"
+          },
+          {
+            "code": "for dtt in np.sctypes['int'] + np.sctypes['uint']:",
+            "def": "nibabel.tests.test_floating.test_type_info",
+            "file": "nibabel/tests/test_floating.py",
+            "import_time": false,
+            "line": 46,
+            "site": "nibabel/tests/test_floating.py:46"
+          },
+          {
+            "code": "for t in np.sctypes['int'] + np.sctypes['uint']:",
+            "def": "nibabel.tests.test_floating.test_as_int_np_fix",
+            "file": "nibabel/tests/test_floating.py",
+            "import_time": false,
+            "line": 215,
+            "site": "nibabel/tests/test_floating.py:215"
+          },
+          {
+            "code": "float_types = np.sctypes['float']",
+            "def": "nibabel.tests.test_image_api.DataInterfaceMixin._check_array_caching",
+            "file": "nibabel/tests/test_image_api.py",
+            "import_time": false,
+            "line": 407,
+            "site": "nibabel/tests/test_image_api.py:407"
+          },
+          {
+            "code": "for dtype in np.sctypes['float'] + np.sctypes['int'] + np.sctypes['uint']:",
+            "def": "nibabel.tests.test_proxy_api._TestProxyAPI.validate_array_interface_with_dtype",
+            "file": "nibabel/tests/test_proxy_api.py",
+            "import_time": false,
+            "line": 149,
+            "site": "nibabel/tests/test_proxy_api.py:149"
+          },
+          {
+            "code": "iuint_types = np.sctypes['int'] + np.sctypes['uint']",
+            "def": "nibabel.tests.test_round_trip.test_round_trip",
+            "file": "nibabel/tests/test_round_trip.py",
+            "import_time": false,
+            "line": 105,
+            "site": "nibabel/tests/test_round_trip.py:105"
+          },
+          {
+            "code": "for in_type in np.sctypes[category0]:",
+            "def": "nibabel.tests.test_scaling.test_scaling_in_abstract",
+            "file": "nibabel/tests/test_scaling.py",
+            "import_time": false,
+            "line": 180,
+            "site": "nibabel/tests/test_scaling.py:180"
+          },
+          {
+            "code": "if not in_type in np.sctypes['complex']:",
+            "def": "nibabel.tests.test_scaling.check_int_a2f",
+            "file": "nibabel/tests/test_scaling.py",
+            "import_time": false,
+            "line": 194,
+            "site": "nibabel/tests/test_scaling.py:194"
+          },
+          {
+            "code": "for dtt in np.sctypes['float']:",
+            "def": "nibabel.tests.test_testing.test_assert_allclose_safely",
+            "file": "nibabel/tests/test_testing.py",
+            "import_time": false,
+            "line": 51,
+            "site": "nibabel/tests/test_testing.py:51"
+          },
+          {
+            "code": "FLOAT_TYPES = np.sctypes['float']",
+            "def": null,
+            "file": "nibabel/tests/test_volumeutils.py",
+            "import_time": true,
+            "line": 63,
+            "site": "nibabel/tests/test_volumeutils.py:63"
+          },
+          {
+            "code": "NUMERICAL_TYPES = sum([np.sctypes[key] for key in ['int', 'uint', 'float', 'complex']], [])",
+            "def": "nibabel.tests.test_volumeutils.test_a2f_bad_scaling",
+            "file": "nibabel/tests/test_volumeutils.py",
+            "import_time": false,
+            "line": 600,
+            "site": "nibabel/tests/test_volumeutils.py:600"
+          },
+          {
+            "code": "for other in IUINT_TYPES + np.sctypes['complex']:",
+            "def": "nibabel.tests.test_volumeutils.test_better_float",
+            "file": "nibabel/tests/test_volumeutils.py",
+            "import_time": false,
+            "line": 833,
+            "site": "nibabel/tests/test_volumeutils.py:833"
+          },
+          {
+            "code": "INTEGER_TYPES = np.sctypes['int'] + np.sctypes['uint']",
+            "def": null,
+            "file": "nibabel/tests/test_wrapstruct.py",
+            "import_time": true,
+            "line": 39,
+            "site": "nibabel/tests/test_wrapstruct.py:39"
+          }
+        ],
+        "summary": "19 sites use numpy.sctypes (4 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.maximum_sctype"
+      },
+      "id": "call_4",
+      "model_id": "call_66afcf9f-aa21-495d-adb9-7367b4da0e1e",
+      "name": "find_usages",
+      "result": {
+        "count": 2,
+        "ok": true,
+        "sites": [
+          {
+            "code": "MAX_FLOAT = np.maximum_sctype(float)",
+            "def": null,
+            "file": "nibabel/quaternions.py",
+            "import_time": true,
+            "line": 32,
+            "site": "nibabel/quaternions.py:32"
+          },
+          {
+            "code": "big_floater = np.maximum_sctype(np.float64)",
+            "def": "nibabel.tests.test_scaling.check_int_a2f",
+            "file": "nibabel/tests/test_scaling.py",
+            "import_time": false,
+            "line": 191,
+            "site": "nibabel/tests/test_scaling.py:191"
+          }
+        ],
+        "summary": "2 sites use numpy.maximum_sctype (1 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.longcomplex"
+      },
+      "id": "call_5",
+      "model_id": "call_4e79c15d-8582-423d-8b4a-d4009743f93a",
+      "name": "find_usages",
+      "result": {
+        "count": 3,
+        "ok": true,
+        "sites": [
+          {
+            "code": "assert np_type is np.longcomplex",
+            "def": "nibabel.casting.type_info",
+            "file": "nibabel/casting.py",
+            "import_time": false,
+            "line": 255,
+            "site": "nibabel/casting.py:255"
+          },
+          {
+            "code": "_complex256t: type[np.generic] = np.longcomplex",
+            "def": null,
+            "file": "nibabel/nifti1.py",
+            "import_time": true,
+            "line": 92,
+            "site": "nibabel/nifti1.py:92"
+          },
+          {
+            "code": "supported_np_types = supported_np_types.union((np.longdouble, np.longcomplex))",
+            "def": "nibabel.tests.test_nifti1.TestNifti1PairHeader",
+            "file": "nibabel/tests/test_nifti1.py",
+            "import_time": false,
+            "line": 82,
+            "site": "nibabel/tests/test_nifti1.py:82"
+          }
+        ],
+        "summary": "3 sites use numpy.longcomplex (1 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.compat"
+      },
+      "id": "call_6",
+      "model_id": "call_a511ae37-0793-4d59-a0d9-940f022fcae6",
+      "name": "find_usages",
+      "result": {
+        "count": 2,
+        "ok": true,
+        "sites": [
+          {
+            "code": "from numpy.compat.py3k import asbytes",
+            "def": null,
+            "file": "nibabel/streamlines/tests/test_streamlines.py",
+            "import_time": true,
+            "line": 10,
+            "site": "nibabel/streamlines/tests/test_streamlines.py:10"
+          },
+          {
+            "code": "f.write(asbytes(tfile_cls.MAGIC_NUMBER))",
+            "def": "nibabel.streamlines.tests.test_streamlines.test_is_supported_detect_format",
+            "file": "nibabel/streamlines/tests/test_streamlines.py",
+            "import_time": false,
+            "line": 99,
+            "site": "nibabel/streamlines/tests/test_streamlines.py:99"
+          }
+        ],
+        "summary": "2 sites use numpy.compat (1 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.ndarray.newbyteorder"
+      },
+      "id": "call_7",
+      "model_id": "call_d8599e83-41c7-41c4-984c-fc222217801b",
+      "name": "find_usages",
+      "result": {
+        "count": 6,
+        "ok": true,
+        "sites": [
+          {
+            "code": "make_array_writer(data.newbyteorder(endianness), dtype).to_fileobj(stream)",
+            "def": "nibabel.ecat.EcatImage._write_data",
+            "file": "nibabel/ecat.py",
+            "import_time": false,
+            "line": 926,
+            "site": "nibabel/ecat.py:926"
+          },
+          {
+            "code": "coords_swapped = coords.byteswap().newbyteorder()",
+            "def": "nibabel.freesurfer.tests.test_io.test_geometry",
+            "file": "nibabel/freesurfer/tests/test_io.py",
+            "import_time": false,
+            "line": 108,
+            "site": "nibabel/freesurfer/tests/test_io.py:108"
+          },
+          {
+            "code": "assert hdr2.newbyteorder('>') == hdr",
+            "def": "nibabel.freesurfer.tests.test_mghformat.test_mghheader_default_structarr",
+            "file": "nibabel/freesurfer/tests/test_mghformat.py",
+            "import_time": false,
+            "line": 348,
+            "site": "nibabel/freesurfer/tests/test_mghformat.py:348"
+          },
+          {
+            "code": "assert expected.newbyteorder('>') == actual",
+            "def": "nibabel.freesurfer.tests.test_mghformat.TestMGHImage.check_dtypes",
+            "file": "nibabel/freesurfer/tests/test_mghformat.py",
+            "import_time": false,
+            "line": 365,
+            "site": "nibabel/freesurfer/tests/test_mghformat.py:365"
+          },
+          {
+            "code": "header_rec = header_rec.newbyteorder()",
+            "def": "nibabel.streamlines.trk.TrkFile._read_header",
+            "file": "nibabel/streamlines/trk.py",
+            "import_time": false,
+            "line": 580,
+            "site": "nibabel/streamlines/trk.py:580"
+          },
+          {
+            "code": "bs_arr = arr.byteswap().newbyteorder('S')",
+            "def": "nibabel.tests.test_arraywriters.test_arraywriters",
+            "file": "nibabel/tests/test_arraywriters.py",
+            "import_time": false,
+            "line": 64,
+            "site": "nibabel/tests/test_arraywriters.py:64"
+          }
+        ],
+        "summary": "6 sites use numpy.ndarray.newbyteorder (0 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.row_stack"
+      },
+      "id": "call_8",
+      "model_id": "call_e4853446-248b-4006-a38e-4d17f428e5e5",
+      "name": "find_usages",
+      "result": {
+        "count": 2,
+        "ok": true,
+        "sites": [
+          {
+            "code": "affine = np.row_stack((affine * [[-1], [-1], [1]], [0, 0, 0, 1]))",
+            "def": "nibabel.brikhead.AFNIHeader.get_affine",
+            "file": "nibabel/brikhead.py",
+            "import_time": false,
+            "line": 393,
+            "site": "nibabel/brikhead.py:393"
+          },
+          {
+            "code": "return np.row_stack(mlists)",
+            "def": "nibabel.ecat.read_mlist",
+            "file": "nibabel/ecat.py",
+            "import_time": false,
+            "line": 392,
+            "site": "nibabel/ecat.py:392"
+          }
+        ],
+        "summary": "2 sites use numpy.row_stack (0 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.promote_types"
+      },
+      "id": "call_9",
+      "model_id": "call_6d6647a8-a405-446e-bacb-d1d6d2f69160",
+      "name": "find_usages",
+      "result": {
+        "count": 3,
+        "ok": true,
+        "sites": [
+          {
+            "code": "scaled = scaled.astype(np.promote_types(scaled.dtype, dtype), copy=False)",
+            "def": "nibabel.arrayproxy.ArrayProxy._get_scaled",
+            "file": "nibabel/arrayproxy.py",
+            "import_time": false,
+            "line": 408,
+            "site": "nibabel/arrayproxy.py:408"
+          },
+          {
+            "code": "final_type = np.promote_types(raw_data.dtype, dtype)",
+            "def": "nibabel.brikhead.AFNIArrayProxy._get_scaled",
+            "file": "nibabel/brikhead.py",
+            "import_time": false,
+            "line": 252,
+            "site": "nibabel/brikhead.py:252"
+          },
+          {
+            "code": "final_type = np.promote_types(raw_data.dtype, dtype)",
+            "def": "nibabel.parrec.PARRECArrayProxy._get_scaled",
+            "file": "nibabel/parrec.py",
+            "import_time": false,
+            "line": 671,
+            "site": "nibabel/parrec.py:671"
+          }
+        ],
+        "summary": "3 sites use numpy.promote_types (0 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.float32"
+      },
+      "id": "call_10",
+      "model_id": "call_46374820-3071-4f67-93dd-ff50b7dce3fc",
+      "name": "find_usages",
+      "result": {
+        "count": 101,
+        "ok": true,
+        "sites": [
+          {
+            "code": "(16, 'float32', np.float32),",
+            "def": null,
+            "file": "nibabel/analyze.py",
+            "import_time": true,
+            "line": 165,
+            "site": "nibabel/analyze.py:165"
+          },
+          {
+            "code": "def __init__(self, array, out_dtype=None, calc_scale=True, scaler_dtype=np.float32, **kwargs):",
+            "def": "nibabel.arraywriters.SlopeArrayWriter",
+            "file": "nibabel/arraywriters.py",
+            "import_time": false,
+            "line": 238,
+            "site": "nibabel/arraywriters.py:238"
+          },
+          {
+            "code": "def __init__(self, array, out_dtype=None, calc_scale=True, scaler_dtype=np.float32, **kwargs):",
+            "def": "nibabel.arraywriters.SlopeInterArrayWriter",
+            "file": "nibabel/arraywriters.py",
+            "import_time": false,
+            "line": 467,
+            "site": "nibabel/arraywriters.py:467"
+          },
+          {
+            "code": "data = np.array(np.random.random(SHAPE), dtype=np.float32)",
+            "def": "nibabel.benchmarks.bench_arrayproxy_slicing.bench_arrayproxy_slicing",
+            "file": "nibabel/benchmarks/bench_arrayproxy_slicing.py",
+            "import_time": false,
+            "line": 106,
+            "site": "nibabel/benchmarks/bench_arrayproxy_slicing.py:106"
+          },
+          {
+            "code": "hdr.set_data_dtype(np.float32)",
+            "def": "nibabel.benchmarks.bench_load_save.bench_load_save",
+            "file": "nibabel/benchmarks/bench_load_save.py",
+            "import_time": false,
+            "line": 35,
+            "site": "nibabel/benchmarks/bench_load_save.py:35"
+          },
+          {
+            "code": "if np_type in (np.float16, np.float32, np.float64, np.complex64, np.complex128):",
+            "def": "nibabel.casting.type_info",
+            "file": "nibabel/casting.py",
+            "import_time": false,
+            "line": 251,
+            "site": "nibabel/casting.py:251"
+          },
+          {
+            "code": "(16, 'float32', np.float32, 'NIFTI_TYPE_FLOAT32'),",
+            "def": null,
+            "file": "nibabel/cifti2/cifti2.py",
+            "import_time": true,
+            "line": 51,
+            "site": "nibabel/cifti2/cifti2.py:51"
+          },
+          {
+            "code": "np.float32,",
+            "def": "nibabel.cifti2.tests.test_cifti2.TestCifti2ImageAPI",
+            "file": "nibabel/cifti2/tests/test_cifti2.py",
+            "import_time": false,
+            "line": 441,
+            "site": "nibabel/cifti2/tests/test_cifti2.py:441"
+          },
+          {
+            "code": "test_return = get_data_diff([test_array, test_array_2], dtype=np.float32)",
+            "def": "nibabel.cmdline.tests.test_utils.test_get_data_diff",
+            "file": "nibabel/cmdline/tests/test_utils.py",
+            "import_time": false,
+            "line": 202,
+            "site": "nibabel/cmdline/tests/test_utils.py:202"
+          },
+          {
+            "code": "('isotope_halflife', np.float32),",
+            "def": null,
+            "file": "nibabel/ecat.py",
+            "import_time": true,
+            "line": 67,
+            "site": "nibabel/ecat.py:67"
+          },
+          {
+            "code": "(3, 'float', '>f4', '4', 'MRI_FLOAT', np.float32, np.dtype('f4'), np.dtype('>f4')),",
+            "def": null,
+            "file": "nibabel/freesurfer/mghformat.py",
+            "import_time": true,
+            "line": 63,
+            "site": "nibabel/freesurfer/mghformat.py:63"
+          },
+          {
+            "code": "dtype=np.float32,",
+            "def": "nibabel.freesurfer.mghformat.MGHHeader.get_vox2ras_tkr",
+            "file": "nibabel/freesurfer/mghformat.py",
+            "import_time": false,
+            "line": 208,
+            "site": "nibabel/freesurfer/mghformat.py:208"
+          },
+          {
+            "code": "dtype=np.float32,",
+            "def": null,
+            "file": "nibabel/freesurfer/tests/test_mghformat.py",
+            "import_time": true,
+            "line": 42,
+            "site": "nibabel/freesurfer/tests/test_mghformat.py:42"
+          },
+          {
+            "code": "v = v.reshape((5, 4, 3, 2)).astype(np.float32)",
+            "def": "nibabel.freesurfer.tests.test_mghformat.test_write_mgh",
+            "file": "nibabel/freesurfer/tests/test_mghformat.py",
+            "import_time": false,
+            "line": 97,
+            "site": "nibabel/freesurfer/tests/test_mghformat.py:97"
+          },
+          {
+            "code": "data = rng.random(5, dtype=np.float32)",
+            "def": "nibabel.gifti.tests.test_gifti.test_gifti_image",
+            "file": "nibabel/gifti/tests/test_gifti.py",
+            "import_time": false,
+            "line": 86,
+            "site": "nibabel/gifti/tests/test_gifti.py:86"
+          },
+          {
+            "code": "arr = np.arange(12, dtype=np.float32).reshape((3, 4))",
+            "def": "nibabel.gifti.tests.test_gifti.test_dataarray_init",
+            "file": "nibabel/gifti/tests/test_gifti.py",
+            "import_time": false,
+            "line": 188,
+            "site": "nibabel/gifti/tests/test_gifti.py:188"
+          },
+          {
+            "code": "verts = np.zeros((4, 3), np.float32)",
+            "def": "nibabel.gifti.tests.test_gifti.test_data_array_round_trip",
+            "file": "nibabel/gifti/tests/test_gifti.py",
+            "import_time": false,
+            "line": 529,
+            "site": "nibabel/gifti/tests/test_gifti.py:529"
+          },
+          {
+            "code": "dtypes = (np.uint8, np.int32, np.int64, np.float32, np.float64)",
+            "def": "nibabel.gifti.tests.test_gifti.test_darray_dtype_coercion_failures",
+            "file": "nibabel/gifti/tests/test_gifti.py",
+            "import_time": false,
+            "line": 547,
+            "site": "nibabel/gifti/tests/test_gifti.py:547"
+          },
+          {
+            "code": "dtype=np.float32,",
+            "def": null,
+            "file": "nibabel/gifti/tests/test_parse_gifti_fast.py",
+            "import_time": true,
+            "line": 68,
+            "site": "nibabel/gifti/tests/test_parse_gifti_fast.py:68"
+          },
+          {
+            "code": "dtt = np.dtype(np.float32)",
+            "def": "nibabel.minc1.Minc1File.get_data_dtype",
+            "file": "nibabel/minc1.py",
+            "import_time": false,
+            "line": 77,
+            "site": "nibabel/minc1.py:77"
+          },
+          {
+            "code": "(16, 'float32', np.float32, 'NIFTI_TYPE_FLOAT32'),",
+            "def": null,
+            "file": "nibabel/nifti1.py",
+            "import_time": true,
+            "line": 103,
+            "site": "nibabel/nifti1.py:103"
+          },
+          {
+            "code": "quaternion_threshold = np.finfo(np.float32).eps * 3",
+            "def": "nibabel.nifti1.Nifti1Header",
+            "file": "nibabel/nifti1.py",
+            "import_time": false,
+            "line": 689,
+            "site": "nibabel/nifti1.py:689"
+          },
+          {
+            "code": "if dtype in (np.uint8, np.int16, np.int32, np.float32):",
+            "def": "nibabel.nifti1._get_analyze_compat_dtype",
+            "file": "nibabel/nifti1.py",
+            "import_time": false,
+            "line": 2437,
+            "site": "nibabel/nifti1.py:2437"
+          },
+          {
+            "code": "data_dtype: npt.DTypeLike = np.float32,",
+            "def": "nibabel.spatialimages.SpatialHeader",
+            "file": "nibabel/spatialimages.py",
+            "import_time": false,
+            "line": 202,
+            "site": "nibabel/spatialimages.py:202"
+          },
+          {
+            "code": "return affine_voxmm_to_rasmm.astype(np.float32)",
+            "def": "nibabel.streamlines.trk.get_affine_trackvis_to_rasmm",
+            "file": "nibabel/streamlines/trk.py",
+            "import_time": false,
+            "line": 115,
+            "site": "nibabel/streamlines/trk.py:115"
+          },
+          {
+            "code": "header[Field.VOXEL_TO_RASMM] = np.eye(4, dtype=np.float32)",
+            "def": "nibabel.streamlines.trk.TrkFile._read_header",
+            "file": "nibabel/streamlines/trk.py",
+            "import_time": false,
+            "line": 609,
+            "site": "nibabel/streamlines/trk.py:609"
+          },
+          {
+            "code": "moved_anat.set_data_dtype(np.float32)",
+            "def": null,
+            "file": "nibabel/tests/data/make_moved_anat.py",
+            "import_time": true,
+            "line": 20,
+            "site": "nibabel/tests/data/make_moved_anat.py:20"
+          },
+          {
+            "code": "supported_np_types = {np.uint8, np.int16, np.int32, np.float32, np.float64, np.complex64}",
+            "def": "nibabel.tests.test_analyze.TestAnalyzeHeader",
+            "file": "nibabel/tests/test_analyze.py",
+            "import_time": false,
+            "line": 64,
+            "site": "nibabel/tests/test_analyze.py:64"
+          },
+          {
+            "code": "(16, np.float32),",
+            "def": "nibabel.tests.test_analyze.TestAnalyzeHeader.test_data_dtype",
+            "file": "nibabel/tests/test_analyze.py",
+            "import_time": false,
+            "line": 257,
+            "site": "nibabel/tests/test_analyze.py:257"
+          },
+          {
+            "code": "hdr.set_data_dtype(np.float32)",
+            "def": "nibabel.tests.test_analyze.TestAnalyzeHeader.test_read_write_data",
+            "file": "nibabel/tests/test_analyze.py",
+            "import_time": false,
+            "line": 343,
+            "site": "nibabel/tests/test_analyze.py:343"
+          },
+          {
+            "code": "hdr.set_data_dtype(np.float32)",
+            "def": "nibabel.tests.test_analyze.TestAnalyzeHeader.test_scaling",
+            "file": "nibabel/tests/test_analyze.py",
+            "import_time": false,
+            "line": 582,
+            "site": "nibabel/tests/test_analyze.py:582"
+          },
+          {
+            "code": "dtype = np.float32",
+            "def": "nibabel.tests.test_arrayproxy.test_keep_file_open_true_false_invalid",
+            "file": "nibabel/tests/test_arrayproxy.py",
+            "import_time": false,
+            "line": 481,
+            "site": "nibabel/tests/test_arrayproxy.py:481"
+          },
+          {
+            "code": "proxy = ArrayProxy('dummyfile', ((10, 10, 10), np.float32))",
+            "def": "nibabel.tests.test_arrayproxy.test_pickle_lock",
+            "file": "nibabel/tests/test_arrayproxy.py",
+            "import_time": false,
+            "line": 564,
+            "site": "nibabel/tests/test_arrayproxy.py:564"
+          },
+          {
+            "code": "(np.float32, np.float32, 1, True, True, True),",
+            "def": "nibabel.tests.test_arraywriters.test_slope_inter_castable",
+            "file": "nibabel/tests/test_arraywriters.py",
+            "import_time": false,
+            "line": 290,
+            "site": "nibabel/tests/test_arraywriters.py:290"
+          },
+          {
+            "code": "aw = SAW(npa([-2, 0], dtype=np.float32), np.uint8)",
+            "def": "nibabel.tests.test_arraywriters.test_calculate_scale",
+            "file": "nibabel/tests/test_arraywriters.py",
+            "import_time": false,
+            "line": 350,
+            "site": "nibabel/tests/test_arraywriters.py:350"
+          },
+          {
+            "code": "aw = SAW(np.array(data, dtype=np.float32), np.int8)",
+            "def": "nibabel.tests.test_arraywriters.test_no_offset_scale",
+            "file": "nibabel/tests/test_arraywriters.py",
+            "import_time": false,
+            "line": 402,
+            "site": "nibabel/tests/test_arraywriters.py:402"
+          },
+          {
+            "code": "(np.int16, np.uint16, np.float32), (np.int8, np.uint8, np.int16, np.uint16)",
+            "def": "nibabel.tests.test_arraywriters.test_io_scaling",
+            "file": "nibabel/tests/test_arraywriters.py",
+            "import_time": false,
+            "line": 436,
+            "site": "nibabel/tests/test_arraywriters.py:436"
+          },
+          {
+            "code": "working_type = np.float32",
+            "def": "nibabel.tests.test_arraywriters.test_input_ranges",
+            "file": "nibabel/tests/test_arraywriters.py",
+            "import_time": false,
+            "line": 469,
+            "site": "nibabel/tests/test_arraywriters.py:469"
+          },
+          {
+            "code": "arr = np.array([np.nan, 99.0], dtype=np.float32)",
+            "def": "nibabel.tests.test_arraywriters.test_nan2zero",
+            "file": "nibabel/tests/test_arraywriters.py",
+            "import_time": false,
+            "line": 494,
+            "site": "nibabel/tests/test_arraywriters.py:494"
+          },
+          {
+            "code": "for in_dt in (np.float32, np.float64):",
+            "def": "nibabel.tests.test_arraywriters.test_float_int_spread",
+            "file": "nibabel/tests/test_arraywriters.py",
+            "import_time": false,
+            "line": 694,
+            "site": "nibabel/tests/test_arraywriters.py:694"
+          },
+          {
+            "code": "eps = np.finfo(np.float32).eps",
+            "def": "nibabel.tests.test_arraywriters.test_rt_bias",
+            "file": "nibabel/tests/test_arraywriters.py",
+            "import_time": false,
+            "line": 727,
+            "site": "nibabel/tests/test_arraywriters.py:727"
+          },
+          {
+            "code": "rng0 = shared_range(np.float32, np.int32)",
+            "def": "nibabel.tests.test_casting.test_shared_range_inputs",
+            "file": "nibabel/tests/test_casting.py",
+            "import_time": false,
+            "line": 87,
+            "site": "nibabel/tests/test_casting.py:87"
+          },
+          {
+            "code": "assert_array_equal(float_to_int(np.float32(0), np.int16), [0])",
+            "def": "nibabel.tests.test_casting.test_casting",
+            "file": "nibabel/tests/test_casting.py",
+            "import_time": false,
+            "line": 133,
+            "site": "nibabel/tests/test_casting.py:133"
+          },
+          {
+            "code": "assert ulp(np.float32(1.0)) == np.finfo(np.float32).eps",
+            "def": "nibabel.tests.test_casting.test_ulp",
+            "file": "nibabel/tests/test_casting.py",
+            "import_time": false,
+            "line": 251,
+            "site": "nibabel/tests/test_casting.py:251"
+          },
+          {
+            "code": "img = img_klass(arr, aff.astype(np.float32), hdr, sub_hdr, mlist)",
+            "def": "nibabel.tests.test_ecat.TestEcatImage.test_float_affine",
+            "file": "nibabel/tests/test_ecat.py",
+            "import_time": false,
+            "line": 251,
+            "site": "nibabel/tests/test_ecat.py:251"
+          },
+          {
+            "code": "example_dtypes = (np.int8, np.uint16, np.int32, np.float32)",
+            "def": "nibabel.tests.test_filebasedimages.TestFBImageAPI",
+            "file": "nibabel/tests/test_filebasedimages.py",
+            "import_time": false,
+            "line": 69,
+            "site": "nibabel/tests/test_filebasedimages.py:69"
+          },
+          {
+            "code": "arr = np.arange(np.prod(shape), dtype=np.float32).reshape(shape)",
+            "def": "nibabel.tests.test_filebasedimages.test_multifile_stream_failure",
+            "file": "nibabel/tests/test_filebasedimages.py",
+            "import_time": false,
+            "line": 138,
+            "site": "nibabel/tests/test_filebasedimages.py:138"
+          },
+          {
+            "code": "img = klass(arr.astype(np.float32), aff)",
+            "def": "nibabel.tests.test_files_interface.test_files_spatialimages",
+            "file": "nibabel/tests/test_files_interface.py",
+            "import_time": false,
+            "line": 42,
+            "site": "nibabel/tests/test_files_interface.py:42"
+          },
+          {
+            "code": "IEEE_floats = [np.float16, np.float32, np.float64]",
+            "def": null,
+            "file": "nibabel/tests/test_floating.py",
+            "import_time": true,
+            "line": 25,
+            "site": "nibabel/tests/test_floating.py:25"
+          },
+          {
+            "code": "img.set_data_dtype(np.float32)  # to avoid rounding in load / save",
+            "def": "nibabel.tests.test_image_api.GenericImageAPI.validate_filenames",
+            "file": "nibabel/tests/test_image_api.py",
+            "import_time": false,
+            "line": 149,
+            "site": "nibabel/tests/test_image_api.py:149"
+          }
+        ],
+        "summary": "101 sites use numpy.float32 (11 import-time)",
+        "truncated": true
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.intp"
+      },
+      "id": "call_11",
+      "model_id": "call_6ff02b8a-56bd-4ade-9939-523948b0ddce",
+      "name": "find_usages",
+      "result": {
+        "count": 1,
+        "ok": true,
+        "sites": [
+          {
+            "code": "self._offsets = np.array([], dtype=np.intp)",
+            "def": "nibabel.streamlines.array_sequence.ArraySequence.__init__",
+            "file": "nibabel/streamlines/array_sequence.py",
+            "import_time": false,
+            "line": 132,
+            "site": "nibabel/streamlines/array_sequence.py:132"
+          }
+        ],
+        "summary": "1 sites use numpy.intp (0 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "env": "after",
+        "module": "nibabel"
+      },
+      "id": "call_12",
+      "model_id": "call_e7695f02-ac86-4da3-bc65-6daf5c71a6af",
+      "name": "run_import_probe",
+      "result": {
+        "chain": [
+          "nibabel",
+          "nibabel.analyze",
+          "nibabel.arrayproxy",
+          "nibabel.volumeutils",
+          "nibabel.casting"
+        ],
+        "error": {
+          "file": "__init__.py",
+          "func": "__getattr__",
+          "line": 411,
+          "site": "__init__.py:411"
+        },
+        "error_line": "AttributeError: `np.sctypes` was removed in the NumPy 2.0 release. Access dtypes explicitly instead.. Did you mean: 'dtypes'?",
+        "ok": false,
+        "summary": "import nibabel in after fails: nibabel -> nibabel.analyze -> nibabel.arrayproxy -> nibabel.volumeutils -> nibabel.casting",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "env": "before",
+        "module": "nibabel"
+      },
+      "id": "call_13",
+      "model_id": "call_12fc4da8-2d7e-4c08-80c7-259f6d1eb68f",
+      "name": "run_import_probe",
+      "result": {
+        "chain": [],
+        "error": null,
+        "error_line": "",
+        "ok": true,
+        "summary": "import nibabel in before: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import numpy as np\nif not hasattr(np, \"sctypes\"):\n    np.sctypes = {\n        \"float\": [np.float16, np.float32, np.float64, np.longdouble],\n        \"int\": [np.int8, np.int16, np.int32, np.int64],\n        \"uint\": [np.uint8, np.uint16, np.uint32, np.uint64],\n        \"complex\": [np.complex64, np.complex128, np.clongdouble],\n        \"bool\": [np.bool_],\n        \"object\": [np.object_],\n    }\nimport nibabel\nprint(\"peeled import ok\")\n",
+        "env": "after"
+      },
+      "id": "call_14",
+      "model_id": "call_662197b3-ffdc-4ae1-9d45-e3661aec39e8",
+      "name": "run_snippet",
+      "result": {
+        "chain": [
+          "nibabel",
+          "nibabel.imagestats",
+          "nibabel.imageclasses",
+          "nibabel.cifti2",
+          "nibabel.cifti2.cifti2",
+          "nibabel.nifti1",
+          "nibabel.quaternions"
+        ],
+        "ok": false,
+        "stderr": "  File \"<root>/targets/nibabel/nibabel/cifti2/cifti2.py\", line 31, in <module>\n    from ..nifti1 import Nifti1Extensions\n  File \"<root>/targets/nibabel/nibabel/nifti1.py\", line 28, in <module>\n    from .quaternions import fillpositive, mat2quat, quat2mat\n  File \"<root>/targets/nibabel/nibabel/quaternions.py\", line 32, in <module>\n    MAX_FLOAT = np.maximum_sctype(float)\n                ^^^^^^^^^^^^^^^^^\n  File \"<env:numpy2>/site-packages/numpy/__init__.py\", line 411, in __getattr__\n    raise AttributeError(\nAttributeError: `np.maximum_sctype` was removed in the NumPy 2.0 release. Use a specific dtype instead. You should avoid relying on any implicit mechanism and select the largest dtype of a kind explicitly in the code.",
+        "stdout": "",
+        "summary": "snippet in after: failed",
+        "timed_out": false,
+        "truncated": true
+      }
+    },
+    {
+      "args": {
+        "end": 40,
+        "path": "nibabel/quaternions.py",
+        "start": 1
+      },
+      "id": "call_15",
+      "model_id": "call_69177d24-4e6f-44cf-9cf7-3885c1936650",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            1,
+            "# emacs: -*- mode: python-mode; py-indent-offset: 4; indent-tabs-mode: nil -*-"
+          ],
+          [
+            2,
+            "# vi: set ft=python sts=4 ts=4 sw=4 et:"
+          ],
+          [
+            3,
+            "### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##"
+          ],
+          [
+            4,
+            "#"
+          ],
+          [
+            5,
+            "#   See COPYING file distributed along with the NiBabel package for the"
+          ],
+          [
+            6,
+            "#   copyright and license terms."
+          ],
+          [
+            7,
+            "#"
+          ],
+          [
+            8,
+            "### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ##"
+          ],
+          [
+            9,
+            "\"\"\""
+          ],
+          [
+            10,
+            "Functions to operate on, or return, quaternions"
+          ],
+          [
+            11,
+            ""
+          ],
+          [
+            12,
+            "The module also includes functions for the closely related angle, axis"
+          ],
+          [
+            13,
+            "pair as a specification for rotation."
+          ],
+          [
+            14,
+            ""
+          ],
+          [
+            15,
+            "Quaternions here consist of 4 values ``w, x, y, z``, where ``w`` is the"
+          ],
+          [
+            16,
+            "real (scalar) part, and ``x, y, z`` are the complex (vector) part."
+          ],
+          [
+            17,
+            ""
+          ],
+          [
+            18,
+            "Note - rotation matrices here apply to column vectors, that is,"
+          ],
+          [
+            19,
+            "they are applied on the left of the vector.  For example:"
+          ],
+          [
+            20,
+            ""
+          ],
+          [
+            21,
+            ">>> import numpy as np"
+          ],
+          [
+            22,
+            ">>> from nibabel.quaternions import quat2mat"
+          ],
+          [
+            23,
+            ">>> q = [0, 1, 0, 0] # 180 degree rotation around axis 0"
+          ],
+          [
+            24,
+            ">>> M = quat2mat(q) # from this module"
+          ],
+          [
+            25,
+            ">>> vec = np.array([1, 2, 3]).reshape((3,1)) # column vector"
+          ],
+          [
+            26,
+            ">>> tvec = np.dot(M, vec)"
+          ],
+          [
+            27,
+            "\"\"\""
+          ],
+          [
+            28,
+            "import math"
+          ],
+          [
+            29,
+            ""
+          ],
+          [
+            30,
+            "import numpy as np"
+          ],
+          [
+            31,
+            ""
+          ],
+          [
+            32,
+            "MAX_FLOAT = np.maximum_sctype(float)"
+          ],
+          [
+            33,
+            "FLOAT_EPS = np.finfo(float).eps"
+          ],
+          [
+            34,
+            ""
+          ],
+          [
+            35,
+            ""
+          ],
+          [
+            36,
+            "def fillpositive(xyz, w2_thresh=None):"
+          ],
+          [
+            37,
+            "    \"\"\"Compute unit quaternion from last 3 values"
+          ],
+          [
+            38,
+            ""
+          ],
+          [
+            39,
+            "    Parameters"
+          ],
+          [
+            40,
+            "    ----------"
+          ]
+        ],
+        "ok": true,
+        "path": "nibabel/quaternions.py",
+        "sites": [
+          "nibabel/quaternions.py:1",
+          "nibabel/quaternions.py:2",
+          "nibabel/quaternions.py:3",
+          "nibabel/quaternions.py:4",
+          "nibabel/quaternions.py:5",
+          "nibabel/quaternions.py:6",
+          "nibabel/quaternions.py:7",
+          "nibabel/quaternions.py:8",
+          "nibabel/quaternions.py:9",
+          "nibabel/quaternions.py:10",
+          "nibabel/quaternions.py:11",
+          "nibabel/quaternions.py:12",
+          "nibabel/quaternions.py:13",
+          "nibabel/quaternions.py:14",
+          "nibabel/quaternions.py:15",
+          "nibabel/quaternions.py:16",
+          "nibabel/quaternions.py:17",
+          "nibabel/quaternions.py:18",
+          "nibabel/quaternions.py:19",
+          "nibabel/quaternions.py:20",
+          "nibabel/quaternions.py:21",
+          "nibabel/quaternions.py:22",
+          "nibabel/quaternions.py:23",
+          "nibabel/quaternions.py:24",
+          "nibabel/quaternions.py:25",
+          "nibabel/quaternions.py:26",
+          "nibabel/quaternions.py:27",
+          "nibabel/quaternions.py:28",
+          "nibabel/quaternions.py:29",
+          "nibabel/quaternions.py:30",
+          "nibabel/quaternions.py:31",
+          "nibabel/quaternions.py:32",
+          "nibabel/quaternions.py:33",
+          "nibabel/quaternions.py:34",
+          "nibabel/quaternions.py:35",
+          "nibabel/quaternions.py:36",
+          "nibabel/quaternions.py:37",
+          "nibabel/quaternions.py:38",
+          "nibabel/quaternions.py:39",
+          "nibabel/quaternions.py:40"
+        ],
+        "summary": "nibabel/quaternions.py:1-40 (40 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "end": 100,
+        "path": "nibabel/nifti1.py",
+        "start": 85
+      },
+      "id": "call_16",
+      "model_id": "call_3a62ffce-5b32-4c26-81ff-55b35092dd1a",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            85,
+            "# Full header numpy dtype"
+          ],
+          [
+            86,
+            "header_dtype = np.dtype(header_dtd)"
+          ],
+          [
+            87,
+            ""
+          ],
+          [
+            88,
+            "# datatypes not in analyze format, with codes"
+          ],
+          [
+            89,
+            "if have_binary128():"
+          ],
+          [
+            90,
+            "    # Only enable 128 bit floats if we really have IEEE binary 128 longdoubles"
+          ],
+          [
+            91,
+            "    _float128t: type[np.generic] = np.longdouble"
+          ],
+          [
+            92,
+            "    _complex256t: type[np.generic] = np.longcomplex"
+          ],
+          [
+            93,
+            "else:"
+          ],
+          [
+            94,
+            "    _float128t = np.void"
+          ],
+          [
+            95,
+            "    _complex256t = np.void"
+          ],
+          [
+            96,
+            ""
+          ],
+          [
+            97,
+            "_dtdefs = (  # code, label, dtype definition, niistring"
+          ],
+          [
+            98,
+            "    (0, 'none', np.void, ''),"
+          ],
+          [
+            99,
+            "    (1, 'binary', np.void, ''),"
+          ],
+          [
+            100,
+            "    (2, 'uint8', np.uint8, 'NIFTI_TYPE_UINT8'),"
+          ]
+        ],
+        "ok": true,
+        "path": "nibabel/nifti1.py",
+        "sites": [
+          "nibabel/nifti1.py:85",
+          "nibabel/nifti1.py:86",
+          "nibabel/nifti1.py:87",
+          "nibabel/nifti1.py:88",
+          "nibabel/nifti1.py:89",
+          "nibabel/nifti1.py:90",
+          "nibabel/nifti1.py:91",
+          "nibabel/nifti1.py:92",
+          "nibabel/nifti1.py:93",
+          "nibabel/nifti1.py:94",
+          "nibabel/nifti1.py:95",
+          "nibabel/nifti1.py:96",
+          "nibabel/nifti1.py:97",
+          "nibabel/nifti1.py:98",
+          "nibabel/nifti1.py:99",
+          "nibabel/nifti1.py:100"
+        ],
+        "summary": "nibabel/nifti1.py:85-100 (16 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "end": 760,
+        "path": "nibabel/casting.py",
+        "start": 710
+      },
+      "id": "call_17",
+      "model_id": "call_f5a8d270-dc0a-4b21-b0f0-89d03cd62a1b",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            710,
+            ""
+          ],
+          [
+            711,
+            "def ok_floats():"
+          ],
+          [
+            712,
+            "    \"\"\"Return floating point types sorted by precision"
+          ],
+          [
+            713,
+            ""
+          ],
+          [
+            714,
+            "    Remove longdouble if it has no higher precision than float64"
+          ],
+          [
+            715,
+            "    \"\"\""
+          ],
+          [
+            716,
+            "    # copy float list so we don't change the numpy global"
+          ],
+          [
+            717,
+            "    floats = np.sctypes['float'][:]"
+          ],
+          [
+            718,
+            "    if best_float() != np.longdouble and np.longdouble in floats:"
+          ],
+          [
+            719,
+            "        floats.remove(np.longdouble)"
+          ],
+          [
+            720,
+            "    return sorted(floats, key=lambda f: type_info(f)['nmant'])"
+          ],
+          [
+            721,
+            ""
+          ],
+          [
+            722,
+            ""
+          ],
+          [
+            723,
+            "OK_FLOATS = ok_floats()"
+          ],
+          [
+            724,
+            ""
+          ],
+          [
+            725,
+            ""
+          ],
+          [
+            726,
+            "def able_int_type(values):"
+          ],
+          [
+            727,
+            "    \"\"\"Find the smallest integer numpy type to contain sequence `values`"
+          ],
+          [
+            728,
+            ""
+          ],
+          [
+            729,
+            "    Prefers uint to int if minimum is >= 0"
+          ],
+          [
+            730,
+            ""
+          ],
+          [
+            731,
+            "    Parameters"
+          ],
+          [
+            732,
+            "    ----------"
+          ],
+          [
+            733,
+            "    values : sequence"
+          ],
+          [
+            734,
+            "        sequence of integer values"
+          ],
+          [
+            735,
+            ""
+          ],
+          [
+            736,
+            "    Returns"
+          ],
+          [
+            737,
+            "    -------"
+          ],
+          [
+            738,
+            "    itype : None or numpy type"
+          ],
+          [
+            739,
+            "        numpy integer type or None if no integer type holds all `values`"
+          ],
+          [
+            740,
+            ""
+          ],
+          [
+            741,
+            "    Examples"
+          ],
+          [
+            742,
+            "    --------"
+          ],
+          [
+            743,
+            "    >>> able_int_type([0, 1]) == np.uint8"
+          ],
+          [
+            744,
+            "    True"
+          ],
+          [
+            745,
+            "    >>> able_int_type([-1, 1]) == np.int8"
+          ],
+          [
+            746,
+            "    True"
+          ],
+          [
+            747,
+            "    \"\"\""
+          ],
+          [
+            748,
+            "    if any([v % 1 for v in values]):"
+          ],
+          [
+            749,
+            "        return None"
+          ],
+          [
+            750,
+            "    mn = min(values)"
+          ],
+          [
+            751,
+            "    mx = max(values)"
+          ],
+          [
+            752,
+            "    if mn >= 0:"
+          ],
+          [
+            753,
+            "        for ityp in np.sctypes['uint']:"
+          ],
+          [
+            754,
+            "            if mx <= np.iinfo(ityp).max:"
+          ],
+          [
+            755,
+            "                return ityp"
+          ],
+          [
+            756,
+            "    for ityp in np.sctypes['int']:"
+          ],
+          [
+            757,
+            "        info = np.iinfo(ityp)"
+          ],
+          [
+            758,
+            "        if mn >= info.min and mx <= info.max:"
+          ],
+          [
+            759,
+            "            return ityp"
+          ],
+          [
+            760,
+            "    return None"
+          ]
+        ],
+        "ok": true,
+        "path": "nibabel/casting.py",
+        "sites": [
+          "nibabel/casting.py:710",
+          "nibabel/casting.py:711",
+          "nibabel/casting.py:712",
+          "nibabel/casting.py:713",
+          "nibabel/casting.py:714",
+          "nibabel/casting.py:715",
+          "nibabel/casting.py:716",
+          "nibabel/casting.py:717",
+          "nibabel/casting.py:718",
+          "nibabel/casting.py:719",
+          "nibabel/casting.py:720",
+          "nibabel/casting.py:721",
+          "nibabel/casting.py:722",
+          "nibabel/casting.py:723",
+          "nibabel/casting.py:724",
+          "nibabel/casting.py:725",
+          "nibabel/casting.py:726",
+          "nibabel/casting.py:727",
+          "nibabel/casting.py:728",
+          "nibabel/casting.py:729",
+          "nibabel/casting.py:730",
+          "nibabel/casting.py:731",
+          "nibabel/casting.py:732",
+          "nibabel/casting.py:733",
+          "nibabel/casting.py:734",
+          "nibabel/casting.py:735",
+          "nibabel/casting.py:736",
+          "nibabel/casting.py:737",
+          "nibabel/casting.py:738",
+          "nibabel/casting.py:739",
+          "nibabel/casting.py:740",
+          "nibabel/casting.py:741",
+          "nibabel/casting.py:742",
+          "nibabel/casting.py:743",
+          "nibabel/casting.py:744",
+          "nibabel/casting.py:745",
+          "nibabel/casting.py:746",
+          "nibabel/casting.py:747",
+          "nibabel/casting.py:748",
+          "nibabel/casting.py:749",
+          "nibabel/casting.py:750",
+          "nibabel/casting.py:751",
+          "nibabel/casting.py:752",
+          "nibabel/casting.py:753",
+          "nibabel/casting.py:754",
+          "nibabel/casting.py:755",
+          "nibabel/casting.py:756",
+          "nibabel/casting.py:757",
+          "nibabel/casting.py:758",
+          "nibabel/casting.py:759",
+          "nibabel/casting.py:760"
+        ],
+        "summary": "nibabel/casting.py:710-760 (51 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import numpy as np\nif not hasattr(np, \"sctypes\"):\n    np.sctypes = {\"float\": [np.float16, np.float32, np.float64, np.longdouble], \"int\": [np.int8, np.int16, np.int32, np.int64], \"uint\": [np.uint8, np.uint16, np.uint32, np.uint64], \"complex\": [np.complex64, np.complex128, np.clongdouble], \"bool\": [np.bool_], \"object\": [np.object_]}\nif not hasattr(np, \"maximum_sctype\"):\n    np.maximum_sctype = lambda t: np.longdouble\nimport nibabel\nprint(\"peeled2 import ok\")",
+        "env": "after"
+      },
+      "id": "call_18",
+      "model_id": "call_1e4aa5d7-c217-4295-b451-a83decc1b831",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": true,
+        "stderr": "",
+        "stdout": "peeled2 import ok\n",
+        "summary": "snippet in after: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import numpy as np\na = np.arange(10)\nprint(a.newbyteorder('S'))",
+        "env": "after"
+      },
+      "id": "call_19",
+      "model_id": "call_3957bc47-a397-4fc1-be8c-5e920672c188",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": false,
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 3, in <module>\nAttributeError: `newbyteorder` was removed from the ndarray class in NumPy 2.0. Use `arr.view(arr.dtype.newbyteorder(order))` instead.",
+        "stdout": "",
+        "summary": "snippet in after: failed",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import numpy as np\nprint(np.row_stack([[1],[2]]))",
+        "env": "after"
+      },
+      "id": "call_20",
+      "model_id": "call_a4750b6d-c783-4b94-86a3-6bbc4ce5c36f",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": true,
+        "stderr": "<string>:2: DeprecationWarning: `row_stack` alias is deprecated. Use `np.vstack` directly.",
+        "stdout": "[[1]\n [2]]\n",
+        "summary": "snippet in after: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "from numpy.compat.py3k import asbytes\nprint(asbytes(\"hi\"))",
+        "env": "after"
+      },
+      "id": "call_21",
+      "model_id": "call_324966c9-0e8c-4be4-a299-0637c34676e1",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": true,
+        "stderr": "<string>:1: DeprecationWarning: `np.compat`, which was used during the Python 2 to 3 transition, is deprecated since 1.26.0, and will be removed",
+        "stdout": "b'hi'\n",
+        "summary": "snippet in after: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import numpy as np\nr = np.float32(3) + 3.\nprint(type(r), getattr(r, 'dtype', type(r)))\nprint(np.promote_types(np.float32, float))",
+        "env": "after"
+      },
+      "id": "call_22",
+      "model_id": "call_d1f85a5c-c58d-4324-83ed-a98e12050d67",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": true,
+        "stderr": "",
+        "stdout": "<class 'numpy.float32'> float32\nfloat64\n",
+        "summary": "snippet in after: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "findings": [
+          {
+            "claim": "import nibabel fails in after env because nibabel.casting.ok_floats() uses np.sctypes which was removed in NumPy 2.0",
+            "confidence": "confirmed",
+            "evidence": [
+              "call_12",
+              "call_13",
+              "call_3",
+              "call_2"
+            ],
+            "id": "F-sctypes",
+            "kind": "breaks_import",
+            "sites": [
+              "nibabel/casting.py:717",
+              "nibabel/casting.py:753",
+              "nibabel/tests/test_arraywriters.py:27"
+            ],
+            "symbol": "numpy.sctypes",
+            "tests": []
+          },
+          {
+            "claim": "after shimming sctypes, import nibabel still fails at nibabel/quaternions.py:32 because np.maximum_sctype was removed",
+            "confidence": "confirmed",
+            "evidence": [
+              "call_14",
+              "call_4",
+              "call_18"
+            ],
+            "id": "F-maximum_sctype",
+            "kind": "breaks_import",
+            "sites": [
+              "nibabel/quaternions.py:32",
+              "nibabel/tests/test_scaling.py:191"
+            ],
+            "symbol": "numpy.maximum_sctype",
+            "tests": []
+          },
+          {
+            "claim": "ndarray.newbyteorder calls used in ecat, trk, arraywriters and tests fail in after env; direct ndarray.newbyteorder probe raises removed-API AttributeError",
+            "confidence": "confirmed",
+            "evidence": [
+              "call_7",
+              "call_19"
+            ],
+            "id": "F-newbyteorder",
+            "kind": "breaks_call",
+            "sites": [
+              "nibabel/ecat.py:926",
+              "nibabel/streamlines/trk.py:580",
+              "nibabel/tests/test_arraywriters.py:64"
+            ],
+            "symbol": "numpy.ndarray.newbyteorder",
+            "tests": []
+          },
+          {
+            "claim": "np.longcomplex references in nibabel/casting.py:255, nibabel/nifti1.py:92 and tests will fail where executed; nifti1 import-time use is conditional so top-level import can succeed when have_binary128 is False",
+            "confidence": "likely",
+            "evidence": [
+              "call_5",
+              "call_18",
+              "call_16"
+            ],
+            "id": "F-longcomplex",
+            "kind": "breaks_call",
+            "sites": [
+              "nibabel/casting.py:255",
+              "nibabel/nifti1.py:92",
+              "nibabel/tests/test_nifti1.py:82"
+            ],
+            "symbol": "numpy.longcomplex",
+            "tests": []
+          },
+          {
+            "claim": "np.row_stack still works in after env (DeprecationWarning only), so brikhead and ecat uses do not break import or call",
+            "confidence": "confirmed",
+            "evidence": [
+              "call_8",
+              "call_20"
+            ],
+            "id": "F-row_stack",
+            "kind": "not_affected",
+            "sites": [
+              "nibabel/brikhead.py:393",
+              "nibabel/ecat.py:392"
+            ],
+            "symbol": "numpy.row_stack",
+            "tests": []
+          },
+          {
+            "claim": "numpy.compat.py3k.asbytes import still works in after env (deprecation warning only), so streamlines test import does not break",
+            "confidence": "confirmed",
+            "evidence": [
+              "call_6",
+              "call_21"
+            ],
+            "id": "F-compat",
+            "kind": "not_affected",
+            "sites": [
+              "nibabel/streamlines/tests/test_streamlines.py:10"
+            ],
+            "symbol": "numpy.compat",
+            "tests": []
+          }
+        ],
+        "summary": "numpy 2.0 upgrade blocks `import nibabel`: first at np.sctypes in nibabel/casting.py:717 (confirmed after-fail/before-ok), second at np.maximum_sctype in nibabel/quaternions.py:32 (confirmed by peeled snippet). Shimming both allows import. Deeper: ndarray.newbyteorder is removed and will break call paths (confirmed probe); np.longcomplex is removed and will break call paths where executed (likely, conditional import masks it); np.row_stack and numpy.compat still work with deprecation warnings (confirmed not breaking). NEP50 float32/promote_types changes remain unconfirmed behavior risk.",
+        "triage": [
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.DataSource"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.Inf"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.Infinity"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.NINF"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.NZERO"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.NaN"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.PINF"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.PZERO"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.add_docstring"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.add_newdoc"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.add_newdoc_ufunc"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.alltrue"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.asfarray"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.byte_bounds"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.cast"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.cfloat"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.charrarray"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.clongfloat"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.compare_chararrays"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_6"
+            ],
+            "reason": "propagate 2 sites, find_usages confirms code use",
+            "relevant": true,
+            "symbol": "numpy.compat"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.complex_"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.core"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.cumproduct"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.deprecate"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.deprecate_with_doc"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.disp"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.fastCopyAndTranspose"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.find_common_type"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_10"
+            ],
+            "reason": "propagate 101 sites, dtype use not removal but NEP50 promotion change risk",
+            "relevant": true,
+            "symbol": "numpy.float32"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.float_"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.format_parser"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.get_array_wrap"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.geterrobj"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.in1d"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.infty"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_11"
+            ],
+            "reason": "propagate 1 site in ArraySequence.__init__",
+            "relevant": true,
+            "symbol": "numpy.intp"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.issctype"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.issubclass_"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.issubsctype"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_5"
+            ],
+            "reason": "propagate 3 sites, 1 import-time conditional",
+            "relevant": true,
+            "symbol": "numpy.longcomplex"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.longfloat"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.lookfor"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.mat"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_4"
+            ],
+            "reason": "propagate 2 sites, 1 import-time",
+            "relevant": true,
+            "symbol": "numpy.maximum_sctype"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.nbytes"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_7"
+            ],
+            "reason": "propagate 6 sites, call-time only",
+            "relevant": true,
+            "symbol": "numpy.ndarray.newbyteorder"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.ndarray.ptp"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.ndarray.setitem"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.obj2sctype"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.product"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_9"
+            ],
+            "reason": "propagate 3 sites, NEP50 promotion change risk but API retained",
+            "relevant": true,
+            "symbol": "numpy.promote_types"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.recfromcsv"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.recfromtxt"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.round_"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_8"
+            ],
+            "reason": "propagate 2 sites, deprecated alias still works",
+            "relevant": true,
+            "symbol": "numpy.row_stack"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.safe_eval"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.sctype2char"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_3"
+            ],
+            "reason": "propagate 19 sites, 4 import-time",
+            "relevant": true,
+            "symbol": "numpy.sctypes"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.set_numeric_ops"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.set_string_function"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.seterrobj"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.singlecomplex"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.sometrue"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.source"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.string_"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.tracemalloc_domain"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.trapz"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.unicode_"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate 0 sites",
+            "relevant": false,
+            "symbol": "numpy.who"
+          }
+        ]
+      },
+      "id": "call_23",
+      "model_id": "call_92ef3b44-b785-4fb8-843b-a27a3553b749",
+      "name": "submit_findings",
+      "result": {
+        "ok": true,
+        "summary": "findings accepted"
+      }
+    }
+  ],
+  "triage": [
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.DataSource",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.Inf",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.Infinity",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.NINF",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.NZERO",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.NaN",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.PINF",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.PZERO",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.add_docstring",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.add_newdoc",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.add_newdoc_ufunc",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.alltrue",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.asfarray",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.byte_bounds",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.cast",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.cfloat",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.charrarray",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.clongfloat",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.compare_chararrays",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_6"
+      ],
+      "reason": "propagate 2 sites, find_usages confirms code use",
+      "relevant": true,
+      "symbol": "numpy.compat",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.complex_",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.core",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.cumproduct",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.deprecate",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.deprecate_with_doc",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.disp",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.fastCopyAndTranspose",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.find_common_type",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_10"
+      ],
+      "reason": "propagate 101 sites, dtype use not removal but NEP50 promotion change risk",
+      "relevant": true,
+      "symbol": "numpy.float32",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.float_",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.format_parser",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.get_array_wrap",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.geterrobj",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.in1d",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.infty",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_11"
+      ],
+      "reason": "propagate 1 site in ArraySequence.__init__",
+      "relevant": true,
+      "symbol": "numpy.intp",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.issctype",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.issubclass_",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.issubsctype",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_5"
+      ],
+      "reason": "propagate 3 sites, 1 import-time conditional",
+      "relevant": true,
+      "symbol": "numpy.longcomplex",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.longfloat",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.lookfor",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.mat",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_4"
+      ],
+      "reason": "propagate 2 sites, 1 import-time",
+      "relevant": true,
+      "symbol": "numpy.maximum_sctype",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.nbytes",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_7"
+      ],
+      "reason": "propagate 6 sites, call-time only",
+      "relevant": true,
+      "symbol": "numpy.ndarray.newbyteorder",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.ndarray.ptp",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.ndarray.setitem",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.obj2sctype",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.product",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_9"
+      ],
+      "reason": "propagate 3 sites, NEP50 promotion change risk but API retained",
+      "relevant": true,
+      "symbol": "numpy.promote_types",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.recfromcsv",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.recfromtxt",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.round_",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_8"
+      ],
+      "reason": "propagate 2 sites, deprecated alias still works",
+      "relevant": true,
+      "symbol": "numpy.row_stack",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.safe_eval",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.sctype2char",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_3"
+      ],
+      "reason": "propagate 19 sites, 4 import-time",
+      "relevant": true,
+      "symbol": "numpy.sctypes",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.set_numeric_ops",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.set_string_function",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.seterrobj",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.singlecomplex",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.sometrue",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.source",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.string_",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.tracemalloc_domain",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.trapz",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.unicode_",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate 0 sites",
+      "relevant": false,
+      "symbol": "numpy.who",
+      "verified": true,
+      "verify_reason": ""
+    }
+  ],
+  "usage": {
+    "probe_calls": 8,
+    "tokens": 95721,
+    "tool_calls": 23,
+    "turns": 7
+  }
+}

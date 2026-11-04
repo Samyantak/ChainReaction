@@ -186,7 +186,8 @@ def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
                  grep_count: int, ruff_count, interpret_stats=None,
                  decision_package: str = "",
                  before_version: str | None = None,
-                 after_version: str | None = None):
+                 after_version: str | None = None,
+                 fix: dict | None = None):
     """Assemble the deterministic Report from prediction + verification."""
     interpret_stats = interpret_stats or {}
     hard = {n for n, i in impacts.items() if i.status == "HARD"}
@@ -249,7 +250,7 @@ def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
         file_missing=file_missing,
         file_behavior=sorted(set(scen.pr_behavior) & set(file_missing)),
         layers=layers, grep_hits=grep_count,
-        ruff_hits=ruff_count,
+        ruff_hits=ruff_count, fix=dict(fix or {}),
     )
 
 

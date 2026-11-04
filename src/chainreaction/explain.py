@@ -84,6 +84,15 @@ class Report:
     # site for vendor decisions. The brief reads this; the fix loop
     # peels it one entry at a time.
     fix_order: list[str] = field(default_factory=list)
+    # M5 fix loop outcome (fix.json content): status, rounds summary,
+    # counts, guards, patch path. {} when the loop never ran.
+    fix: dict = field(default_factory=dict)
+    # M4 investigator summary (status, counts, triaged-out symbols).
+    # {} when the stage never ran.
+    investigation: dict = field(default_factory=dict)
+    # M4 ablation: static-only vs static+agent prediction, test scores,
+    # and the no-improvement note. {} when the stage never ran.
+    ablation: dict = field(default_factory=dict)
 
 
 _MODULE_RE = re.compile(r"\b([A-Za-z_]\w*(?:\.\w+)+)\b")
@@ -619,6 +628,107 @@ def _interpret_m3_lines(metrics: dict | None) -> list[str]:
     ]
 
 
+def _investigator_lines(report: Report) -> list[str]:
+    """Investigator section (M4 §7); [] when the stage never ran."""
+    inv = getattr(report, "investigation", None) or {}
+    ablation = getattr(report, "ablation", None) or {}
+    if not inv and not ablation:
+        return []
+    status = inv.get("status", "missing")
+    if status == "skipped":
+        head = f"Investigation skipped: {inv.get('reason', '')}."
+    elif status == "incomplete":
+        head = (f"Investigation incomplete "
+                f"({inv.get('reason', '')}); static prediction kept.")
+    else:
+        head = (f"{inv.get('findings', 0)} finding(s), "
+                f"{inv.get('verified', 0)} verified.")
+    lines = ["## Investigator", "", head, ""]
+    static = ablation.get("static") or {}
+    agent = ablation.get("agent") or {}
+    if static or agent:
+        lines += [
+            f"Static: {len(static.get('hard', []))} HARD, "
+            f"{len(static.get('at_risk', []))} AT_RISK, chain "
+            + ("MATCH" if static.get("spine_match") else "DIFFERS"),
+            f"Agent: {len(agent.get('hard', []))} HARD, "
+            f"{len(agent.get('at_risk', []))} AT_RISK, chain "
+            + ("MATCH" if agent.get("spine_match") else "DIFFERS"),
+        ]
+        test = ablation.get("test") or {}
+        if test.get("static_precision") is not None:
+            lines.append(
+                f"Test P/R static "
+                f"{test['static_precision']:.2f}/"
+                f"{test['static_recall']:.2f} vs agent "
+                f"{test['agent_precision']:.2f}/"
+                f"{test['agent_recall']:.2f}.")
+        if ablation.get("behavior_confirmed"):
+            lines.append(f"Behavior changes confirmed: "
+                         f"{ablation['behavior_confirmed']}.")
+        if ablation.get("note"):
+            lines.append(ablation["note"])
+        lines.append("")
+    return lines
+
+
+def _fix_loop_lines(report: Report) -> list[str]:
+    """Fix loop section (M5 §7); [] when the loop never ran."""
+    fix = getattr(report, "fix", None) or {}
+    if not fix:
+        return []
+    status = fix.get("final_status") or fix.get("status") or "unknown"
+    rounds = fix.get("rounds") or []
+    counts = fix.get("counts") or {}
+    guards = fix.get("guards") or {}
+    lines = ["## Fix loop", "",
+             f"Status: {status} ({fix.get('stop_reason') or 'no reason'})",
+             ""]
+    for rnd in rounds:
+        failure = rnd.get("failure") or {}
+        where = failure.get("site") or failure.get("test") or "unknown"
+        edits = ", ".join(f"`{p}`" for p in rnd.get("edits") or [])
+        probe = rnd.get("probe") or {}
+        lines.append(
+            f"Round {rnd.get('n')}: {failure.get('kind')} {where} "
+            f"-> {edits or 'no edits'} "
+            f"(probe {'ok' if probe.get('ok') else 'FAILED'})")
+    if rounds:
+        lines.append("")
+    lines += [
+        f"Counts: {len(counts.get('fixed') or [])} fixed, "
+        f"{len(counts.get('still_failing') or [])} still failing, "
+        f"{len(counts.get('newly_broken') or [])} newly broken "
+        f"(baseline: {counts.get('baseline_failures', 0)} failures"
+        + ("" if counts.get("baseline_measured", True)
+           else ", baseline unmeasured")
+        + ")",
+        "",
+    ]
+    violations = guards.get("violations") or []
+    lines.append("Guards: " + ("clean" if guards.get("ok", True)
+                               and not violations
+                               else "; ".join(violations)))
+    lines.append("")
+    if fix.get("patch"):
+        lines += [f"Patch: `{fix['patch']}`", ""]
+    upstream = fix.get("upstream") or {}
+    if upstream.get("ran"):
+        overlap = upstream.get("overlap") or []
+        lines += [
+            "Upstream overlap "
+            f"(vs {upstream.get('pr_url') or 'the PR'}):",
+            "",
+            f"- files in common: "
+            + (", ".join(f"`{f}`" for f in overlap) or "none"),
+            f"- PR files missed: "
+            + (", ".join(f"`{f}`" for f in upstream.get("missed") or [])
+               or "none"),
+            "",
+        ]
+    return lines
+
+
 def render_markdown(report: Report, extra: dict | None = None) -> str:
     decision = report.probe_kind == "decision"
     target_line = (f"Target: `{report.target}` "
@@ -690,6 +800,7 @@ def render_markdown(report: Report, extra: dict | None = None) -> str:
         "",
         *_prediction_chain_lines(report, extra, decision),
     ]
+    lines += _investigator_lines(report)
     if report.pr_url:
         flagged, total, breaking, missed = _file_score_bits(report)
         both = (f"; {flagged}/{breaking} of the breaking changes"
@@ -730,6 +841,7 @@ def render_markdown(report: Report, extra: dict | None = None) -> str:
         if layer.error_tail:
             lines += ["```", layer.error_tail, "```"]
         lines.append("")
+    lines += _fix_loop_lines(report)
     lines += [
         "## Baselines",
         "",

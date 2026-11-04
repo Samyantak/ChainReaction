@@ -19,7 +19,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from chainreaction.runs import store, worker
 
-TIMEOUT_S = 1800
+# Fix loops run real suites; long presets override via the env.
+TIMEOUT_S = int(os.environ.get("RECORD_TIMEOUT_S", "1800"))
 
 
 def parse_args(argv):

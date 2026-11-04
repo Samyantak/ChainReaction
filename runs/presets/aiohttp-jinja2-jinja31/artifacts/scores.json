@@ -4,13 +4,23 @@
     "errors": 4
   },
   "after_escalated": false,
+  "agent_added_tests": [],
   "baseline_counts": {
     "passed": 31
   },
   "baseline_failed": [],
+  "behavior": {
+    "confirmed": 0,
+    "precision": null,
+    "predicted": [],
+    "recall": null
+  },
   "conflict": null,
   "failure_groups": [],
   "predicted_failing": [],
+  "static_precision": null,
+  "static_predicted_failing": [],
+  "static_recall": null,
   "suites": "ok",
   "test_chain": null,
   "test_precision": null,

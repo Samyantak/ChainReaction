@@ -1,0 +1,11 @@
+--- a/src/sponsorfit/llm.py
++++ b/src/sponsorfit/llm.py
+@@ -76,6 +76,8 @@
+                 )
+             elif provider == "meta":
+                 if self._openai_client is None:
++                    import openai
++
+                     self._openai_client = openai.OpenAI(base_url="https://api.meta.ai/v1")
+                 text, tokens_in, tokens_out, raw = self._call_openai(
+                     model, messages, system, max_tokens

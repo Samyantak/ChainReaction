@@ -1,0 +1,11 @@
+--- a/nibabel/nifti1.py
++++ b/nibabel/nifti1.py
+@@ -2442,7 +2442,7 @@
+     elif dtype == np.uint16:
+         return np.dtype('int16' if arr.max() <= np.iinfo(np.int16).max else 'int32')
+ 
+-    mn, mx = arr.min(), arr.max()
++    mn, mx = arr.min().item(), arr.max().item()
+     if np.can_cast(mn, np.int32) and np.can_cast(mx, np.int32):
+         return np.dtype('int32')
+     if np.can_cast(mn, np.float32) and np.can_cast(mx, np.float32):

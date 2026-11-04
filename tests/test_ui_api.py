@@ -197,9 +197,11 @@ def test_presets_suite_failures():
 def test_meta_usage_real_presets():
     body = client.get("/api/meta-usage").json()
     ids = [c["id"] for c in body["capabilities"]]
-    # Search grounding is evidenced by searches.jsonl citations; tool
-    # calling and 1M context appear once M4 lands and bigger prompts record.
-    assert ids == ["structured-output", "search-grounding", "muse-code"]
+    # Structured output, tool calling (M4 investigate turns), and search
+    # grounding (searches.jsonl citations) are all evidenced by the
+    # committed presets; 1M context appears once a big prompt records.
+    assert ids[0] == "structured-output"
+    assert {"tool-calling", "search-grounding", "muse-code"} <= set(ids)
     first = body["capabilities"][0]
     assert first["label"] == "Structured output"
     assert "change_set" in first["evidence"]

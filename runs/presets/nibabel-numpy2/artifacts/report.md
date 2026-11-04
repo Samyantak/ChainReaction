@@ -98,6 +98,14 @@ Predicted layer-1 chain:
 - `nibabel.casting.ok_floats` -> `numpy.sctypes` (nibabel/casting.py:717)
 Chain vs layer-1 actual: MATCH
 
+## Investigator
+
+6 finding(s), 6 verified.
+
+Static: 226 HARD, 150 AT_RISK, chain MATCH
+Agent: 226 HARD, 150 AT_RISK, chain MATCH
+No test suite to score. Chain match unchanged (MATCH). Agent triaged out 60 symbol(s): numpy.DataSource, numpy.Inf, numpy.Infinity, numpy.NINF, numpy.NZERO, numpy.NaN, numpy.PINF, numpy.PZERO, numpy.add_docstring, numpy.add_newdoc, numpy.add_newdoc_ufunc, numpy.alltrue, numpy.asfarray, numpy.byte_bounds, numpy.cast, numpy.cfloat, numpy.charrarray, numpy.clongfloat, numpy.compare_chararrays, numpy.complex_, numpy.core, numpy.cumproduct, numpy.deprecate, numpy.deprecate_with_doc, numpy.disp, numpy.fastCopyAndTranspose, numpy.find_common_type, numpy.float_, numpy.format_parser, numpy.get_array_wrap, numpy.geterrobj, numpy.in1d, numpy.infty, numpy.issctype, numpy.issubclass_, numpy.issubsctype, numpy.longfloat, numpy.lookfor, numpy.mat, numpy.nbytes, numpy.ndarray.ptp, numpy.ndarray.setitem, numpy.obj2sctype, numpy.product, numpy.recfromcsv, numpy.recfromtxt, numpy.round_, numpy.safe_eval, numpy.sctype2char, numpy.set_numeric_ops, numpy.set_string_function, numpy.seterrobj, numpy.singlecomplex, numpy.sometrue, numpy.source, numpy.string_, numpy.tracemalloc_domain, numpy.trapz, numpy.unicode_, numpy.who.
+
 ## Ground truth (PR)
 
 URL: https://github.com/nipy/nibabel/pull/1250
@@ -132,6 +140,27 @@ AttributeError: `np.maximum_sctype` was removed in the NumPy 2.0 release. Use a 
 ### before (numpy1) (recall 1.00)
 
 Actual: (import ok)
+
+## Fix loop
+
+Status: partial (no-progress-twice)
+
+Round 1: probe nibabel/casting.py:717 -> `nibabel/casting.py` (probe FAILED)
+Round 2: probe nibabel/quaternions.py:32 -> `nibabel/quaternions.py` (probe ok)
+Round 3: test nibabel/affines.py:368 -> `nibabel/affines.py` (probe ok)
+Round 4: test nibabel/nifti1.py:2451 -> `nibabel/nifti1.py` (probe ok)
+Round 5: test nibabel/nifti1.py:2446 -> `nibabel/nifti1.py` (probe ok)
+
+Counts: 0 fixed, 35 still failing, 0 newly broken (baseline: 125 failures)
+
+Guards: clean
+
+Patch: `fixes/final.patch`
+
+Upstream overlap (vs https://github.com/nipy/nibabel/pull/1250):
+
+- files in common: `nibabel/casting.py`, `nibabel/nifti1.py`, `nibabel/quaternions.py`
+- PR files missed: `nibabel/conftest.py`, `nibabel/ecat.py`, `nibabel/freesurfer/io.py`, `nibabel/spatialimages.py`, `nibabel/streamlines/trk.py`
 
 ## Baselines
 
