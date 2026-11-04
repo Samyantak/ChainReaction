@@ -12,9 +12,12 @@ import FeatureView from './views/Feature'
 function KeyPill() {
   const status = useStatus()
   if (!status) return <span className="key-pill">…</span>
+  const long = status.live_available ? 'Live mode available' : 'Replay only — no MODEL_API_KEY'
+  const short = status.live_available ? 'Live' : 'Replay only'
   return (
     <span className="key-pill">
-      {status.live_available ? 'Live mode available' : 'Replay only — no MODEL_API_KEY'}
+      <span className="long">{long}</span>
+      <span className="short">{short}</span>
     </span>
   )
 }
