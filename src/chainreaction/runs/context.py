@@ -134,7 +134,9 @@ class RunContext:
         self.state: dict = {}
         self.scrubber = Scrubber.default()
         self.cancel_event = cancel_event or threading.Event()
-        self._live_llm = live_llm  # tests: (system, user, max, fmt) -> ChatResult
+        # tests: (system, user, max, fmt) -> ChatResult, or the 6-arg
+        # chat_turn form (system, user, max, fmt, tools, tool_choice).
+        self._live_llm = live_llm
         self._live_fetch = live_fetch  # tests: (url, timeout) -> (status, raw)
         self._live_search = live_search  # tests: (query,) -> WebSearchResult
         self._lock = threading.Lock()
@@ -340,6 +342,117 @@ class RunContext:
             return self._llm_live(system, user, int(max_tokens * 1.5),
                                   response_format, reasoning_effort,
                                   retried=True)
+        return res
+
+    def chat_turn(self, system: str, user: str,
+                  max_tokens: int = 8000, response_format=None,
+                  reasoning_effort=None, tools=None,
+                  tool_choice=None):
+        """One recorded tool-calling turn; replay serves the recorded turn.
+
+        Unlike llm() there is no length retry: the caller owns the
+        conversation and decides what a truncation means (usually a
+        nudge turn). Tombstones behave as in llm(): a failed live turn
+        is recorded with response null, and replay re-raises it.
+        """
+        if self.mode == "replay":
+            model = self.manifest.get("model") or llm_mod.model_name()
+            prompt_hash = llm_mod.cache_key_for(model, system, user,
+                                                response_format,
+                                                reasoning_effort, tools,
+                                                tool_choice)
+            rec = self._take("llm", prompt_hash,
+                             f"prompt_hash={prompt_hash}")
+            if rec.get("error_class") is not None:
+                self.emit("llm_call", {"prompt_hash": prompt_hash,
+                                       "model": rec.get("model"),
+                                       "error": rec.get("error_class"),
+                                       "replayed": True})
+                raise _replay_error(rec["error_class"],
+                                    rec.get("error") or "")
+            self.emit("llm_call", {"prompt_hash": prompt_hash,
+                                   "model": rec.get("model"),
+                                   "cached": rec.get("cached", False),
+                                   "tool_calls": len(rec.get("tool_calls")
+                                                     or []),
+                                   "replayed": True})
+            return llm_mod.ChatResult(
+                rec["response"], rec.get("model"), rec.get("usage"),
+                rec.get("finish_reason"), True, rec.get("cache_mtime"),
+                tool_calls=rec.get("tool_calls"))
+        res = self._chat_turn_live(system, user, max_tokens,
+                                   response_format, reasoning_effort,
+                                   tools, tool_choice)
+        # Return exactly the recorded bytes (scrubbed): live and replay
+        # stages see identical inputs. Tool-call arguments pass through
+        # unscrubbed: the loop executes them, and replay serves the
+        # same recorded arguments back.
+        return llm_mod.ChatResult(
+            self.scrubber.text(res.content), res.model, res.usage,
+            res.finish_reason, res.cached, res.cache_mtime,
+            tool_calls=res.tool_calls)
+
+    def _chat_turn_live(self, system: str, user: str, max_tokens: int,
+                        response_format, reasoning_effort, tools,
+                        tool_choice):
+        self.check_cancelled()
+        started = utc_now_iso()
+        t0 = time.perf_counter()
+        try:
+            if self._live_llm is not None:
+                res = self._live_llm(system, user, max_tokens,
+                                     response_format, tools, tool_choice)
+            else:
+                res = llm_mod.chat_full(system, user, max_tokens,
+                                        response_format, reasoning_effort,
+                                        tools, tool_choice)
+        except Cancelled:
+            raise
+        except Exception as exc:
+            duration_ms = int((time.perf_counter() - t0) * 1000)
+            model = llm_mod.model_name()
+            prompt_hash = llm_mod.cache_key_for(model, system, user,
+                                                response_format,
+                                                reasoning_effort, tools,
+                                                tool_choice)
+            store_mod.append_jsonl(self.dir / store_mod.LLM_CALLS, {
+                "prompt_hash": prompt_hash, "model": model,
+                "params": {"max_tokens": max_tokens,
+                           "response_format": response_format,
+                           "reasoning_effort": reasoning_effort,
+                           "tools": tools, "tool_choice": tool_choice},
+                "system": system, "user": user, "response": None,
+                "tool_calls": None,
+                "error_class": exc.__class__.__name__,
+                "error": str(exc),
+                "usage": None, "finish_reason": None,
+                "started_at": started, "duration_ms": duration_ms,
+                "cached": False, "cache_mtime": None,
+            })
+            self.emit("llm_call", {"prompt_hash": prompt_hash,
+                                   "model": model,
+                                   "error": exc.__class__.__name__})
+            raise
+        duration_ms = int((time.perf_counter() - t0) * 1000)
+        prompt_hash = llm_mod.cache_key_for(res.model, system, user,
+                                            response_format,
+                                            reasoning_effort, tools,
+                                            tool_choice)
+        store_mod.append_jsonl(self.dir / store_mod.LLM_CALLS, {
+            "prompt_hash": prompt_hash, "model": res.model,
+            "params": {"max_tokens": max_tokens,
+                       "response_format": response_format,
+                       "reasoning_effort": reasoning_effort,
+                       "tools": tools, "tool_choice": tool_choice},
+            "system": system, "user": user, "response": res.content,
+            "tool_calls": res.tool_calls,
+            "usage": res.usage, "finish_reason": res.finish_reason,
+            "started_at": started, "duration_ms": duration_ms,
+            "cached": res.cached, "cache_mtime": res.cache_mtime,
+        })
+        self.emit("llm_call", {"prompt_hash": prompt_hash,
+                               "model": res.model, "cached": res.cached,
+                               "tool_calls": len(res.tool_calls or [])})
         return res
 
     def web_search(self, query: str):

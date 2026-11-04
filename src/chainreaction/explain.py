@@ -87,6 +87,12 @@ class Report:
     # M5 fix loop outcome (fix.json content): status, rounds summary,
     # counts, guards, patch path. {} when the loop never ran.
     fix: dict = field(default_factory=dict)
+    # M4 investigator summary (status, counts, triaged-out symbols).
+    # {} when the stage never ran.
+    investigation: dict = field(default_factory=dict)
+    # M4 ablation: static-only vs static+agent prediction, test scores,
+    # and the no-improvement note. {} when the stage never ran.
+    ablation: dict = field(default_factory=dict)
 
 
 _MODULE_RE = re.compile(r"\b([A-Za-z_]\w*(?:\.\w+)+)\b")
@@ -622,6 +628,50 @@ def _interpret_m3_lines(metrics: dict | None) -> list[str]:
     ]
 
 
+def _investigator_lines(report: Report) -> list[str]:
+    """Investigator section (M4 §7); [] when the stage never ran."""
+    inv = getattr(report, "investigation", None) or {}
+    ablation = getattr(report, "ablation", None) or {}
+    if not inv and not ablation:
+        return []
+    status = inv.get("status", "missing")
+    if status == "skipped":
+        head = f"Investigation skipped: {inv.get('reason', '')}."
+    elif status == "incomplete":
+        head = (f"Investigation incomplete "
+                f"({inv.get('reason', '')}); static prediction kept.")
+    else:
+        head = (f"{inv.get('findings', 0)} finding(s), "
+                f"{inv.get('verified', 0)} verified.")
+    lines = ["## Investigator", "", head, ""]
+    static = ablation.get("static") or {}
+    agent = ablation.get("agent") or {}
+    if static or agent:
+        lines += [
+            f"Static: {len(static.get('hard', []))} HARD, "
+            f"{len(static.get('at_risk', []))} AT_RISK, chain "
+            + ("MATCH" if static.get("spine_match") else "DIFFERS"),
+            f"Agent: {len(agent.get('hard', []))} HARD, "
+            f"{len(agent.get('at_risk', []))} AT_RISK, chain "
+            + ("MATCH" if agent.get("spine_match") else "DIFFERS"),
+        ]
+        test = ablation.get("test") or {}
+        if test.get("static_precision") is not None:
+            lines.append(
+                f"Test P/R static "
+                f"{test['static_precision']:.2f}/"
+                f"{test['static_recall']:.2f} vs agent "
+                f"{test['agent_precision']:.2f}/"
+                f"{test['agent_recall']:.2f}.")
+        if ablation.get("behavior_confirmed"):
+            lines.append(f"Behavior changes confirmed: "
+                         f"{ablation['behavior_confirmed']}.")
+        if ablation.get("note"):
+            lines.append(ablation["note"])
+        lines.append("")
+    return lines
+
+
 def _fix_loop_lines(report: Report) -> list[str]:
     """Fix loop section (M5 §7); [] when the loop never ran."""
     fix = getattr(report, "fix", None) or {}
@@ -750,6 +800,7 @@ def render_markdown(report: Report, extra: dict | None = None) -> str:
         "",
         *_prediction_chain_lines(report, extra, decision),
     ]
+    lines += _investigator_lines(report)
     if report.pr_url:
         flagged, total, breaking, missed = _file_score_bits(report)
         both = (f"; {flagged}/{breaking} of the breaking changes"

@@ -195,3 +195,77 @@ def test_generate_narrative(monkeypatch):
 def test_change_item_verified_flag_roundtrip():
     item = ChangeItem(symbol="s", kind="k", quote="q")
     assert item.verified is False
+
+
+TOOLS_FIXTURE = [{"type": "function",
+                  "function": {"name": "changes",
+                               "description": "List change-set items.",
+                               "parameters": {"type": "object",
+                                              "properties": {}}}}]
+
+
+def test_tools_join_cache_key_only_when_set():
+    base = llm_mod.cache_key_for("m", "s", "u", None, None)
+    assert llm_mod.cache_key_for("m", "s", "u", None, None,
+                                 None, None) == base
+    with_tools = llm_mod.cache_key_for("m", "s", "u", None, None,
+                                       TOOLS_FIXTURE, "auto")
+    assert with_tools != base
+    # Tool choice alone also distinguishes the call.
+    assert llm_mod.cache_key_for("m", "s", "u", None, None,
+                                 TOOLS_FIXTURE, None) != with_tools
+
+
+def test_chat_full_tool_calls_round_trip_through_cache(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("LLM_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("MODEL_API_KEY", "test-key")
+    calls = []
+    raw_args = '{"item": "numpy.sctypes"}'
+
+    class _Client:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kw):
+                    calls.append(kw)
+                    fn = SimpleNamespace(name="usages",
+                                         arguments=raw_args)
+                    tc = SimpleNamespace(id="call_1", type="function",
+                                         function=fn)
+                    msg = SimpleNamespace(content="checking",
+                                          tool_calls=[tc])
+                    choice = SimpleNamespace(message=msg,
+                                             finish_reason="tool_calls")
+                    return SimpleNamespace(choices=[choice], usage=None)
+
+    monkeypatch.setattr(llm_mod, "client", lambda: _Client())
+    first = llm_mod.chat_full("sys", "hello", tools=TOOLS_FIXTURE,
+                              tool_choice="auto")
+    second = llm_mod.chat_full("sys", "hello", tools=TOOLS_FIXTURE,
+                               tool_choice="auto")
+    assert first.content == second.content == "checking"
+    assert second.cached is True
+    assert first.tool_calls == [{"id": "call_1", "name": "usages",
+                                 "arguments": {"item": "numpy.sctypes"}}]
+    assert second.tool_calls == first.tool_calls
+    assert len(calls) == 1  # repeat turn served from the cache envelope
+    assert calls[0]["tools"] == TOOLS_FIXTURE
+    assert calls[0]["tool_choice"] == "auto"
+
+
+def test_chat_full_plain_text_cache_entry_replays_without_tools(
+        monkeypatch, tmp_path):
+    monkeypatch.setenv("LLM_CACHE_DIR", str(tmp_path / "cache"))
+    key = llm_mod.cache_key_for("m", "s", "u", None, None,
+                                TOOLS_FIXTURE, "auto")
+    cache_file = tmp_path / "cache" / f"{key}.txt"
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    cache_file.write_text("legacy reply", encoding="utf-8")
+    monkeypatch.setattr(llm_mod, "model_name", lambda: "m")
+    got = llm_mod.chat_full("s", "u", tools=TOOLS_FIXTURE,
+                            tool_choice="auto")
+    assert got.content == "legacy reply"
+    assert got.tool_calls is None
+    assert got.cached is True

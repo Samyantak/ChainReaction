@@ -150,6 +150,66 @@ def test_llm_failed_call_records_tombstone_and_replay_reraises(tmp_runs):
     assert replay.replay_warnings() == []
 
 
+def test_chat_turn_records_and_replays_tool_calls(tmp_runs):
+    tools = [{"type": "function",
+              "function": {"name": "changes",
+                           "description": "List change-set items.",
+                           "parameters": {"type": "object",
+                                          "properties": {}}}}]
+
+    def fake(system, user, max_tokens, response_format, turn_tools,
+             tool_choice):
+        assert list(turn_tools) == tools
+        assert tool_choice == "auto"
+        return llm_mod.ChatResult(
+            "checking", "fake-model", {"total_tokens": 9}, "tool_calls",
+            False, None,
+            tool_calls=[{"id": "call_1", "name": "changes",
+                         "arguments": {}}])
+
+    live = RunContext(run_id="u1", manifest=_live_manifest("u1"),
+                      mode="live", live_llm=fake)
+    got = live.chat_turn("sys", "go", tools=tools, tool_choice="auto")
+    assert got.content == "checking"
+    assert got.tool_calls == [{"id": "call_1", "name": "changes",
+                               "arguments": {}}]
+    assert got.cached is False
+    recs = store.read_jsonl(live.dir / store.LLM_CALLS)
+    assert len(recs) == 1
+    assert recs[0]["response"] == "checking"
+    assert recs[0]["params"]["tools"] == tools
+    assert recs[0]["params"]["tool_choice"] == "auto"
+    assert recs[0]["tool_calls"] == [{"id": "call_1", "name": "changes",
+                                      "arguments": {}}]
+
+    replay = RunContext(
+        run_id="u2", manifest=_live_manifest("u2", mode="replay",
+                                             model="fake-model"),
+        mode="replay", source_dir=live.dir)
+    again = replay.chat_turn("sys", "go", tools=tools, tool_choice="auto")
+    assert again.content == "checking"
+    assert again.tool_calls == got.tool_calls
+    assert again.cached is True
+    assert replay.replay_warnings() == []
+
+
+def test_chat_turn_replays_legacy_record_without_tool_calls(tmp_runs):
+    def fake(system, user, max_tokens, response_format):
+        return llm_mod.ChatResult("legacy", "fake-model", None, "stop",
+                                  False, None)
+
+    live = RunContext(run_id="u1", manifest=_live_manifest("u1"),
+                      mode="live", live_llm=fake)
+    assert live.llm("sys", "a") == "legacy"
+    replay = RunContext(
+        run_id="u2", manifest=_live_manifest("u2", mode="replay",
+                                             model="fake-model"),
+        mode="replay", source_dir=live.dir)
+    got = replay.chat_turn("sys", "a")
+    assert got.content == "legacy"
+    assert got.tool_calls is None
+
+
 def test_fetch_records_and_replays(tmp_runs):
     def fake(url, timeout):
         return 200, b"<html><body>guide words</body></html>"
