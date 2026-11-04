@@ -197,12 +197,14 @@ def test_presets_suite_failures():
 def test_meta_usage_real_presets():
     body = client.get("/api/meta-usage").json()
     ids = [c["id"] for c in body["capabilities"]]
-    # Only structured output + Muse Code are evidenced today; tool
-    # calling, search grounding, and 1M context appear once M3/M4 land.
-    assert ids == ["structured-output", "muse-code"]
+    # Search grounding is evidenced by searches.jsonl citations; tool
+    # calling and 1M context appear once M4 lands and bigger prompts record.
+    assert ids == ["structured-output", "search-grounding", "muse-code"]
     first = body["capabilities"][0]
     assert first["label"] == "Structured output"
     assert "change_set" in first["evidence"]
+    grounded = body["capabilities"][1]
+    assert "recorded calls" in grounded["evidence"]
 
 
 def test_meta_usage_lights_up_with_evidence(tmp_path, monkeypatch):
@@ -214,18 +216,27 @@ def test_meta_usage_lights_up_with_evidence(tmp_path, monkeypatch):
     calls = [
         {"params": {"tools": [{"type": "function", "name": "find_usages"}]},
          "usage": {"prompt_tokens": 10}},
-        {"params": {"tools": [{"type": "web_search"}]},
-         "usage": {"prompt_tokens": 10}},
         {"params": {}, "usage": {"prompt_tokens": 150000}},
+    ]
+    searches = [
+        {"query": "numpy 2.0 migration",
+         "citations": [{"url": "https://example.com/guide"}]},
+        {"query": "nothing found", "citations": []},
     ]
     (preset / "llm_calls.jsonl").write_text(
         "\n".join(json.dumps(c) for c in calls) + "\n")
+    (preset / "searches.jsonl").write_text(
+        "\n".join(json.dumps(s) for s in searches) + "\n")
     (preset / "manifest.json").write_text(json.dumps({"status": "done"}))
     monkeypatch.setenv("CHAINREACTION_RUNS_DIR", str(runs))
     body = client.get("/api/meta-usage").json()
     ids = [c["id"] for c in body["capabilities"]]
     assert ids == ["tool-calling", "search-grounding", "context-1m",
                    "muse-code"]
+    # Only the cited search counts (no web_search tool entry present).
+    grounded = [c for c in body["capabilities"]
+                if c["id"] == "search-grounding"][0]
+    assert grounded["evidence"] == "1 recorded calls"
 
 
 def test_presets_headlines_match_report_files():

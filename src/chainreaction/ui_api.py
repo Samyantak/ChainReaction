@@ -270,15 +270,15 @@ def ui_presets() -> list[dict]:
 CONTEXT_TOKENS_THRESHOLD = 100_000
 
 
-def _iter_llm_calls(root: Path):
+def _iter_preset_jsonl(root: Path, filename: str):
     for child in sorted(root.iterdir(), key=lambda p: p.name):
         if not child.is_dir():
             continue
-        calls_path = child / run_store.LLM_CALLS
-        if not calls_path.is_file():
+        path = child / filename
+        if not path.is_file():
             continue
         try:
-            text = calls_path.read_text(encoding="utf-8")
+            text = path.read_text(encoding="utf-8")
         except OSError:
             continue
         for line in text.splitlines():
@@ -288,6 +288,16 @@ def _iter_llm_calls(root: Path):
                 yield json.loads(line)
             except ValueError:
                 continue
+
+
+def _iter_llm_calls(root: Path):
+    yield from _iter_preset_jsonl(root, run_store.LLM_CALLS)
+
+
+def _count_grounded_searches(root: Path) -> int:
+    """Recorded search calls that returned citations (search grounding)."""
+    return sum(1 for rec in _iter_preset_jsonl(root, run_store.SEARCHES)
+               if rec.get("citations"))
 
 
 def _tool_uses_web_search(tools) -> bool:
@@ -325,6 +335,7 @@ def _scan_meta_usage(root_str: str) -> list:
                 web_search += 1
         prompt = (call.get("usage") or {}).get("prompt_tokens") or 0
         max_prompt = max(max_prompt, prompt)
+    web_search += _count_grounded_searches(Path(root_str))
     capabilities = []
     if structured:
         capabilities.append({
