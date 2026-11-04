@@ -679,7 +679,7 @@
         "ran": true,
         "tests": 1
       },
-      "duration_ms": 300116,
+      "duration_ms": 312023,
       "edits": [
         "src/anndata/__init__.py"
       ],
@@ -1371,7 +1371,7 @@
         "ran": false,
         "reason": "no coverage tests for edited files"
       },
-      "duration_ms": 299911,
+      "duration_ms": 282955,
       "edits": [
         "conftest.py"
       ],
@@ -2660,7 +2660,7 @@
   },
   "status": "partial",
   "stop_reason": "max-rounds",
-  "total_cmd_ms": 551339,
+  "total_cmd_ms": 609492,
   "touched": [
     "conftest.py",
     "src/anndata/__init__.py"

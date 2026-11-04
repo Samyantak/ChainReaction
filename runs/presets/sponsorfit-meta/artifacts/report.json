@@ -1,4 +1,48 @@
 {
+  "ablation": {
+    "agent": {
+      "at_risk": [
+        "sponsorfit.corpus.extract.extract_sponsors",
+        "sponsorfit.llm.MeteredLLMClient",
+        "sponsorfit.llm.MeteredLLMClient._call_openai",
+        "sponsorfit.llm.MeteredLLMClient.call",
+        "sponsorfit.llm.call_llm"
+      ],
+      "hard": [
+        "sponsorfit.llm",
+        "sponsorfit.pricing"
+      ],
+      "spine": [
+        "sponsorfit.llm"
+      ],
+      "spine_match": true
+    },
+    "behavior_confirmed": 0,
+    "note": "No test suite to score. Chain match unchanged (MATCH).",
+    "static": {
+      "at_risk": [
+        "sponsorfit.corpus.extract.extract_sponsors",
+        "sponsorfit.llm.MeteredLLMClient",
+        "sponsorfit.llm.MeteredLLMClient._call_openai",
+        "sponsorfit.llm.MeteredLLMClient.call",
+        "sponsorfit.llm.call_llm"
+      ],
+      "hard": [
+        "sponsorfit.llm",
+        "sponsorfit.pricing"
+      ],
+      "spine": [
+        "sponsorfit.llm"
+      ],
+      "spine_match": true
+    },
+    "test": {
+      "agent_precision": null,
+      "agent_recall": null,
+      "static_precision": null,
+      "static_recall": null
+    }
+  },
   "after_version": null,
   "at_risk": [
     "sponsorfit.corpus.extract.extract_sponsors",
@@ -142,7 +186,7 @@
           }
         ],
         "before": null,
-        "duration_ms": 108610,
+        "duration_ms": 4,
         "edits": [
           "src/sponsorfit/llm.py",
           "src/sponsorfit/pricing.py"
@@ -198,7 +242,7 @@
           "ran": false,
           "reason": "no before env in this run"
         },
-        "duration_ms": 33069,
+        "duration_ms": 2435,
         "edits": [
           "src/sponsorfit/llm.py"
         ],
@@ -267,7 +311,7 @@
     },
     "status": "green",
     "stop_reason": "green",
-    "total_cmd_ms": 28339,
+    "total_cmd_ms": 5526,
     "touched": [
       "src/sponsorfit/llm.py",
       "src/sponsorfit/pricing.py"
@@ -293,6 +337,16 @@
   "interpret_missed": [],
   "interpret_recall": null,
   "interpret_table_size": 0,
+  "investigation": {
+    "findings": 3,
+    "kinds": {
+      "breaks_call": 3
+    },
+    "reason": "",
+    "status": "complete",
+    "triaged_out": [],
+    "verified": 2
+  },
   "layers": [
     {
       "actual": [

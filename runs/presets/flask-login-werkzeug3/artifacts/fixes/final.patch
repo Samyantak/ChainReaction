@@ -1,13 +1,12 @@
 --- a/src/flask_login/test_client.py
 +++ b/src/flask_login/test_client.py
-@@ -1,4 +1,10 @@
+@@ -1,4 +1,9 @@
 +import importlib.metadata
 +
 +import werkzeug
  from flask.testing import FlaskClient
 +
-+if "__version__" not in werkzeug.__dict__:
-+    werkzeug.__version__ = importlib.metadata.version("werkzeug")
++werkzeug.__version__ = importlib.metadata.version("werkzeug")
  
  
  class FlaskLoginClient(FlaskClient):
@@ -37,26 +36,28 @@
  from .config import EXEMPT_METHODS
 --- a/tests/test_login.py
 +++ b/tests/test_login.py
-@@ -740,9 +740,15 @@
+@@ -740,9 +740,17 @@
              result = c.get("/login-notch-remember")
              self.assertEqual(result.status_code, 200)
  
 -            cookie = c.cookie_jar._cookies[domain]["/"][name]
 -
 -            expiration_date = datetime.utcfromtimestamp(cookie.expires)
-+            cookie = c.get_cookie(name, domain=domain, path="/")
++            cookie = c.get_cookie(name, domain=domain, origin_only=False)
 +            if cookie is None:
-+                cookie = c.get_cookie(name)
++                cookie = c.get_cookie(
++                    name, domain=domain.lstrip("."), origin_only=False
++                )
 +
-+            expiration_date = cookie.expires
-+            if not isinstance(expiration_date, datetime):
-+                expiration_date = datetime.utcfromtimestamp(expiration_date)
-+            elif expiration_date.tzinfo is not None:
-+                expiration_date = expiration_date.replace(tzinfo=None)
++            expires = cookie.expires
++            if isinstance(expires, datetime):
++                expiration_date = expires.replace(tzinfo=None)
++            else:
++                expiration_date = datetime.utcfromtimestamp(expires)
              expected_date = datetime.utcnow() + duration
              difference = expected_date - expiration_date
  
-@@ -1016,7 +1022,7 @@
+@@ -1016,7 +1024,7 @@
              c.get("/login-notch-remember")
              with c.session_transaction() as sess:
                  sess["_user_id"] = None

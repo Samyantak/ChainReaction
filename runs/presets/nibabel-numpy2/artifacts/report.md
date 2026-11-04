@@ -98,6 +98,14 @@ Predicted layer-1 chain:
 - `nibabel.casting.ok_floats` -> `numpy.sctypes` (nibabel/casting.py:717)
 Chain vs layer-1 actual: MATCH
 
+## Investigator
+
+6 finding(s), 6 verified.
+
+Static: 226 HARD, 150 AT_RISK, chain MATCH
+Agent: 226 HARD, 150 AT_RISK, chain MATCH
+No test suite to score. Chain match unchanged (MATCH). Agent triaged out 60 symbol(s): numpy.DataSource, numpy.Inf, numpy.Infinity, numpy.NINF, numpy.NZERO, numpy.NaN, numpy.PINF, numpy.PZERO, numpy.add_docstring, numpy.add_newdoc, numpy.add_newdoc_ufunc, numpy.alltrue, numpy.asfarray, numpy.byte_bounds, numpy.cast, numpy.cfloat, numpy.charrarray, numpy.clongfloat, numpy.compare_chararrays, numpy.complex_, numpy.core, numpy.cumproduct, numpy.deprecate, numpy.deprecate_with_doc, numpy.disp, numpy.fastCopyAndTranspose, numpy.find_common_type, numpy.float_, numpy.format_parser, numpy.get_array_wrap, numpy.geterrobj, numpy.in1d, numpy.infty, numpy.issctype, numpy.issubclass_, numpy.issubsctype, numpy.longfloat, numpy.lookfor, numpy.mat, numpy.nbytes, numpy.ndarray.ptp, numpy.ndarray.setitem, numpy.obj2sctype, numpy.product, numpy.recfromcsv, numpy.recfromtxt, numpy.round_, numpy.safe_eval, numpy.sctype2char, numpy.set_numeric_ops, numpy.set_string_function, numpy.seterrobj, numpy.singlecomplex, numpy.sometrue, numpy.source, numpy.string_, numpy.tracemalloc_domain, numpy.trapz, numpy.unicode_, numpy.who.
+
 ## Ground truth (PR)
 
 URL: https://github.com/nipy/nibabel/pull/1250

@@ -1,0 +1,1286 @@
+{
+  "findings": [
+    {
+      "claim": "Importing aiohttp_jinja2 in the after env (jinja2 3.1.6) fails at aiohttp_jinja2/helpers.py:23 with AttributeError: module 'jinja2' has no attribute 'contextfunction' via chain aiohttp_jinja2 -> aiohttp_jinja2.helpers; before env imports ok.",
+      "confidence": "confirmed",
+      "evidence": [
+        "call_2",
+        "call_3",
+        "call_4",
+        "call_5",
+        "call_6",
+        "call_7",
+        "call_8",
+        "call_9"
+      ],
+      "id": "F1",
+      "kind": "breaks_import",
+      "sites": [
+        "aiohttp_jinja2/helpers.py:23"
+      ],
+      "symbol": "jinja2.contextfunction",
+      "tests": [],
+      "verified": true,
+      "verify_reason": ""
+    }
+  ],
+  "status": "complete",
+  "summary": "Upgrade jinja2 to 3.1 breaks aiohttp_jinja2 import: sole used change item jinja2.contextfunction (used once at helpers.py:23 import-time) was removed; after-env import of aiohttp_jinja2 and aiohttp_jinja2.helpers fails with AttributeError, while before-env import succeeds. Other 16 items have zero uses per propagate and need no probes.",
+  "trace": [
+    {
+      "args": {},
+      "id": "call_1",
+      "model_id": "call_2e0ce41f-c833-4f98-babd-c97aef3b8b3f",
+      "name": "list_changes",
+      "result": {
+        "count": 17,
+        "items": [
+          {
+            "kind": "removed",
+            "quote": "Overriding `Context.resolve` is deprecated, override",
+            "release": "3.0.0",
+            "symbol": "Context.resolve"
+          },
+          {
+            "kind": "renamed",
+            "quote": "Overriding `Context.resolve` is deprecated, override\n`resolve_or_missing` instead. #1380",
+            "release": "3.0.0",
+            "symbol": "jinja2.Context.resolve"
+          },
+          {
+            "kind": "removed",
+            "quote": "Fixed calling deprecated `jinja2.Markup` without an argument.",
+            "release": "3.0.1",
+            "symbol": "jinja2.Markup"
+          },
+          {
+            "kind": "removed",
+            "quote": "Deprecate the `autoescape` and `with` extensions, they are",
+            "release": "3.0.0",
+            "symbol": "jinja2.autoescape"
+          },
+          {
+            "kind": "removed",
+            "quote": "`pass_context` replaces `contextfunction` and\n`contextfilter`.",
+            "release": "3.0.0",
+            "symbol": "jinja2.contextfilter"
+          },
+          {
+            "kind": "removed",
+            "quote": "`pass_context` replaces `contextfunction` and\n`contextfilter`.",
+            "release": "3.0.0",
+            "symbol": "jinja2.contextfunction"
+          },
+          {
+            "kind": "removed",
+            "quote": "`pass_environment` replaces `environmentfunction` and\n`environmentfilter`.",
+            "release": "3.0.0",
+            "symbol": "jinja2.environmentfilter"
+          },
+          {
+            "kind": "removed",
+            "quote": "`pass_environment` replaces `environmentfunction` and\n`environmentfilter`.",
+            "release": "3.0.0",
+            "symbol": "jinja2.environmentfunction"
+          },
+          {
+            "kind": "renamed",
+            "quote": "`Markup` and `escape` should be imported from MarkupSafe.",
+            "release": "3.1.0",
+            "symbol": "jinja2.escape"
+          },
+          {
+            "kind": "removed",
+            "quote": "`pass_eval_context` replaces `evalcontextfunction` and\n`evalcontextfilter`",
+            "release": "3.0.0",
+            "symbol": "jinja2.evalcontextfilter"
+          },
+          {
+            "kind": "removed",
+            "quote": "`pass_eval_context` replaces `evalcontextfunction` and\n`evalcontextfilter`",
+            "release": "3.0.0",
+            "symbol": "jinja2.evalcontextfunction"
+          },
+          {
+            "kind": "removed",
+            "quote": "Deprecate the `autoescape` and `with` extensions, they are\nbuilt-in to the compiler. #1203",
+            "release": "3.0.0",
+            "symbol": "jinja2.ext.AutoEscapeExtension"
+          },
+          {
+            "kind": "removed",
+            "quote": "Deprecate the `autoescape` and `with` extensions, they are\nbuilt-in to the compiler. #1203",
+            "release": "3.0.0",
+            "symbol": "jinja2.ext.WithExtension"
+          },
+          {
+            "kind": "renamed",
+            "quote": "`unicode_urlencode` is renamed to `url_quote`.",
+            "release": "3.1.0",
+            "symbol": "jinja2.filters.unicode_urlencode"
+          },
+          {
+            "kind": "renamed",
+            "quote": "`unicode_urlencode` is renamed to `url_quote`.",
+            "release": "3.1.0",
+            "symbol": "jinja2.unicode_urlencode"
+          },
+          {
+            "kind": "removed",
+            "quote": "Deprecate the `autoescape` and `with` extensions, they are",
+            "release": "3.0.0",
+            "symbol": "jinja2.with"
+          },
+          {
+            "kind": "removed",
+            "quote": "The deprecation warning for unneeded `autoescape` and `with_`",
+            "release": "3.0.1",
+            "symbol": "jinja2.with_"
+          }
+        ],
+        "ok": true,
+        "summary": "17 change items",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbols": [
+          "Context.resolve",
+          "jinja2.Context.resolve",
+          "jinja2.Markup",
+          "jinja2.autoescape",
+          "jinja2.contextfilter",
+          "jinja2.contextfunction",
+          "jinja2.environmentfilter",
+          "jinja2.environmentfunction",
+          "jinja2.escape",
+          "jinja2.evalcontextfilter",
+          "jinja2.evalcontextfunction",
+          "jinja2.ext.AutoEscapeExtension",
+          "jinja2.ext.WithExtension",
+          "jinja2.filters.unicode_urlencode",
+          "jinja2.unicode_urlencode",
+          "jinja2.with",
+          "jinja2.with_"
+        ]
+      },
+      "id": "call_2",
+      "model_id": "call_fdc5dbe5-4b76-4cde-8ce6-05e05156f78f",
+      "name": "propagate",
+      "result": {
+        "at_risk": [],
+        "at_risk_count": 0,
+        "chain_hops": [
+          {
+            "file": "aiohttp_jinja2/__init__.py",
+            "from": "aiohttp_jinja2",
+            "line": 24,
+            "site": "aiohttp_jinja2/__init__.py:24",
+            "to": "aiohttp_jinja2.helpers"
+          },
+          {
+            "file": "aiohttp_jinja2/helpers.py",
+            "from": "aiohttp_jinja2.helpers",
+            "line": 23,
+            "site": "aiohttp_jinja2/helpers.py:23",
+            "to": "jinja2.contextfunction"
+          }
+        ],
+        "hard": [
+          "aiohttp_jinja2",
+          "aiohttp_jinja2.helpers",
+          "aiohttp_jinja2.typedefs"
+        ],
+        "hard_count": 3,
+        "ok": true,
+        "summary": "3 HARD + 0 AT_RISK modules; 1/17 symbols used; worst chain length 2",
+        "symbols": {
+          "Context.resolve": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.Context.resolve": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.Markup": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.autoescape": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.contextfilter": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.contextfunction": {
+            "import_time": 1,
+            "sites": 1
+          },
+          "jinja2.environmentfilter": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.environmentfunction": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.escape": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.evalcontextfilter": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.evalcontextfunction": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.ext.AutoEscapeExtension": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.ext.WithExtension": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.filters.unicode_urlencode": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.unicode_urlencode": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.with": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "jinja2.with_": {
+            "import_time": 0,
+            "sites": 0
+          }
+        },
+        "truncated": false,
+        "worst_chain": [
+          "aiohttp_jinja2",
+          "aiohttp_jinja2.helpers"
+        ]
+      }
+    },
+    {
+      "args": {
+        "symbol": "jinja2.contextfunction"
+      },
+      "id": "call_3",
+      "model_id": "call_76b3cbc6-87cf-44b1-9dcd-feedaa0fc2a9",
+      "name": "find_usages",
+      "result": {
+        "count": 1,
+        "ok": true,
+        "sites": [
+          {
+            "code": "@jinja2.contextfunction",
+            "def": null,
+            "file": "aiohttp_jinja2/helpers.py",
+            "import_time": true,
+            "line": 23,
+            "site": "aiohttp_jinja2/helpers.py:23"
+          }
+        ],
+        "summary": "1 sites use jinja2.contextfunction (1 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "end": 60,
+        "path": "aiohttp_jinja2/helpers.py",
+        "start": 1
+      },
+      "id": "call_4",
+      "model_id": "call_a54c4b92-731b-4463-9aee-7c4271d542fa",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            1,
+            "\"\"\""
+          ],
+          [
+            2,
+            "useful context functions, see"
+          ],
+          [
+            3,
+            "http://jinja.pocoo.org/docs/dev/api/#jinja2.contextfunction"
+          ],
+          [
+            4,
+            "\"\"\""
+          ],
+          [
+            5,
+            "import sys"
+          ],
+          [
+            6,
+            "from typing import Any, Dict, Optional, Union"
+          ],
+          [
+            7,
+            ""
+          ],
+          [
+            8,
+            "import jinja2"
+          ],
+          [
+            9,
+            "from aiohttp import web"
+          ],
+          [
+            10,
+            "from yarl import URL"
+          ],
+          [
+            11,
+            ""
+          ],
+          [
+            12,
+            "if sys.version_info >= (3, 8):"
+          ],
+          [
+            13,
+            "    from typing import TypedDict"
+          ],
+          [
+            14,
+            ""
+          ],
+          [
+            15,
+            "    class _Context(TypedDict, total=False):"
+          ],
+          [
+            16,
+            "        app: web.Application"
+          ],
+          [
+            17,
+            ""
+          ],
+          [
+            18,
+            ""
+          ],
+          [
+            19,
+            "else:"
+          ],
+          [
+            20,
+            "    _Context = Dict[str, Any]"
+          ],
+          [
+            21,
+            ""
+          ],
+          [
+            22,
+            ""
+          ],
+          [
+            23,
+            "@jinja2.contextfunction"
+          ],
+          [
+            24,
+            "def url_for("
+          ],
+          [
+            25,
+            "    context: _Context,"
+          ],
+          [
+            26,
+            "    __route_name: str,"
+          ],
+          [
+            27,
+            "    query_: Optional[Dict[str, str]] = None,"
+          ],
+          [
+            28,
+            "    **parts: Union[str, int]"
+          ],
+          [
+            29,
+            ") -> URL:"
+          ],
+          [
+            30,
+            "    \"\"\"Filter for generating urls."
+          ],
+          [
+            31,
+            ""
+          ],
+          [
+            32,
+            "    Usage: {{ url('the-view-name') }} might become \"/path/to/view\" or"
+          ],
+          [
+            33,
+            "    {{ url('item-details', id=123, query={'active': 'true'}) }}"
+          ],
+          [
+            34,
+            "    might become \"/items/1?active=true\"."
+          ],
+          [
+            35,
+            "    \"\"\""
+          ],
+          [
+            36,
+            "    app = context[\"app\"]"
+          ],
+          [
+            37,
+            ""
+          ],
+          [
+            38,
+            "    parts_clean: Dict[str, str] = {}"
+          ],
+          [
+            39,
+            "    for key in parts:"
+          ],
+          [
+            40,
+            "        val = parts[key]"
+          ],
+          [
+            41,
+            "        if isinstance(val, str):"
+          ],
+          [
+            42,
+            "            # if type is inherited from str expilict cast to str makes sense"
+          ],
+          [
+            43,
+            "            # if type is exactly str the operation is very fast"
+          ],
+          [
+            44,
+            "            val = str(val)"
+          ],
+          [
+            45,
+            "        elif type(val) is int:"
+          ],
+          [
+            46,
+            "            # int inherited classes like bool are forbidden"
+          ],
+          [
+            47,
+            "            val = str(val)"
+          ],
+          [
+            48,
+            "        else:"
+          ],
+          [
+            49,
+            "            raise TypeError("
+          ],
+          [
+            50,
+            "                \"argument value should be str or int, \""
+          ],
+          [
+            51,
+            "                \"got {} -> [{}] {!r}\".format(key, type(val), val)"
+          ],
+          [
+            52,
+            "            )"
+          ],
+          [
+            53,
+            "        parts_clean[key] = val"
+          ],
+          [
+            54,
+            ""
+          ],
+          [
+            55,
+            "    url = app.router[__route_name].url_for(**parts_clean)"
+          ],
+          [
+            56,
+            "    if query_:"
+          ],
+          [
+            57,
+            "        url = url.with_query(query_)"
+          ],
+          [
+            58,
+            "    return url"
+          ],
+          [
+            59,
+            ""
+          ],
+          [
+            60,
+            ""
+          ]
+        ],
+        "ok": true,
+        "path": "aiohttp_jinja2/helpers.py",
+        "sites": [
+          "aiohttp_jinja2/helpers.py:1",
+          "aiohttp_jinja2/helpers.py:2",
+          "aiohttp_jinja2/helpers.py:3",
+          "aiohttp_jinja2/helpers.py:4",
+          "aiohttp_jinja2/helpers.py:5",
+          "aiohttp_jinja2/helpers.py:6",
+          "aiohttp_jinja2/helpers.py:7",
+          "aiohttp_jinja2/helpers.py:8",
+          "aiohttp_jinja2/helpers.py:9",
+          "aiohttp_jinja2/helpers.py:10",
+          "aiohttp_jinja2/helpers.py:11",
+          "aiohttp_jinja2/helpers.py:12",
+          "aiohttp_jinja2/helpers.py:13",
+          "aiohttp_jinja2/helpers.py:14",
+          "aiohttp_jinja2/helpers.py:15",
+          "aiohttp_jinja2/helpers.py:16",
+          "aiohttp_jinja2/helpers.py:17",
+          "aiohttp_jinja2/helpers.py:18",
+          "aiohttp_jinja2/helpers.py:19",
+          "aiohttp_jinja2/helpers.py:20",
+          "aiohttp_jinja2/helpers.py:21",
+          "aiohttp_jinja2/helpers.py:22",
+          "aiohttp_jinja2/helpers.py:23",
+          "aiohttp_jinja2/helpers.py:24",
+          "aiohttp_jinja2/helpers.py:25",
+          "aiohttp_jinja2/helpers.py:26",
+          "aiohttp_jinja2/helpers.py:27",
+          "aiohttp_jinja2/helpers.py:28",
+          "aiohttp_jinja2/helpers.py:29",
+          "aiohttp_jinja2/helpers.py:30",
+          "aiohttp_jinja2/helpers.py:31",
+          "aiohttp_jinja2/helpers.py:32",
+          "aiohttp_jinja2/helpers.py:33",
+          "aiohttp_jinja2/helpers.py:34",
+          "aiohttp_jinja2/helpers.py:35",
+          "aiohttp_jinja2/helpers.py:36",
+          "aiohttp_jinja2/helpers.py:37",
+          "aiohttp_jinja2/helpers.py:38",
+          "aiohttp_jinja2/helpers.py:39",
+          "aiohttp_jinja2/helpers.py:40",
+          "aiohttp_jinja2/helpers.py:41",
+          "aiohttp_jinja2/helpers.py:42",
+          "aiohttp_jinja2/helpers.py:43",
+          "aiohttp_jinja2/helpers.py:44",
+          "aiohttp_jinja2/helpers.py:45",
+          "aiohttp_jinja2/helpers.py:46",
+          "aiohttp_jinja2/helpers.py:47",
+          "aiohttp_jinja2/helpers.py:48",
+          "aiohttp_jinja2/helpers.py:49",
+          "aiohttp_jinja2/helpers.py:50",
+          "aiohttp_jinja2/helpers.py:51",
+          "aiohttp_jinja2/helpers.py:52",
+          "aiohttp_jinja2/helpers.py:53",
+          "aiohttp_jinja2/helpers.py:54",
+          "aiohttp_jinja2/helpers.py:55",
+          "aiohttp_jinja2/helpers.py:56",
+          "aiohttp_jinja2/helpers.py:57",
+          "aiohttp_jinja2/helpers.py:58",
+          "aiohttp_jinja2/helpers.py:59",
+          "aiohttp_jinja2/helpers.py:60"
+        ],
+        "summary": "aiohttp_jinja2/helpers.py:1-60 (60 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "env": "after",
+        "module": "aiohttp_jinja2"
+      },
+      "id": "call_5",
+      "model_id": "call_27808015-da94-482f-bab8-22d0bdb3321a",
+      "name": "run_import_probe",
+      "result": {
+        "chain": [
+          "aiohttp_jinja2",
+          "aiohttp_jinja2.helpers"
+        ],
+        "error": {
+          "file": "aiohttp_jinja2/helpers.py",
+          "func": "<module>",
+          "line": 23,
+          "site": "aiohttp_jinja2/helpers.py:23"
+        },
+        "error_line": "AttributeError: module 'jinja2' has no attribute 'contextfunction'",
+        "ok": false,
+        "summary": "import aiohttp_jinja2 in after fails: aiohttp_jinja2 -> aiohttp_jinja2.helpers",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "env": "before",
+        "module": "aiohttp_jinja2"
+      },
+      "id": "call_6",
+      "model_id": "call_90a540e3-ab83-48d8-93e9-2505fd4792d2",
+      "name": "run_import_probe",
+      "result": {
+        "chain": [],
+        "error": null,
+        "error_line": "",
+        "ok": true,
+        "summary": "import aiohttp_jinja2 in before: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "env": "after",
+        "module": "aiohttp_jinja2.helpers"
+      },
+      "id": "call_7",
+      "model_id": "call_3923a291-f2aa-4ddf-b2ef-0807b2834756",
+      "name": "run_import_probe",
+      "result": {
+        "chain": [
+          "aiohttp_jinja2",
+          "aiohttp_jinja2.helpers"
+        ],
+        "error": {
+          "file": "aiohttp_jinja2/helpers.py",
+          "func": "<module>",
+          "line": 23,
+          "site": "aiohttp_jinja2/helpers.py:23"
+        },
+        "error_line": "AttributeError: module 'jinja2' has no attribute 'contextfunction'",
+        "ok": false,
+        "summary": "import aiohttp_jinja2.helpers in after fails: aiohttp_jinja2 -> aiohttp_jinja2.helpers",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import jinja2\nprint(jinja2.__version__)\nprint(hasattr(jinja2, 'pass_context'))\nimport aiohttp_jinja2.helpers",
+        "env": "after"
+      },
+      "id": "call_8",
+      "model_id": "call_1c74fe2e-9ac9-41b3-9bba-aef9d7d1f36a",
+      "name": "run_snippet",
+      "result": {
+        "chain": [
+          "aiohttp_jinja2",
+          "aiohttp_jinja2.helpers"
+        ],
+        "ok": false,
+        "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 4, in <module>\n  File \"<ws>/aiohttp_jinja2/__init__.py\", line 24, in <module>\n    from .helpers import GLOBAL_HELPERS\n  File \"<ws>/aiohttp_jinja2/helpers.py\", line 23, in <module>\n    @jinja2.contextfunction\nAttributeError: module 'jinja2' has no attribute 'contextfunction'",
+        "stdout": "3.1.6\nTrue\n",
+        "summary": "snippet in after: failed",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "end": 40,
+        "path": "aiohttp_jinja2/__init__.py",
+        "start": 1
+      },
+      "id": "call_9",
+      "model_id": "call_07eef64f-7f68-4ea6-b02c-dbf0cfe415d7",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            1,
+            "import asyncio"
+          ],
+          [
+            2,
+            "import functools"
+          ],
+          [
+            3,
+            "import warnings"
+          ],
+          [
+            4,
+            "from typing import ("
+          ],
+          [
+            5,
+            "    Any,"
+          ],
+          [
+            6,
+            "    Awaitable,"
+          ],
+          [
+            7,
+            "    Callable,"
+          ],
+          [
+            8,
+            "    Dict,"
+          ],
+          [
+            9,
+            "    Iterable,"
+          ],
+          [
+            10,
+            "    Mapping,"
+          ],
+          [
+            11,
+            "    Optional,"
+          ],
+          [
+            12,
+            "    Tuple,"
+          ],
+          [
+            13,
+            "    TypeVar,"
+          ],
+          [
+            14,
+            "    Union,"
+          ],
+          [
+            15,
+            "    cast,"
+          ],
+          [
+            16,
+            "    overload,"
+          ],
+          [
+            17,
+            ")"
+          ],
+          [
+            18,
+            ""
+          ],
+          [
+            19,
+            "import jinja2"
+          ],
+          [
+            20,
+            "from aiohttp import web"
+          ],
+          [
+            21,
+            "from aiohttp.abc import AbstractView"
+          ],
+          [
+            22,
+            "from typing_extensions import Protocol"
+          ],
+          [
+            23,
+            ""
+          ],
+          [
+            24,
+            "from .helpers import GLOBAL_HELPERS"
+          ],
+          [
+            25,
+            "from .typedefs import Filters"
+          ],
+          [
+            26,
+            ""
+          ],
+          [
+            27,
+            "__version__ = \"1.4.2\""
+          ],
+          [
+            28,
+            ""
+          ],
+          [
+            29,
+            "__all__ = (\"setup\", \"get_env\", \"render_template\", \"render_string\", \"template\")"
+          ],
+          [
+            30,
+            ""
+          ],
+          [
+            31,
+            ""
+          ],
+          [
+            32,
+            "APP_CONTEXT_PROCESSORS_KEY = \"aiohttp_jinja2_context_processors\""
+          ],
+          [
+            33,
+            "APP_KEY = \"aiohttp_jinja2_environment\""
+          ],
+          [
+            34,
+            "REQUEST_CONTEXT_KEY = \"aiohttp_jinja2_context\""
+          ],
+          [
+            35,
+            ""
+          ],
+          [
+            36,
+            "_TemplateReturnType = Awaitable[Union[web.StreamResponse, Mapping[str, Any]]]"
+          ],
+          [
+            37,
+            "_SimpleTemplateHandler = Callable[[web.Request], _TemplateReturnType]"
+          ],
+          [
+            38,
+            "_ContextProcessor = Callable[[web.Request], Awaitable[Dict[str, Any]]]"
+          ],
+          [
+            39,
+            ""
+          ],
+          [
+            40,
+            "_T = TypeVar(\"_T\")"
+          ]
+        ],
+        "ok": true,
+        "path": "aiohttp_jinja2/__init__.py",
+        "sites": [
+          "aiohttp_jinja2/__init__.py:1",
+          "aiohttp_jinja2/__init__.py:2",
+          "aiohttp_jinja2/__init__.py:3",
+          "aiohttp_jinja2/__init__.py:4",
+          "aiohttp_jinja2/__init__.py:5",
+          "aiohttp_jinja2/__init__.py:6",
+          "aiohttp_jinja2/__init__.py:7",
+          "aiohttp_jinja2/__init__.py:8",
+          "aiohttp_jinja2/__init__.py:9",
+          "aiohttp_jinja2/__init__.py:10",
+          "aiohttp_jinja2/__init__.py:11",
+          "aiohttp_jinja2/__init__.py:12",
+          "aiohttp_jinja2/__init__.py:13",
+          "aiohttp_jinja2/__init__.py:14",
+          "aiohttp_jinja2/__init__.py:15",
+          "aiohttp_jinja2/__init__.py:16",
+          "aiohttp_jinja2/__init__.py:17",
+          "aiohttp_jinja2/__init__.py:18",
+          "aiohttp_jinja2/__init__.py:19",
+          "aiohttp_jinja2/__init__.py:20",
+          "aiohttp_jinja2/__init__.py:21",
+          "aiohttp_jinja2/__init__.py:22",
+          "aiohttp_jinja2/__init__.py:23",
+          "aiohttp_jinja2/__init__.py:24",
+          "aiohttp_jinja2/__init__.py:25",
+          "aiohttp_jinja2/__init__.py:26",
+          "aiohttp_jinja2/__init__.py:27",
+          "aiohttp_jinja2/__init__.py:28",
+          "aiohttp_jinja2/__init__.py:29",
+          "aiohttp_jinja2/__init__.py:30",
+          "aiohttp_jinja2/__init__.py:31",
+          "aiohttp_jinja2/__init__.py:32",
+          "aiohttp_jinja2/__init__.py:33",
+          "aiohttp_jinja2/__init__.py:34",
+          "aiohttp_jinja2/__init__.py:35",
+          "aiohttp_jinja2/__init__.py:36",
+          "aiohttp_jinja2/__init__.py:37",
+          "aiohttp_jinja2/__init__.py:38",
+          "aiohttp_jinja2/__init__.py:39",
+          "aiohttp_jinja2/__init__.py:40"
+        ],
+        "summary": "aiohttp_jinja2/__init__.py:1-40 (40 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "findings": [
+          {
+            "claim": "Importing aiohttp_jinja2 in the after env (jinja2 3.1.6) fails at aiohttp_jinja2/helpers.py:23 with AttributeError: module 'jinja2' has no attribute 'contextfunction' via chain aiohttp_jinja2 -> aiohttp_jinja2.helpers; before env imports ok.",
+            "confidence": "confirmed",
+            "evidence": [
+              "call_2",
+              "call_3",
+              "call_4",
+              "call_5",
+              "call_6",
+              "call_7",
+              "call_8",
+              "call_9"
+            ],
+            "id": "F1",
+            "kind": "breaks_import",
+            "sites": [
+              "aiohttp_jinja2/helpers.py:23"
+            ],
+            "symbol": "jinja2.contextfunction",
+            "tests": []
+          }
+        ],
+        "summary": "Upgrade jinja2 to 3.1 breaks aiohttp_jinja2 import: sole used change item jinja2.contextfunction (used once at helpers.py:23 import-time) was removed; after-env import of aiohttp_jinja2 and aiohttp_jinja2.helpers fails with AttributeError, while before-env import succeeds. Other 16 items have zero uses per propagate and need no probes.",
+        "triage": [
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for Context.resolve",
+            "relevant": false,
+            "symbol": "Context.resolve"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.Context.resolve",
+            "relevant": false,
+            "symbol": "jinja2.Context.resolve"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.Markup",
+            "relevant": false,
+            "symbol": "jinja2.Markup"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.autoescape",
+            "relevant": false,
+            "symbol": "jinja2.autoescape"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.contextfilter",
+            "relevant": false,
+            "symbol": "jinja2.contextfilter"
+          },
+          {
+            "evidence": [
+              "call_2",
+              "call_3",
+              "call_4"
+            ],
+            "reason": "propagate reports 1 site, 1 import-time use; find_usages confirms @jinja2.contextfunction at helpers.py:23 import-time true",
+            "relevant": true,
+            "symbol": "jinja2.contextfunction"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.environmentfilter",
+            "relevant": false,
+            "symbol": "jinja2.environmentfilter"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.environmentfunction",
+            "relevant": false,
+            "symbol": "jinja2.environmentfunction"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.escape",
+            "relevant": false,
+            "symbol": "jinja2.escape"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.evalcontextfilter",
+            "relevant": false,
+            "symbol": "jinja2.evalcontextfilter"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.evalcontextfunction",
+            "relevant": false,
+            "symbol": "jinja2.evalcontextfunction"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.ext.AutoEscapeExtension",
+            "relevant": false,
+            "symbol": "jinja2.ext.AutoEscapeExtension"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.ext.WithExtension",
+            "relevant": false,
+            "symbol": "jinja2.ext.WithExtension"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.filters.unicode_urlencode",
+            "relevant": false,
+            "symbol": "jinja2.filters.unicode_urlencode"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.unicode_urlencode",
+            "relevant": false,
+            "symbol": "jinja2.unicode_urlencode"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.with",
+            "relevant": false,
+            "symbol": "jinja2.with"
+          },
+          {
+            "evidence": [
+              "call_2"
+            ],
+            "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.with_",
+            "relevant": false,
+            "symbol": "jinja2.with_"
+          }
+        ]
+      },
+      "id": "call_10",
+      "model_id": "call_54f5f316-58e4-4863-944d-c6e41b30ad29",
+      "name": "submit_findings",
+      "result": {
+        "ok": true,
+        "summary": "findings accepted"
+      }
+    }
+  ],
+  "triage": [
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for Context.resolve",
+      "relevant": false,
+      "symbol": "Context.resolve",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.Context.resolve",
+      "relevant": false,
+      "symbol": "jinja2.Context.resolve",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.Markup",
+      "relevant": false,
+      "symbol": "jinja2.Markup",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.autoescape",
+      "relevant": false,
+      "symbol": "jinja2.autoescape",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.contextfilter",
+      "relevant": false,
+      "symbol": "jinja2.contextfilter",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2",
+        "call_3",
+        "call_4"
+      ],
+      "reason": "propagate reports 1 site, 1 import-time use; find_usages confirms @jinja2.contextfunction at helpers.py:23 import-time true",
+      "relevant": true,
+      "symbol": "jinja2.contextfunction",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.environmentfilter",
+      "relevant": false,
+      "symbol": "jinja2.environmentfilter",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.environmentfunction",
+      "relevant": false,
+      "symbol": "jinja2.environmentfunction",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.escape",
+      "relevant": false,
+      "symbol": "jinja2.escape",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.evalcontextfilter",
+      "relevant": false,
+      "symbol": "jinja2.evalcontextfilter",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.evalcontextfunction",
+      "relevant": false,
+      "symbol": "jinja2.evalcontextfunction",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.ext.AutoEscapeExtension",
+      "relevant": false,
+      "symbol": "jinja2.ext.AutoEscapeExtension",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.ext.WithExtension",
+      "relevant": false,
+      "symbol": "jinja2.ext.WithExtension",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.filters.unicode_urlencode",
+      "relevant": false,
+      "symbol": "jinja2.filters.unicode_urlencode",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.unicode_urlencode",
+      "relevant": false,
+      "symbol": "jinja2.unicode_urlencode",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.with",
+      "relevant": false,
+      "symbol": "jinja2.with",
+      "verified": true,
+      "verify_reason": ""
+    },
+    {
+      "evidence": [
+        "call_2"
+      ],
+      "reason": "propagate reports 0 sites, 0 import-time uses for jinja2.with_",
+      "relevant": false,
+      "symbol": "jinja2.with_",
+      "verified": true,
+      "verify_reason": ""
+    }
+  ],
+  "usage": {
+    "probe_calls": 4,
+    "tokens": 27961,
+    "tool_calls": 10,
+    "turns": 5
+  }
+}

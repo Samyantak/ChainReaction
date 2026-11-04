@@ -1,0 +1,32 @@
+{
+  "at_risk": [
+    "sponsorfit.corpus.extract.extract_sponsors",
+    "sponsorfit.llm.MeteredLLMClient",
+    "sponsorfit.llm.MeteredLLMClient._call_openai",
+    "sponsorfit.llm.MeteredLLMClient.call",
+    "sponsorfit.llm.call_llm"
+  ],
+  "change_symbols": [],
+  "changed_symbols": [],
+  "deprecated_symbols": [],
+  "hard": [
+    "sponsorfit.llm",
+    "sponsorfit.pricing"
+  ],
+  "probe_entries": [
+    "sponsorfit.llm.MeteredLLMClient",
+    "sponsorfit.llm.MeteredLLMClient.call"
+  ],
+  "spine": [
+    "sponsorfit.llm"
+  ],
+  "spine_evidence": [
+    [
+      "sponsorfit.llm.MeteredLLMClient.call",
+      "sponsorfit.llm",
+      "src/sponsorfit/llm.py",
+      14
+    ]
+  ],
+  "used_symbols": []
+}

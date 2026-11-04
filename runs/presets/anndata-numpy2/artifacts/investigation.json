@@ -1,0 +1,2986 @@
+{
+  "findings": [],
+  "reason": "model did not call submit_findings",
+  "status": "incomplete",
+  "summary": "",
+  "trace": [
+    {
+      "args": {},
+      "id": "call_1",
+      "model_id": "call_d41122af-4f41-495c-9463-061da7b30c72",
+      "name": "list_changes",
+      "result": {
+        "count": 150,
+        "items": [
+          {
+            "kind": "deprecated",
+            "quote": "-   `np.safe_eval` has been deprecated. `ast.literal_eval` should be\n    used instead.",
+            "release": "2.0.0",
+            "symbol": "ast.literal_eval"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `f2py.compile()` helper has been removed because it leaked\n    memory, has been marked as experimental for several years now, and\n    was implemented as a thin `subprocess.run` wrapper. It was also one\n    of the test bottlenecks. See\n    [gh-25122](https://github.com/numpy/numpy/issues/25122) for the full\n    rationale. It also used several `np.distutils` features which are\n    too fragile to be ported to work with `meson`.",
+            "release": "2.0.0",
+            "symbol": "f2py.compile"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.ALLOW_THREADS"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `fasttake`, `fastclip`, and `fastputmask` `ArrFuncs` deprecation\n    is now finalized.",
+            "release": "2.0.0",
+            "symbol": "numpy.ArrFuncs"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.BUFSIZE"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.CLIP"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.FLOATING_POINT_SUPPORT"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.Inf` has been removed. Use `np.inf` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.Inf"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.Infinity` has been removed. Use `np.inf` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.Infinity"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.MAXDIMS"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.MAY_SHARE_BOUNDS"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.MAY_SHARE_EXACT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The advanced indexing `MapIter` and related API has been removed.\n    The (truly) public part of it was not well tested and had only one\n    known user (Theano). Making it private will simplify improvements to\n    speed up `ufunc.at`, make advanced indexing more maintainable, and\n    was important for increasing the maximum number of dimensions of\n    arrays to 64. Please let us know if this API is important to you so\n    we can find a solution together.",
+            "release": "2.0.0",
+            "symbol": "numpy.MapIter"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.NINF"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Using `NPY_CHAR` in `PyArray_DescrFromType()` will raise, use\n    `NPY_STRING` `NPY_UNICODE`, or `NPY_VSTRING` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_CHAR"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `numpy/old_defines.h` which was part of the API deprecated since\n    NumPy 1.7 has been removed. This removes macros of the form\n    `PyArray_CONSTANT`. The\n    [replace_old_macros.sed](https://github.com/numpy/numpy/blob/main/tools/replace_old_macros.sed)\n    script may be useful to convert them to the `NPY_CONSTANT` version.",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_CONSTANT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `NPY_INTPLTR` has been removed to avoid confusion (see `intp`\n    redefinition).",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_INTPLTR"
+          },
+          {
+            "kind": "removed",
+            "quote": "`NPY_MAXARGS` to eventually allow removing the constraint completely.",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_MAXARGS"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `NPY_MAX_ELSIZE` macro has been removed, as it only ever\n    reflected builtin numeric types and served no internal purpose.",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_MAX_ELSIZE"
+          },
+          {
+            "kind": "renamed",
+            "quote": "`NPY_NTYPES` has been renamed to `NPY_NTYPES_LEGACY`",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_NTYPES"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_REFCNT` and `NPY_REFCOUNT` are removed. Use `Py_REFCNT`\n    instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_REFCOUNT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `npy_interrupt.h` and the corresponding macros like `NPY_SIGINT_ON`\n    have been removed. We recommend querying `PyErr_CheckSignals()` or\n    `PyOS_InterruptOccurred()` periodically (these do currently require\n    holding the GIL though).",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_SIGINT_ON"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.NZERO"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.NaN` has been removed. Use `np.nan` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.NaN"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "the `axes` parameter set to `None` has been deprecated, in line with the",
+            "release": "2.0.0",
+            "symbol": "numpy.None"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.PINF"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.PZERO"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArrayFlags_Type` and `PyArray_NewFlagsObject` as well as\n    `PyArrayFlagsObject` are private now. There is no known use-case;\n    use the Python API if needed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArrayFlagsObject"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArrayFlags_Type` and `PyArray_NewFlagsObject` as well as\n    `PyArrayFlagsObject` are private now. There is no known use-case;\n    use the Python API if needed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArrayFlags_Type"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CEQ"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CGE"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CGT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CLE"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CLT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CNE"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `numpy/old_defines.h` which was part of the API deprecated since\n    NumPy 1.7 has been removed. This removes macros of the form\n    `PyArray_CONSTANT`. The\n    [replace_old_macros.sed](https://github.com/numpy/numpy/blob/main/tools/replace_old_macros.sed)\n    script may be useful to convert them to the `NPY_CONSTANT` version.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CONSTANT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_MoveInto`, `PyArray_CastTo`, `PyArray_CastAnyTo` are\n    removed use `PyArray_CopyInto` and if absolutely needed\n    `PyArray_CopyAnyInto` (the latter does a flat copy).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CastAnyTo"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_GetCastFunc` is removed. Note that custom legacy user\n    dtypes can still provide a castfunc as their implementation, but any\n    access to them is now removed. The reason for this is that NumPy\n    never used these internally for many years. If you use simple\n    numeric types, please just use C casts directly. In case you require\n    an alternative, please let us know so we can create new API such as\n    `PyArray_CastBuffer()` which could use old or new cast functions\n    depending on the NumPy version.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CastBuffer"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_MoveInto`, `PyArray_CastTo`, `PyArray_CastAnyTo` are\n    removed use `PyArray_CopyInto` and if absolutely needed\n    `PyArray_CopyAnyInto` (the latter does a flat copy).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CastTo"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_CompareUCS4` and `PyArray_CompareString` are removed. Use\n    the standard C string comparison functions.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CompareString"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_CompareUCS4` and `PyArray_CompareString` are removed. Use\n    the standard C string comparison functions.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CompareUCS4"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Using `NPY_CHAR` in `PyArray_DescrFromType()` will raise, use\n    `NPY_STRING` `NPY_UNICODE`, or `NPY_VSTRING` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_DescrFromType"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_FieldNames` is removed, as it is unclear what it would be\n    useful for. It also has incorrect semantics in some possible\n    use-cases.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_FieldNames"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_FillObjectArray` is removed, its only true use was for\n    implementing `np.empty`. Create a new empty array or use\n    `PyArray_FillWithScalar()` (decrefs existing objects).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_FillObjectArray"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `->f` slot has been removed from `PyArray_Descr`. If you use this slot,\n    replace accessing it with `PyDataType_GetArrFuncs` (see its documentation\n    and the `numpy-2-migration-guide`). In some cases using other functions\n    like `PyArray_GETITEM` may be an alternatives.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_GETITEM"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_GetCastFunc` is removed. Note that custom legacy user\n    dtypes can still provide a castfunc as their implementation, but any\n    access to them is now removed. The reason for this is that NumPy\n    never used these internally for many years. If you use simple\n    numeric types, please just use C casts directly. In case you require\n    an alternative, please let us know so we can create new API such as\n    `PyArray_CastBuffer()` which could use old or new cast functions\n    depending on the NumPy version.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_GetCastFunc"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The deprecation of `set_numeric_ops` and the C functions\n    `PyArray_SetNumericOps` and `PyArray_GetNumericOps` has been expired\n    and the functions removed. (Deprecated in NumPy 1.16)",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_GetNumericOps"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_ISPYTHON` is removed as it is misleading, has no known\n    use-cases, and is easy to replace.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_ISPYTHON"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_MoveInto`, `PyArray_CastTo`, `PyArray_CastAnyTo` are\n    removed use `PyArray_CopyInto` and if absolutely needed\n    `PyArray_CopyAnyInto` (the latter does a flat copy).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_MoveInto"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArrayFlags_Type` and `PyArray_NewFlagsObject` as well as\n    `PyArrayFlagsObject` are private now. There is no known use-case;\n    use the Python API if needed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_NewFlagsObject"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_REFCNT` and `NPY_REFCOUNT` are removed. Use `Py_REFCNT`\n    instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_REFCNT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The deprecation of `PyArray_ScalarFromObject` is now finalized.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_ScalarFromObject"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The deprecation of `set_numeric_ops` and the C functions\n    `PyArray_SetNumericOps` and `PyArray_GetNumericOps` has been expired\n    and the functions removed. (Deprecated in NumPy 1.16)",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_SetNumericOps"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_TypestrConvert` is removed, since it seems a misnomer and\n    unlikely to be used by anyone. If you know the size or are limited\n    to few types, just use it explicitly, otherwise go via Python\n    strings.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_TypestrConvert"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyDataMem_SetEventHook` deprecation has expired and it is\n    removed. Use `tracemalloc` and the `np.lib.tracemalloc_domain`\n    domain. (Deprecated in NumPy 1.23)",
+            "release": "2.0.0",
+            "symbol": "numpy.PyDataMem_SetEventHook"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyDataType_GetDatetimeMetaData` is removed, it did not actually do\n    anything since at least NumPy 1.7.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyDataType_GetDatetimeMetaData"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `npy_interrupt.h` and the corresponding macros like `NPY_SIGINT_ON`\n    have been removed. We recommend querying `PyErr_CheckSignals()` or\n    `PyOS_InterruptOccurred()` periodically (these do currently require\n    holding the GIL though).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyErr_CheckSignals"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `npy_interrupt.h` and the corresponding macros like `NPY_SIGINT_ON`\n    have been removed. We recommend querying `PyErr_CheckSignals()` or\n    `PyOS_InterruptOccurred()` periodically (these do currently require\n    holding the GIL though).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyOS_InterruptOccurred"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyUFunc_GetPyVals`, `PyUFunc_handlefperr`, and `PyUFunc_checkfperr`\n    have been removed. If needed, a new backwards compatible function to\n    raise floating point errors could be restored. Reason for removal:\n    there are no known users and the functions would have made\n    `with np.errstate()` fixes much more difficult).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyUFunc_GetPyVals"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyUFunc_GetPyVals`, `PyUFunc_handlefperr`, and `PyUFunc_checkfperr`\n    have been removed. If needed, a new backwards compatible function to\n    raise floating point errors could be restored. Reason for removal:\n    there are no known users and the functions would have made\n    `with np.errstate()` fixes much more difficult).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyUFunc_checkfperr"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyUFunc_GetPyVals`, `PyUFunc_handlefperr`, and `PyUFunc_checkfperr`\n    have been removed. If needed, a new backwards compatible function to\n    raise floating point errors could be restored. Reason for removal:\n    there are no known users and the functions would have made\n    `with np.errstate()` fixes much more difficult).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyUFunc_handlefperr"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.RAISE"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.UFUNC_BUFSIZE_DEFAULT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.UFUNC_PYVALS_NAME"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.WRAP"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `__array_wrap__` is now passed `arr, context, return_scalar` and\n    support for implementations not accepting all three are deprecated.\n    Its signature should be\n    `__array_wrap__(self, arr, context=None, return_scalar=False)`",
+            "release": "2.0.0",
+            "symbol": "numpy.__array_wrap__"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`numpy._core` without a deprecation warning but we do not provide any",
+            "release": "2.0.0",
+            "symbol": "numpy._core"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.add_docstring"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.add_newdoc"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.add_newdoc_ufunc"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `__array_wrap__` is now passed `arr, context, return_scalar` and\n    support for implementations not accepting all three are deprecated.\n    Its signature should be\n    `__array_wrap__(self, arr, context=None, return_scalar=False)`",
+            "release": "2.0.0",
+            "symbol": "numpy.arr"
+          },
+          {
+            "kind": "removed",
+            "quote": "The experimental `numpy.array_api` submodule has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.array_api"
+          },
+          {
+            "kind": "removed",
+            "quote": "`np.asfarray` has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.asfarray"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `np.binary_repr(a, width)` will raise if width is too small.",
+            "release": "2.0.0",
+            "symbol": "numpy.binary_repr"
+          },
+          {
+            "kind": "removed",
+            "quote": "`np.cast` has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.cast"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.cfloat` has been removed. Use `np.complex128` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.cfloat"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`np.strings` instead of `np.char`. In the future we may deprecate",
+            "release": "2.0.0",
+            "symbol": "numpy.char"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `charrarray` in the main namespace has been deprecated. It can\n    be imported without a deprecation warning from `np.char.chararray`\n    for now, but we are planning to fully deprecate and remove\n    `chararray` in the future.",
+            "release": "2.0.0",
+            "symbol": "numpy.char.chararray"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `charrarray` in the main namespace has been deprecated. It can\n    be imported without a deprecation warning from `np.char.chararray`\n    for now, but we are planning to fully deprecate and remove\n    `chararray` in the future.",
+            "release": "2.0.0",
+            "symbol": "numpy.chararray"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `charrarray` in the main namespace has been deprecated. It can\n    be imported without a deprecation warning from `np.char.chararray`\n    for now, but we are planning to fully deprecate and remove\n    `chararray` in the future.",
+            "release": "2.0.0",
+            "symbol": "numpy.charrarray"
+          },
+          {
+            "kind": "removed",
+            "quote": "`np.clongfloat` has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.clongfloat"
+          },
+          {
+            "kind": "renamed",
+            "quote": "`np.compare_chararrays` has been removed from the main namespace.",
+            "release": "2.0.0",
+            "symbol": "numpy.compare_chararrays"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`np.compat` has been deprecated, as Python 2 is no longer supported.",
+            "release": "2.0.0",
+            "symbol": "numpy.compat"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.complex_` has been removed. Use `np.complex128` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.complex_"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `__array_wrap__` is now passed `arr, context, return_scalar` and\n    support for implementations not accepting all three are deprecated.\n    Its signature should be\n    `__array_wrap__(self, arr, context=None, return_scalar=False)`",
+            "release": "2.0.0",
+            "symbol": "numpy.context"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "Accessing `numpy.core` now emits a DeprecationWarning.",
+            "release": "2.0.0",
+            "symbol": "numpy.core"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `np.core.umath_tests` submodule has been removed from the public\n    API. (Deprecated in NumPy 1.15)",
+            "release": "2.0.0",
+            "symbol": "numpy.core.umath_tests"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   Arrays of 2-dimensional vectors for `np.cross` have been deprecated.\n    Use arrays of 3-dimensional vectors instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.cross"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Deprecated `np.deprecate` and `np.deprecate_with_doc` has been\n    removed from the main namespace. Use `DeprecationWarning` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.deprecate"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Deprecated `np.deprecate` and `np.deprecate_with_doc` has been\n    removed from the main namespace. Use `DeprecationWarning` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.deprecate_with_doc"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `np.recfromcsv`, `np.recfromtxt`, `np.disp`, `np.get_array_wrap`,\n    `np.maximum_sctype`, `np.deprecate` and `np.deprecate_with_doc` have\n    been deprecated.",
+            "release": "2.0.0",
+            "symbol": "numpy.disp"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `f2py.compile()` helper has been removed because it leaked\n    memory, has been marked as experimental for several years now, and\n    was implemented as a thin `subprocess.run` wrapper. It was also one\n    of the test bottlenecks. See\n    [gh-25122](https://github.com/numpy/numpy/issues/25122) for the full\n    rationale. It also used several `np.distutils` features which are\n    too fragile to be ported to work with `meson`.",
+            "release": "2.0.0",
+            "symbol": "numpy.distutils"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `np.dtype(\"a\")` alias for `np.dtype(np.bytes_)` was deprecated. Use\n    `np.dtype(\"S\")` alias instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.dtype"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Warnings and exceptions present in `numpy.exceptions`,\n    e.g, `numpy.exceptions.ComplexWarning`, \n    `numpy.exceptions.VisibleDeprecationWarning`, are no\n    longer exposed in the main namespace.",
+            "release": "2.0.0",
+            "symbol": "numpy.exceptions"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Warnings and exceptions present in `numpy.exceptions`,\n    e.g, `numpy.exceptions.ComplexWarning`, \n    `numpy.exceptions.VisibleDeprecationWarning`, are no\n    longer exposed in the main namespace.",
+            "release": "2.0.0",
+            "symbol": "numpy.exceptions.ComplexWarning"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Warnings and exceptions present in `numpy.exceptions`,\n    e.g, `numpy.exceptions.ComplexWarning`, \n    `numpy.exceptions.VisibleDeprecationWarning`, are no\n    longer exposed in the main namespace.",
+            "release": "2.0.0",
+            "symbol": "numpy.exceptions.VisibleDeprecationWarning"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The deprecated function `fastCopyAndTranspose` and its C counterpart\n    are now removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.fastCopyAndTranspose"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `fasttake`, `fastclip`, and `fastputmask` `ArrFuncs` deprecation\n    is now finalized.",
+            "release": "2.0.0",
+            "symbol": "numpy.fastclip"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `fasttake`, `fastclip`, and `fastputmask` `ArrFuncs` deprecation\n    is now finalized.",
+            "release": "2.0.0",
+            "symbol": "numpy.fastputmask"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `fasttake`, `fastclip`, and `fastputmask` `ArrFuncs` deprecation\n    is now finalized.",
+            "release": "2.0.0",
+            "symbol": "numpy.fasttake"
+          }
+        ],
+        "ok": true,
+        "summary": "150 change items",
+        "truncated": true
+      }
+    },
+    {
+      "args": {
+        "kind": "removed"
+      },
+      "id": "call_2",
+      "model_id": "call_ba8f761e-2229-431f-aac3-544210680718",
+      "name": "list_changes",
+      "result": {
+        "count": 121,
+        "items": [
+          {
+            "kind": "removed",
+            "quote": "-   The `f2py.compile()` helper has been removed because it leaked\n    memory, has been marked as experimental for several years now, and\n    was implemented as a thin `subprocess.run` wrapper. It was also one\n    of the test bottlenecks. See\n    [gh-25122](https://github.com/numpy/numpy/issues/25122) for the full\n    rationale. It also used several `np.distutils` features which are\n    too fragile to be ported to work with `meson`.",
+            "release": "2.0.0",
+            "symbol": "f2py.compile"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.ALLOW_THREADS"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `fasttake`, `fastclip`, and `fastputmask` `ArrFuncs` deprecation\n    is now finalized.",
+            "release": "2.0.0",
+            "symbol": "numpy.ArrFuncs"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.BUFSIZE"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.CLIP"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.FLOATING_POINT_SUPPORT"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.Inf` has been removed. Use `np.inf` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.Inf"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.Infinity` has been removed. Use `np.inf` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.Infinity"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.MAXDIMS"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.MAY_SHARE_BOUNDS"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.MAY_SHARE_EXACT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The advanced indexing `MapIter` and related API has been removed.\n    The (truly) public part of it was not well tested and had only one\n    known user (Theano). Making it private will simplify improvements to\n    speed up `ufunc.at`, make advanced indexing more maintainable, and\n    was important for increasing the maximum number of dimensions of\n    arrays to 64. Please let us know if this API is important to you so\n    we can find a solution together.",
+            "release": "2.0.0",
+            "symbol": "numpy.MapIter"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.NINF"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Using `NPY_CHAR` in `PyArray_DescrFromType()` will raise, use\n    `NPY_STRING` `NPY_UNICODE`, or `NPY_VSTRING` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_CHAR"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `numpy/old_defines.h` which was part of the API deprecated since\n    NumPy 1.7 has been removed. This removes macros of the form\n    `PyArray_CONSTANT`. The\n    [replace_old_macros.sed](https://github.com/numpy/numpy/blob/main/tools/replace_old_macros.sed)\n    script may be useful to convert them to the `NPY_CONSTANT` version.",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_CONSTANT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `NPY_INTPLTR` has been removed to avoid confusion (see `intp`\n    redefinition).",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_INTPLTR"
+          },
+          {
+            "kind": "removed",
+            "quote": "`NPY_MAXARGS` to eventually allow removing the constraint completely.",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_MAXARGS"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `NPY_MAX_ELSIZE` macro has been removed, as it only ever\n    reflected builtin numeric types and served no internal purpose.",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_MAX_ELSIZE"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_REFCNT` and `NPY_REFCOUNT` are removed. Use `Py_REFCNT`\n    instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_REFCOUNT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `npy_interrupt.h` and the corresponding macros like `NPY_SIGINT_ON`\n    have been removed. We recommend querying `PyErr_CheckSignals()` or\n    `PyOS_InterruptOccurred()` periodically (these do currently require\n    holding the GIL though).",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_SIGINT_ON"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.NZERO"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.NaN` has been removed. Use `np.nan` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.NaN"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.PINF"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.PZERO"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArrayFlags_Type` and `PyArray_NewFlagsObject` as well as\n    `PyArrayFlagsObject` are private now. There is no known use-case;\n    use the Python API if needed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArrayFlagsObject"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArrayFlags_Type` and `PyArray_NewFlagsObject` as well as\n    `PyArrayFlagsObject` are private now. There is no known use-case;\n    use the Python API if needed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArrayFlags_Type"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CEQ"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CGE"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CGT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CLE"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CLT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyArray_CGT`, `PyArray_CLT`, `PyArray_CGE`, `PyArray_CLE`,\n    `PyArray_CEQ`, `PyArray_CNE` macros have been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CNE"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `numpy/old_defines.h` which was part of the API deprecated since\n    NumPy 1.7 has been removed. This removes macros of the form\n    `PyArray_CONSTANT`. The\n    [replace_old_macros.sed](https://github.com/numpy/numpy/blob/main/tools/replace_old_macros.sed)\n    script may be useful to convert them to the `NPY_CONSTANT` version.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CONSTANT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_MoveInto`, `PyArray_CastTo`, `PyArray_CastAnyTo` are\n    removed use `PyArray_CopyInto` and if absolutely needed\n    `PyArray_CopyAnyInto` (the latter does a flat copy).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CastAnyTo"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_GetCastFunc` is removed. Note that custom legacy user\n    dtypes can still provide a castfunc as their implementation, but any\n    access to them is now removed. The reason for this is that NumPy\n    never used these internally for many years. If you use simple\n    numeric types, please just use C casts directly. In case you require\n    an alternative, please let us know so we can create new API such as\n    `PyArray_CastBuffer()` which could use old or new cast functions\n    depending on the NumPy version.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CastBuffer"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_MoveInto`, `PyArray_CastTo`, `PyArray_CastAnyTo` are\n    removed use `PyArray_CopyInto` and if absolutely needed\n    `PyArray_CopyAnyInto` (the latter does a flat copy).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CastTo"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_CompareUCS4` and `PyArray_CompareString` are removed. Use\n    the standard C string comparison functions.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CompareString"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_CompareUCS4` and `PyArray_CompareString` are removed. Use\n    the standard C string comparison functions.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_CompareUCS4"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Using `NPY_CHAR` in `PyArray_DescrFromType()` will raise, use\n    `NPY_STRING` `NPY_UNICODE`, or `NPY_VSTRING` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_DescrFromType"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_FieldNames` is removed, as it is unclear what it would be\n    useful for. It also has incorrect semantics in some possible\n    use-cases.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_FieldNames"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_FillObjectArray` is removed, its only true use was for\n    implementing `np.empty`. Create a new empty array or use\n    `PyArray_FillWithScalar()` (decrefs existing objects).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_FillObjectArray"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `->f` slot has been removed from `PyArray_Descr`. If you use this slot,\n    replace accessing it with `PyDataType_GetArrFuncs` (see its documentation\n    and the `numpy-2-migration-guide`). In some cases using other functions\n    like `PyArray_GETITEM` may be an alternatives.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_GETITEM"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_GetCastFunc` is removed. Note that custom legacy user\n    dtypes can still provide a castfunc as their implementation, but any\n    access to them is now removed. The reason for this is that NumPy\n    never used these internally for many years. If you use simple\n    numeric types, please just use C casts directly. In case you require\n    an alternative, please let us know so we can create new API such as\n    `PyArray_CastBuffer()` which could use old or new cast functions\n    depending on the NumPy version.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_GetCastFunc"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The deprecation of `set_numeric_ops` and the C functions\n    `PyArray_SetNumericOps` and `PyArray_GetNumericOps` has been expired\n    and the functions removed. (Deprecated in NumPy 1.16)",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_GetNumericOps"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_ISPYTHON` is removed as it is misleading, has no known\n    use-cases, and is easy to replace.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_ISPYTHON"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_MoveInto`, `PyArray_CastTo`, `PyArray_CastAnyTo` are\n    removed use `PyArray_CopyInto` and if absolutely needed\n    `PyArray_CopyAnyInto` (the latter does a flat copy).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_MoveInto"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArrayFlags_Type` and `PyArray_NewFlagsObject` as well as\n    `PyArrayFlagsObject` are private now. There is no known use-case;\n    use the Python API if needed.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_NewFlagsObject"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_REFCNT` and `NPY_REFCOUNT` are removed. Use `Py_REFCNT`\n    instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_REFCNT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The deprecation of `PyArray_ScalarFromObject` is now finalized.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_ScalarFromObject"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The deprecation of `set_numeric_ops` and the C functions\n    `PyArray_SetNumericOps` and `PyArray_GetNumericOps` has been expired\n    and the functions removed. (Deprecated in NumPy 1.16)",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_SetNumericOps"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyArray_TypestrConvert` is removed, since it seems a misnomer and\n    unlikely to be used by anyone. If you know the size or are limited\n    to few types, just use it explicitly, otherwise go via Python\n    strings.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyArray_TypestrConvert"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `PyDataMem_SetEventHook` deprecation has expired and it is\n    removed. Use `tracemalloc` and the `np.lib.tracemalloc_domain`\n    domain. (Deprecated in NumPy 1.23)",
+            "release": "2.0.0",
+            "symbol": "numpy.PyDataMem_SetEventHook"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyDataType_GetDatetimeMetaData` is removed, it did not actually do\n    anything since at least NumPy 1.7.",
+            "release": "2.0.0",
+            "symbol": "numpy.PyDataType_GetDatetimeMetaData"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `npy_interrupt.h` and the corresponding macros like `NPY_SIGINT_ON`\n    have been removed. We recommend querying `PyErr_CheckSignals()` or\n    `PyOS_InterruptOccurred()` periodically (these do currently require\n    holding the GIL though).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyErr_CheckSignals"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `npy_interrupt.h` and the corresponding macros like `NPY_SIGINT_ON`\n    have been removed. We recommend querying `PyErr_CheckSignals()` or\n    `PyOS_InterruptOccurred()` periodically (these do currently require\n    holding the GIL though).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyOS_InterruptOccurred"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyUFunc_GetPyVals`, `PyUFunc_handlefperr`, and `PyUFunc_checkfperr`\n    have been removed. If needed, a new backwards compatible function to\n    raise floating point errors could be restored. Reason for removal:\n    there are no known users and the functions would have made\n    `with np.errstate()` fixes much more difficult).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyUFunc_GetPyVals"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyUFunc_GetPyVals`, `PyUFunc_handlefperr`, and `PyUFunc_checkfperr`\n    have been removed. If needed, a new backwards compatible function to\n    raise floating point errors could be restored. Reason for removal:\n    there are no known users and the functions would have made\n    `with np.errstate()` fixes much more difficult).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyUFunc_checkfperr"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `PyUFunc_GetPyVals`, `PyUFunc_handlefperr`, and `PyUFunc_checkfperr`\n    have been removed. If needed, a new backwards compatible function to\n    raise floating point errors could be restored. Reason for removal:\n    there are no known users and the functions would have made\n    `with np.errstate()` fixes much more difficult).",
+            "release": "2.0.0",
+            "symbol": "numpy.PyUFunc_handlefperr"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.RAISE"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.UFUNC_BUFSIZE_DEFAULT"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.UFUNC_PYVALS_NAME"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.WRAP"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.add_docstring"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.add_newdoc"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Replaced `from ... import *` in the `numpy/__init__.py` with\n    explicit imports. As a result, these main namespace members got\n    removed: `np.FLOATING_POINT_SUPPORT`, `np.FPE_*`, `np.NINF`,\n    `np.PINF`, `np.NZERO`, `np.PZERO`, `np.CLIP`, `np.WRAP`, `np.WRAP`,\n    `np.RAISE`, `np.BUFSIZE`, `np.UFUNC_BUFSIZE_DEFAULT`,\n    `np.UFUNC_PYVALS_NAME`, `np.ALLOW_THREADS`, `np.MAXDIMS`,\n    `np.MAY_SHARE_EXACT`, `np.MAY_SHARE_BOUNDS`, `add_newdoc`,\n    `np.add_docstring` and `np.add_newdoc_ufunc`.",
+            "release": "2.0.0",
+            "symbol": "numpy.add_newdoc_ufunc"
+          },
+          {
+            "kind": "removed",
+            "quote": "The experimental `numpy.array_api` submodule has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.array_api"
+          },
+          {
+            "kind": "removed",
+            "quote": "`np.asfarray` has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.asfarray"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `np.binary_repr(a, width)` will raise if width is too small.",
+            "release": "2.0.0",
+            "symbol": "numpy.binary_repr"
+          },
+          {
+            "kind": "removed",
+            "quote": "`np.cast` has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.cast"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.cfloat` has been removed. Use `np.complex128` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.cfloat"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `charrarray` in the main namespace has been deprecated. It can\n    be imported without a deprecation warning from `np.char.chararray`\n    for now, but we are planning to fully deprecate and remove\n    `chararray` in the future.",
+            "release": "2.0.0",
+            "symbol": "numpy.char.chararray"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `charrarray` in the main namespace has been deprecated. It can\n    be imported without a deprecation warning from `np.char.chararray`\n    for now, but we are planning to fully deprecate and remove\n    `chararray` in the future.",
+            "release": "2.0.0",
+            "symbol": "numpy.chararray"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `charrarray` in the main namespace has been deprecated. It can\n    be imported without a deprecation warning from `np.char.chararray`\n    for now, but we are planning to fully deprecate and remove\n    `chararray` in the future.",
+            "release": "2.0.0",
+            "symbol": "numpy.charrarray"
+          },
+          {
+            "kind": "removed",
+            "quote": "`np.clongfloat` has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.clongfloat"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.complex_` has been removed. Use `np.complex128` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.complex_"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `np.core.umath_tests` submodule has been removed from the public\n    API. (Deprecated in NumPy 1.15)",
+            "release": "2.0.0",
+            "symbol": "numpy.core.umath_tests"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Deprecated `np.deprecate` and `np.deprecate_with_doc` has been\n    removed from the main namespace. Use `DeprecationWarning` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.deprecate"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Deprecated `np.deprecate` and `np.deprecate_with_doc` has been\n    removed from the main namespace. Use `DeprecationWarning` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.deprecate_with_doc"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `f2py.compile()` helper has been removed because it leaked\n    memory, has been marked as experimental for several years now, and\n    was implemented as a thin `subprocess.run` wrapper. It was also one\n    of the test bottlenecks. See\n    [gh-25122](https://github.com/numpy/numpy/issues/25122) for the full\n    rationale. It also used several `np.distutils` features which are\n    too fragile to be ported to work with `meson`.",
+            "release": "2.0.0",
+            "symbol": "numpy.distutils"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Warnings and exceptions present in `numpy.exceptions`,\n    e.g, `numpy.exceptions.ComplexWarning`, \n    `numpy.exceptions.VisibleDeprecationWarning`, are no\n    longer exposed in the main namespace.",
+            "release": "2.0.0",
+            "symbol": "numpy.exceptions"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Warnings and exceptions present in `numpy.exceptions`,\n    e.g, `numpy.exceptions.ComplexWarning`, \n    `numpy.exceptions.VisibleDeprecationWarning`, are no\n    longer exposed in the main namespace.",
+            "release": "2.0.0",
+            "symbol": "numpy.exceptions.ComplexWarning"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   Warnings and exceptions present in `numpy.exceptions`,\n    e.g, `numpy.exceptions.ComplexWarning`, \n    `numpy.exceptions.VisibleDeprecationWarning`, are no\n    longer exposed in the main namespace.",
+            "release": "2.0.0",
+            "symbol": "numpy.exceptions.VisibleDeprecationWarning"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The deprecated function `fastCopyAndTranspose` and its C counterpart\n    are now removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.fastCopyAndTranspose"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `fasttake`, `fastclip`, and `fastputmask` `ArrFuncs` deprecation\n    is now finalized.",
+            "release": "2.0.0",
+            "symbol": "numpy.fastclip"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `fasttake`, `fastclip`, and `fastputmask` `ArrFuncs` deprecation\n    is now finalized.",
+            "release": "2.0.0",
+            "symbol": "numpy.fastputmask"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `fasttake`, `fastclip`, and `fastputmask` `ArrFuncs` deprecation\n    is now finalized.",
+            "release": "2.0.0",
+            "symbol": "numpy.fasttake"
+          },
+          {
+            "kind": "removed",
+            "quote": "`np.find_common_type` has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.find_common_type"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.float_` has been removed. Use `np.float64` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.float_"
+          },
+          {
+            "kind": "removed",
+            "quote": "`np.geterrobj`, `np.seterrobj` and the related ufunc keyword",
+            "release": "2.0.0",
+            "symbol": "numpy.geterrobj"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.infty` has been removed. Use `np.inf` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.infty"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `NPY_INTPLTR` has been removed to avoid confusion (see `intp`\n    redefinition).",
+            "release": "2.0.0",
+            "symbol": "numpy.intp"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `np.issctype`, `np.maximum_sctype`, `np.obj2sctype`,\n    `np.sctype2char`, `np.sctypes`, `np.issubsctype` were all removed\n    from the main namespace without replacement, as they where niche\n    members.",
+            "release": "2.0.0",
+            "symbol": "numpy.issctype"
+          },
+          {
+            "kind": "removed",
+            "quote": "`np.issubclass_` has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.issubclass_"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `np.issctype`, `np.maximum_sctype`, `np.obj2sctype`,\n    `np.sctype2char`, `np.sctypes`, `np.issubsctype` were all removed\n    from the main namespace without replacement, as they where niche\n    members.",
+            "release": "2.0.0",
+            "symbol": "numpy.issubsctype"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   The `legacy_inner_loop_selector` member of the ufunc struct is\n    removed to simplify improvements to the dispatching system. There\n    are no known users overriding or directly accessing this member.",
+            "release": "2.0.0",
+            "symbol": "numpy.legacy_inner_loop_selector"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `np.tracemalloc_domain` is now only available from `np.lib`.",
+            "release": "2.0.0",
+            "symbol": "numpy.lib"
+          },
+          {
+            "kind": "removed",
+            "quote": "-   `np.recfromcsv` and `recfromtxt` are now only available from\n    `np.lib.npyio`.",
+            "release": "2.0.0",
+            "symbol": "numpy.lib.npyio"
+          },
+          {
+            "kind": "removed",
+            "quote": "`np.longcomplex` has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.longcomplex"
+          },
+          {
+            "kind": "removed",
+            "quote": "Alias `np.longfloat` has been removed. Use `np.longdouble` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.longfloat"
+          },
+          {
+            "kind": "removed",
+            "quote": "`np.lookfor` has been removed.",
+            "release": "2.0.0",
+            "symbol": "numpy.lookfor"
+          }
+        ],
+        "ok": true,
+        "summary": "121 change items (kind=removed)",
+        "truncated": true
+      }
+    },
+    {
+      "args": {
+        "kind": "renamed"
+      },
+      "id": "call_3",
+      "model_id": "call_3399b9e0-6106-4fbc-a8c7-3d1ffd3b7821",
+      "name": "list_changes",
+      "result": {
+        "count": 7,
+        "items": [
+          {
+            "kind": "renamed",
+            "quote": "`NPY_NTYPES` has been renamed to `NPY_NTYPES_LEGACY`",
+            "release": "2.0.0",
+            "symbol": "numpy.NPY_NTYPES"
+          },
+          {
+            "kind": "renamed",
+            "quote": "`np.compare_chararrays` has been removed from the main namespace.",
+            "release": "2.0.0",
+            "symbol": "numpy.compare_chararrays"
+          },
+          {
+            "kind": "renamed",
+            "quote": "`numpy.fft.helper` was renamed to `numpy.fft._helper`",
+            "release": "2.0.0",
+            "symbol": "numpy.fft.helper"
+          },
+          {
+            "kind": "renamed",
+            "quote": "`np.format_parser` has been removed from the main namespace. Use",
+            "release": "2.0.0",
+            "symbol": "numpy.format_parser"
+          },
+          {
+            "kind": "renamed",
+            "quote": "`numpy.linalg.linalg` was renamed to `numpy.linalg._linalg`",
+            "release": "2.0.0",
+            "symbol": "numpy.linalg.linalg"
+          },
+          {
+            "kind": "renamed",
+            "quote": "`np.recfromcsv` and `recfromtxt` are now only available from",
+            "release": "2.0.0",
+            "symbol": "numpy.recfromcsv"
+          },
+          {
+            "kind": "renamed",
+            "quote": "`np.tracemalloc_domain` is now only available from `np.lib`.",
+            "release": "2.0.0",
+            "symbol": "numpy.tracemalloc_domain"
+          }
+        ],
+        "ok": true,
+        "summary": "7 change items (kind=renamed)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "kind": "deprecated"
+      },
+      "id": "call_4",
+      "model_id": "call_c3f2d663-0d9f-426b-a06a-9d6e4dddf4cf",
+      "name": "list_changes",
+      "result": {
+        "count": 21,
+        "items": [
+          {
+            "kind": "deprecated",
+            "quote": "-   `np.safe_eval` has been deprecated. `ast.literal_eval` should be\n    used instead.",
+            "release": "2.0.0",
+            "symbol": "ast.literal_eval"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "the `axes` parameter set to `None` has been deprecated, in line with the",
+            "release": "2.0.0",
+            "symbol": "numpy.None"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `__array_wrap__` is now passed `arr, context, return_scalar` and\n    support for implementations not accepting all three are deprecated.\n    Its signature should be\n    `__array_wrap__(self, arr, context=None, return_scalar=False)`",
+            "release": "2.0.0",
+            "symbol": "numpy.__array_wrap__"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`numpy._core` without a deprecation warning but we do not provide any",
+            "release": "2.0.0",
+            "symbol": "numpy._core"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `__array_wrap__` is now passed `arr, context, return_scalar` and\n    support for implementations not accepting all three are deprecated.\n    Its signature should be\n    `__array_wrap__(self, arr, context=None, return_scalar=False)`",
+            "release": "2.0.0",
+            "symbol": "numpy.arr"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`np.strings` instead of `np.char`. In the future we may deprecate",
+            "release": "2.0.0",
+            "symbol": "numpy.char"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`np.compat` has been deprecated, as Python 2 is no longer supported.",
+            "release": "2.0.0",
+            "symbol": "numpy.compat"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `__array_wrap__` is now passed `arr, context, return_scalar` and\n    support for implementations not accepting all three are deprecated.\n    Its signature should be\n    `__array_wrap__(self, arr, context=None, return_scalar=False)`",
+            "release": "2.0.0",
+            "symbol": "numpy.context"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "Accessing `numpy.core` now emits a DeprecationWarning.",
+            "release": "2.0.0",
+            "symbol": "numpy.core"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   Arrays of 2-dimensional vectors for `np.cross` have been deprecated.\n    Use arrays of 3-dimensional vectors instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.cross"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `np.recfromcsv`, `np.recfromtxt`, `np.disp`, `np.get_array_wrap`,\n    `np.maximum_sctype`, `np.deprecate` and `np.deprecate_with_doc` have\n    been deprecated.",
+            "release": "2.0.0",
+            "symbol": "numpy.disp"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `np.dtype(\"a\")` alias for `np.dtype(np.bytes_)` was deprecated. Use\n    `np.dtype(\"S\")` alias instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.dtype"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `np.recfromcsv`, `np.recfromtxt`, `np.disp`, `np.get_array_wrap`,\n    `np.maximum_sctype`, `np.deprecate` and `np.deprecate_with_doc` have\n    been deprecated.",
+            "release": "2.0.0",
+            "symbol": "numpy.get_array_wrap"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `numpy.int8` and similar classes will no longer support conversion\n    of out of bounds python integers to integer arrays. For example,\n    conversion of 255 to int8 will not return -1. `numpy.iinfo(dtype)`\n    can be used to check the machine limits for data types. For example,\n    `np.iinfo(np.uint16)` returns min = 0 and max = 65535.",
+            "release": "2.0.0",
+            "symbol": "numpy.iinfo"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`np.in1d` has been deprecated. Use `np.isin` instead.",
+            "release": "2.0.0",
+            "symbol": "numpy.in1d"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `numpy.int8` and similar classes will no longer support conversion\n    of out of bounds python integers to integer arrays. For example,\n    conversion of 255 to int8 will not return -1. `numpy.iinfo(dtype)`\n    can be used to check the machine limits for data types. For example,\n    `np.iinfo(np.uint16)` returns min = 0 and max = 65535.",
+            "release": "2.0.0",
+            "symbol": "numpy.int8"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "specified, the `rcond`\\'s default is used. We plan to deprecate and",
+            "release": "2.0.0",
+            "symbol": "numpy.rcond"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "-   `__array_wrap__` is now passed `arr, context, return_scalar` and\n    support for implementations not accepting all three are deprecated.\n    Its signature should be\n    `__array_wrap__(self, arr, context=None, return_scalar=False)`",
+            "release": "2.0.0",
+            "symbol": "numpy.return_scalar"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "Alias `np.row_stack` has been deprecated. Use `np.vstack` directly.",
+            "release": "2.0.0",
+            "symbol": "numpy.row_stack"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`np.strings` instead of `np.char`. In the future we may deprecate",
+            "release": "2.0.0",
+            "symbol": "numpy.strings"
+          },
+          {
+            "kind": "deprecated",
+            "quote": "`np.trapz` has been deprecated. Use `np.trapezoid`",
+            "release": "2.0.0",
+            "symbol": "numpy.trapz"
+          }
+        ],
+        "ok": true,
+        "summary": "21 change items (kind=deprecated)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "env": "after",
+        "module": "anndata"
+      },
+      "id": "call_5",
+      "model_id": "call_d358fd6e-02f1-49e7-9645-cdd5066484f7",
+      "name": "run_import_probe",
+      "result": {
+        "chain": [],
+        "error": null,
+        "error_line": "",
+        "ok": true,
+        "summary": "import anndata in after: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "env": "before",
+        "module": "anndata"
+      },
+      "id": "call_6",
+      "model_id": "call_c421d09c-10b6-4ebc-9a45-1036d6a8583d",
+      "name": "run_import_probe",
+      "result": {
+        "chain": [],
+        "error": null,
+        "error_line": "",
+        "ok": true,
+        "summary": "import anndata in before: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbols": [
+          "numpy.NaN",
+          "numpy.Inf",
+          "numpy.Infinity",
+          "numpy.infty",
+          "numpy.NINF",
+          "numpy.PINF",
+          "numpy.NZERO",
+          "numpy.PZERO",
+          "numpy.asfarray",
+          "numpy.cast",
+          "numpy.float_",
+          "numpy.complex_",
+          "numpy.longfloat",
+          "numpy.string_",
+          "numpy.unicode_",
+          "numpy.cfloat",
+          "numpy.clongfloat",
+          "numpy.longcomplex",
+          "numpy.singlecomplex",
+          "numpy.mat",
+          "numpy.matrix",
+          "numpy.asmatrix",
+          "numpy.asfarray",
+          "numpy.alltrue",
+          "numpy.sometrue",
+          "numpy.product",
+          "numpy.cumproduct",
+          "numpy.round_",
+          "numpy.NAN",
+          "numpy.nbytes",
+          "numpy.compare_chararrays",
+          "numpy.format_parser",
+          "numpy.recfromcsv",
+          "numpy.tracemalloc_domain",
+          "numpy.in1d",
+          "numpy.trapz",
+          "numpy.row_stack",
+          "numpy.core",
+          "numpy.compat",
+          "numpy.char",
+          "numpy.chararray",
+          "numpy.find_common_type",
+          "numpy.issctype",
+          "numpy.sctypes",
+          "numpy.sctype2char",
+          "numpy.maximum_sctype",
+          "numpy.obj2sctype",
+          "numpy.issubsctype",
+          "numpy.set_string_function",
+          "numpy.deprecate",
+          "numpy.deprecate_with_doc",
+          "numpy.lookfor",
+          "numpy.who",
+          "numpy.fastCopyAndTranspose",
+          "numpy.geterrobj",
+          "numpy.seterrobj",
+          "numpy.issubclass_",
+          "numpy.string_",
+          "numpy.unicode_",
+          "numpy.linalg.linalg",
+          "numpy.fft.helper",
+          "numpy.array_api",
+          "numpy.distutils",
+          "numpy.float_",
+          "numpy.complex_"
+        ]
+      },
+      "id": "call_7",
+      "model_id": "call_2765b442-f5ec-4aeb-a621-4ca246d8488c",
+      "name": "propagate",
+      "result": {
+        "at_risk": [],
+        "at_risk_count": 0,
+        "chain_hops": [],
+        "hard": [],
+        "hard_count": 0,
+        "ok": true,
+        "summary": "0 HARD + 0 AT_RISK modules; 4/60 symbols used; worst chain length 0",
+        "symbols": {
+          "numpy.Inf": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.Infinity": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.NAN": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.NINF": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.NZERO": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.NaN": {
+            "import_time": 0,
+            "sites": 1
+          },
+          "numpy.PINF": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.PZERO": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.alltrue": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.array_api": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.asfarray": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.asmatrix": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.cast": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.cfloat": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.char": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.chararray": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.clongfloat": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.compare_chararrays": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.compat": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.complex_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.core": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.cumproduct": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.deprecate": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.deprecate_with_doc": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.distutils": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.fastCopyAndTranspose": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.fft.helper": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.find_common_type": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.float_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.format_parser": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.geterrobj": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.in1d": {
+            "import_time": 0,
+            "sites": 1
+          },
+          "numpy.infty": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.issctype": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.issubclass_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.issubsctype": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.linalg.linalg": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.longcomplex": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.longfloat": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.lookfor": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.mat": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.matrix": {
+            "import_time": 0,
+            "sites": 2
+          },
+          "numpy.maximum_sctype": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.nbytes": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.obj2sctype": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.product": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.recfromcsv": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.round_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.row_stack": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.sctype2char": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.sctypes": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.set_string_function": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.seterrobj": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.singlecomplex": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.sometrue": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.string_": {
+            "import_time": 0,
+            "sites": 3
+          },
+          "numpy.tracemalloc_domain": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.trapz": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.unicode_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.who": {
+            "import_time": 0,
+            "sites": 0
+          }
+        },
+        "truncated": false,
+        "worst_chain": []
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.NaN"
+      },
+      "id": "call_8",
+      "model_id": "call_6c055bac-efa5-44a9-8eb3-ba08f8c9ec08",
+      "name": "find_usages",
+      "result": {
+        "count": 1,
+        "ok": true,
+        "sites": [
+          {
+            "code": "fill_value = np.NaN",
+            "def": "anndata._core.merge.Reindexer._apply_to_df",
+            "file": "src/anndata/_core/merge.py",
+            "import_time": false,
+            "line": 552,
+            "site": "src/anndata/_core/merge.py:552"
+          }
+        ],
+        "summary": "1 sites use numpy.NaN (0 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.in1d"
+      },
+      "id": "call_9",
+      "model_id": "call_0fb27d2a-e2c2-4134-a01f-71b5211c4c64",
+      "name": "find_usages",
+      "result": {
+        "count": 1,
+        "ok": true,
+        "sites": [
+          {
+            "code": "idx = np.where(np.in1d(all_categories, df_sub[k].cat.categories))[0]",
+            "def": "anndata._core.anndata.AnnData._remove_unused_categories",
+            "file": "src/anndata/_core/anndata.py",
+            "import_time": false,
+            "line": 1117,
+            "site": "src/anndata/_core/anndata.py:1117"
+          }
+        ],
+        "summary": "1 sites use numpy.in1d (0 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.matrix"
+      },
+      "id": "call_10",
+      "model_id": "call_0adabd2d-be16-44d9-9fa7-12974745dbcb",
+      "name": "find_usages",
+      "result": {
+        "count": 2,
+        "ok": true,
+        "sites": [
+          {
+            "code": "indexer, (Sequence, np.ndarray, pd.Index, spmatrix, np.matrix, SpArray)",
+            "def": "anndata._core.index._normalize_index",
+            "file": "src/anndata/_core/index.py",
+            "import_time": false,
+            "line": 75,
+            "site": "src/anndata/_core/index.py:75"
+          },
+          {
+            "code": "indexer = np.matrix(",
+            "def": "anndata.tests.helpers.matrix_bool_subset",
+            "file": "src/anndata/tests/helpers.py",
+            "import_time": false,
+            "line": 366,
+            "site": "src/anndata/tests/helpers.py:366"
+          }
+        ],
+        "summary": "2 sites use numpy.matrix (0 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbol": "numpy.string_"
+      },
+      "id": "call_11",
+      "model_id": "call_32b41a22-78c9-43da-bc37-187f8b64c880",
+      "name": "find_usages",
+      "result": {
+        "count": 3,
+        "ok": true,
+        "sites": [
+          {
+            "code": "elif issubclass(value.dtype.type, np.string_):",
+            "def": "anndata._io.h5ad.read_dataset",
+            "file": "src/anndata/_io/h5ad.py",
+            "import_time": false,
+            "line": 334,
+            "site": "src/anndata/_io/h5ad.py:334"
+          },
+          {
+            "code": "elif issubclass(value.dtype.type, np.string_):",
+            "def": "anndata._io.zarr.read_dataset",
+            "file": "src/anndata/_io/zarr.py",
+            "import_time": false,
+            "line": 111,
+            "site": "src/anndata/_io/zarr.py:111"
+          },
+          {
+            "code": "if issubclass(np.dtype(dt_type).type, np.string_):",
+            "def": "anndata.compat._from_fixed_length_strings",
+            "file": "src/anndata/compat/__init__.py",
+            "import_time": false,
+            "line": 229,
+            "site": "src/anndata/compat/__init__.py:229"
+          }
+        ],
+        "summary": "3 sites use numpy.string_ (0 import-time)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "kind": "signature_changed"
+      },
+      "id": "call_12",
+      "model_id": "call_a1ce5c87-1399-4cfa-b403-5f1af0cd5ec8",
+      "name": "list_changes",
+      "result": {
+        "count": 0,
+        "items": [],
+        "ok": true,
+        "summary": "0 change items (kind=signature_changed)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "symbols": [
+          "numpy.bool8",
+          "numpy.bytes0",
+          "numpy.object0",
+          "numpy.void0",
+          "numpy.int0",
+          "numpy.uint0",
+          "numpy.string_",
+          "numpy.unicode_",
+          "numpy.mat",
+          "numpy.asmatrix",
+          "numpy.msort",
+          "numpy.alltrue",
+          "numpy.sometrue",
+          "numpy.product",
+          "numpy.cumproduct",
+          "numpy.round_",
+          "numpy.NAN",
+          "numpy.nbytes",
+          "numpy.set_string_function",
+          "numpy.geterrobj",
+          "numpy.seterrobj",
+          "numpy.issctype",
+          "numpy.sctypes",
+          "numpy.maximum_sctype",
+          "numpy.obj2sctype",
+          "numpy.sctype2char",
+          "numpy.issubsctype",
+          "numpy.source",
+          "numpy.lookfor",
+          "numpy.who",
+          "numpy.safe_eval",
+          "numpy.issubclass_",
+          "numpy.find_common_type",
+          "numpy.trapz",
+          "numpy.in1d",
+          "numpy.row_stack",
+          "numpy.bool8",
+          "numpy.float_",
+          "numpy.complex_",
+          "numpy.longfloat",
+          "numpy.string_",
+          "numpy.unicode_"
+        ]
+      },
+      "id": "call_13",
+      "model_id": "call_ef23ca54-c601-42e8-a8c1-58eafb6e51e6",
+      "name": "propagate",
+      "result": {
+        "at_risk": [],
+        "at_risk_count": 0,
+        "chain_hops": [],
+        "hard": [],
+        "hard_count": 0,
+        "ok": true,
+        "summary": "0 HARD + 0 AT_RISK modules; 2/39 symbols used; worst chain length 0",
+        "symbols": {
+          "numpy.NAN": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.alltrue": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.asmatrix": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.bool8": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.bytes0": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.complex_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.cumproduct": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.find_common_type": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.float_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.geterrobj": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.in1d": {
+            "import_time": 0,
+            "sites": 1
+          },
+          "numpy.int0": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.issctype": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.issubclass_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.issubsctype": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.longfloat": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.lookfor": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.mat": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.maximum_sctype": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.msort": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.nbytes": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.obj2sctype": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.object0": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.product": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.round_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.row_stack": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.safe_eval": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.sctype2char": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.sctypes": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.set_string_function": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.seterrobj": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.sometrue": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.source": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.string_": {
+            "import_time": 0,
+            "sites": 3
+          },
+          "numpy.trapz": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.uint0": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.unicode_": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.void0": {
+            "import_time": 0,
+            "sites": 0
+          },
+          "numpy.who": {
+            "import_time": 0,
+            "sites": 0
+          }
+        },
+        "truncated": false,
+        "worst_chain": []
+      }
+    },
+    {
+      "args": {
+        "code": "import numpy as np\nprint(np.__version__)\ntry:\n    x = np.NaN\n    print(\"NaN ok:\", x)\nexcept Exception as e:\n    print(\"NaN FAIL:\", type(e).__name__, e)",
+        "env": "after"
+      },
+      "id": "call_14",
+      "model_id": "call_cbe14ae4-e1c4-455d-bbc2-9ee25c367886",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": true,
+        "stderr": "",
+        "stdout": "2.0.2\nNaN FAIL: AttributeError `np.NaN` was removed in the NumPy 2.0 release. Use `np.nan` instead.\n",
+        "summary": "snippet in after: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import numpy as np\nprint(np.__version__)\ntry:\n    x = np.string_\n    print(\"string_ ok:\", x)\nexcept Exception as e:\n    print(\"string_ FAIL:\", type(e).__name__, e)",
+        "env": "after"
+      },
+      "id": "call_15",
+      "model_id": "call_478e8550-8ba4-4f4a-9d9d-c2704a1ee0e0",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": true,
+        "stderr": "",
+        "stdout": "2.0.2\nstring_ FAIL: AttributeError `np.string_` was removed in the NumPy 2.0 release. Use `np.bytes_` instead.\n",
+        "summary": "snippet in after: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import numpy as np\nprint(np.__version__)\ntry:\n    x = np.in1d([1,2],[2,3])\n    print(\"in1d ok:\", x)\nexcept Exception as e:\n    print(\"in1d FAIL:\", type(e).__name__, e)",
+        "env": "after"
+      },
+      "id": "call_16",
+      "model_id": "call_fb63c79c-cb7f-4ab5-aeb3-450360c0758b",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": true,
+        "stderr": "<string>:4: DeprecationWarning: `in1d` is deprecated. Use `np.isin` instead.",
+        "stdout": "2.0.2\nin1d ok: [False  True]\n",
+        "summary": "snippet in after: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "code": "import numpy as np\nprint(np.__version__)\ntry:\n    x = np.matrix([1,2])\n    print(\"matrix ok:\", type(x))\nexcept Exception as e:\n    print(\"matrix FAIL:\", type(e).__name__, e)",
+        "env": "after"
+      },
+      "id": "call_17",
+      "model_id": "call_5cd42e37-33be-47f4-9eb1-ec46654e4c0e",
+      "name": "run_snippet",
+      "result": {
+        "chain": [],
+        "ok": true,
+        "stderr": "",
+        "stdout": "2.0.2\nmatrix ok: <class 'numpy.matrix'>\n",
+        "summary": "snippet in after: ok",
+        "timed_out": false,
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "lines": [
+          "src/anndata/_core/merge.py:552",
+          "src/anndata/compat/__init__.py:229",
+          "src/anndata/_io/h5ad.py:334",
+          "src/anndata/_core/anndata.py:1117"
+        ],
+        "modules": [
+          "anndata._core.merge",
+          "anndata.compat",
+          "anndata._io.h5ad"
+        ]
+      },
+      "id": "call_18",
+      "model_id": "call_92cab90a-2e96-4ce1-8380-f78df59c56d6",
+      "name": "tests_covering",
+      "result": {
+        "count": 4305,
+        "ok": true,
+        "summary": "4305 test(s) cover the query",
+        "test_ids": [
+          "tests/test_anncollection.py::test_convert[array]",
+          "tests/test_anncollection.py::test_creation[array]",
+          "tests/test_anncollection.py::test_creation[csr_matrix]",
+          "tests/test_anncollection.py::test_full_selection[array]",
+          "tests/test_anncollection.py::test_full_selection[csr_matrix]",
+          "tests/test_annot.py::test_non_str_to_not_categorical",
+          "tests/test_annot.py::test_str_to_categorical[object]",
+          "tests/test_annot.py::test_str_to_categorical[string]",
+          "tests/test_annot.py::test_to_categorical_ordering[object]",
+          "tests/test_annot.py::test_to_categorical_ordering[string]",
+          "tests/test_awkward.py::test_awkward_io[array0]",
+          "tests/test_awkward.py::test_awkward_io[array10]",
+          "tests/test_awkward.py::test_awkward_io[array11]",
+          "tests/test_awkward.py::test_awkward_io[array12]",
+          "tests/test_awkward.py::test_awkward_io[array1]",
+          "tests/test_awkward.py::test_awkward_io[array2]",
+          "tests/test_awkward.py::test_awkward_io[array3]",
+          "tests/test_awkward.py::test_awkward_io[array4]",
+          "tests/test_awkward.py::test_awkward_io[array5]",
+          "tests/test_awkward.py::test_awkward_io[array6]",
+          "tests/test_awkward.py::test_awkward_io[array7]",
+          "tests/test_awkward.py::test_awkward_io[array8]",
+          "tests/test_awkward.py::test_awkward_io[array9]",
+          "tests/test_awkward.py::test_concat_mixed_types[obsm-arrays10-outer-NotImplementedError]",
+          "tests/test_awkward.py::test_concat_mixed_types[obsm-arrays9-outer-NotImplementedError]",
+          "tests/test_awkward.py::test_concat_mixed_types[obsm-awk-simple-record-inner]",
+          "tests/test_awkward.py::test_concat_mixed_types[obsm-awk-simple-record]",
+          "tests/test_awkward.py::test_concat_mixed_types[obsm-awk:listofrecords_null-outer]",
+          "tests/test_awkward.py::test_concat_mixed_types[obsm-awk:recordoflists_null-inner]",
+          "tests/test_awkward.py::test_concat_mixed_types[obsm-awk:recordoflists_null-outer]",
+          "tests/test_awkward.py::test_concat_mixed_types[obsm-awk_empty-pd]",
+          "tests/test_awkward.py::test_concat_mixed_types[obsm-null_awk-inner]",
+          "tests/test_awkward.py::test_concat_mixed_types[obsm-null_awk:recordoflists-outer]",
+          "tests/test_awkward.py::test_concat_mixed_types[obsm-null_awk_empty-pd]",
+          "tests/test_awkward.py::test_concat_mixed_types[varm-arrays10-outer-NotImplementedError]",
+          "tests/test_awkward.py::test_concat_mixed_types[varm-arrays9-outer-NotImplementedError]",
+          "tests/test_awkward.py::test_concat_mixed_types[varm-awk-simple-record-inner]",
+          "tests/test_awkward.py::test_concat_mixed_types[varm-awk-simple-record]",
+          "tests/test_awkward.py::test_concat_mixed_types[varm-awk:listofrecords_null-outer]",
+          "tests/test_awkward.py::test_concat_mixed_types[varm-awk:recordoflists_null-inner]",
+          "tests/test_awkward.py::test_concat_mixed_types[varm-awk:recordoflists_null-outer]",
+          "tests/test_awkward.py::test_concat_mixed_types[varm-awk_empty-pd]",
+          "tests/test_awkward.py::test_concat_mixed_types[varm-null_awk-inner]",
+          "tests/test_awkward.py::test_concat_mixed_types[varm-null_awk:recordoflists-outer]",
+          "tests/test_awkward.py::test_concat_mixed_types[varm-null_awk_empty-pd]",
+          "tests/test_awkward.py::test_copy[obsm]",
+          "tests/test_awkward.py::test_copy[uns]",
+          "tests/test_awkward.py::test_copy[varm]",
+          "tests/test_awkward.py::test_set_awkward[obsm-value0-True]",
+          "tests/test_awkward.py::test_set_awkward[obsm-value1-True]"
+        ],
+        "truncated": true
+      }
+    },
+    {
+      "args": {
+        "end": 570,
+        "path": "src/anndata/_core/merge.py",
+        "start": 535
+      },
+      "id": "call_19",
+      "model_id": "call_09a33493-4712-4c47-8b65-22ccc3ec70b6",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            535,
+            "        if self.no_change and (dim_len(el, axis) == len(self.old_idx)):"
+          ],
+          [
+            536,
+            "            return el"
+          ],
+          [
+            537,
+            "        if isinstance(el, pd.DataFrame):"
+          ],
+          [
+            538,
+            "            return self._apply_to_df(el, axis=axis, fill_value=fill_value)"
+          ],
+          [
+            539,
+            "        elif isinstance(el, (sparse.spmatrix, SpArray, CupySparseMatrix)):"
+          ],
+          [
+            540,
+            "            return self._apply_to_sparse(el, axis=axis, fill_value=fill_value)"
+          ],
+          [
+            541,
+            "        elif isinstance(el, AwkArray):"
+          ],
+          [
+            542,
+            "            return self._apply_to_awkward(el, axis=axis, fill_value=fill_value)"
+          ],
+          [
+            543,
+            "        elif isinstance(el, DaskArray):"
+          ],
+          [
+            544,
+            "            return self._apply_to_dask_array(el, axis=axis, fill_value=fill_value)"
+          ],
+          [
+            545,
+            "        elif isinstance(el, CupyArray):"
+          ],
+          [
+            546,
+            "            return self._apply_to_cupy_array(el, axis=axis, fill_value=fill_value)"
+          ],
+          [
+            547,
+            "        else:"
+          ],
+          [
+            548,
+            "            return self._apply_to_array(el, axis=axis, fill_value=fill_value)"
+          ],
+          [
+            549,
+            ""
+          ],
+          [
+            550,
+            "    def _apply_to_df(self, el: pd.DataFrame, *, axis, fill_value=None):"
+          ],
+          [
+            551,
+            "        if fill_value is None:"
+          ],
+          [
+            552,
+            "            fill_value = np.NaN"
+          ],
+          [
+            553,
+            "        return el.reindex(self.new_idx, axis=axis, fill_value=fill_value)"
+          ],
+          [
+            554,
+            ""
+          ],
+          [
+            555,
+            "    def _apply_to_dask_array(self, el: DaskArray, *, axis, fill_value=None):"
+          ],
+          [
+            556,
+            "        import dask.array as da"
+          ],
+          [
+            557,
+            ""
+          ],
+          [
+            558,
+            "        if fill_value is None:"
+          ],
+          [
+            559,
+            "            fill_value = default_fill_value([el])"
+          ],
+          [
+            560,
+            "        shape = list(el.shape)"
+          ],
+          [
+            561,
+            "        if el.shape[axis] == 0:"
+          ],
+          [
+            562,
+            "            # Presumably faster since it won't allocate the full array"
+          ],
+          [
+            563,
+            "            shape[axis] = len(self.new_idx)"
+          ],
+          [
+            564,
+            "            return da.broadcast_to(fill_value, tuple(shape))"
+          ],
+          [
+            565,
+            ""
+          ],
+          [
+            566,
+            "        indexer = self.old_idx.get_indexer(self.new_idx)"
+          ],
+          [
+            567,
+            "        sub_el = _subset(el, make_slice(indexer, axis, len(shape)))"
+          ],
+          [
+            568,
+            ""
+          ],
+          [
+            569,
+            "        if any(indexer == -1):"
+          ],
+          [
+            570,
+            "            sub_el[make_slice(indexer == -1, axis, len(shape))] = fill_value"
+          ]
+        ],
+        "ok": true,
+        "path": "src/anndata/_core/merge.py",
+        "sites": [
+          "src/anndata/_core/merge.py:535",
+          "src/anndata/_core/merge.py:536",
+          "src/anndata/_core/merge.py:537",
+          "src/anndata/_core/merge.py:538",
+          "src/anndata/_core/merge.py:539",
+          "src/anndata/_core/merge.py:540",
+          "src/anndata/_core/merge.py:541",
+          "src/anndata/_core/merge.py:542",
+          "src/anndata/_core/merge.py:543",
+          "src/anndata/_core/merge.py:544",
+          "src/anndata/_core/merge.py:545",
+          "src/anndata/_core/merge.py:546",
+          "src/anndata/_core/merge.py:547",
+          "src/anndata/_core/merge.py:548",
+          "src/anndata/_core/merge.py:549",
+          "src/anndata/_core/merge.py:550",
+          "src/anndata/_core/merge.py:551",
+          "src/anndata/_core/merge.py:552",
+          "src/anndata/_core/merge.py:553",
+          "src/anndata/_core/merge.py:554",
+          "src/anndata/_core/merge.py:555",
+          "src/anndata/_core/merge.py:556",
+          "src/anndata/_core/merge.py:557",
+          "src/anndata/_core/merge.py:558",
+          "src/anndata/_core/merge.py:559",
+          "src/anndata/_core/merge.py:560",
+          "src/anndata/_core/merge.py:561",
+          "src/anndata/_core/merge.py:562",
+          "src/anndata/_core/merge.py:563",
+          "src/anndata/_core/merge.py:564",
+          "src/anndata/_core/merge.py:565",
+          "src/anndata/_core/merge.py:566",
+          "src/anndata/_core/merge.py:567",
+          "src/anndata/_core/merge.py:568",
+          "src/anndata/_core/merge.py:569",
+          "src/anndata/_core/merge.py:570"
+        ],
+        "summary": "src/anndata/_core/merge.py:535-570 (36 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "end": 245,
+        "path": "src/anndata/compat/__init__.py",
+        "start": 215
+      },
+      "id": "call_20",
+      "model_id": "call_c96d30b0-cd25-4205-81c1-74e8be61d457",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            215,
+            "    Convert from fixed length strings to unicode."
+          ],
+          [
+            216,
+            ""
+          ],
+          [
+            217,
+            "    For backwards compatibility with older h5ad and zarr files."
+          ],
+          [
+            218,
+            "    \"\"\""
+          ],
+          [
+            219,
+            "    new_dtype = []"
+          ],
+          [
+            220,
+            "    for dt in value.dtype.descr:"
+          ],
+          [
+            221,
+            "        dt_list = list(dt)"
+          ],
+          [
+            222,
+            "        dt_type = dt[1]"
+          ],
+          [
+            223,
+            "        # could probably match better"
+          ],
+          [
+            224,
+            "        is_annotated = isinstance(dt_type, tuple)"
+          ],
+          [
+            225,
+            "        if is_annotated:"
+          ],
+          [
+            226,
+            "            dt_type = dt_type[0]"
+          ],
+          [
+            227,
+            "        # Fixing issue introduced with h5py v2.10.0, see:"
+          ],
+          [
+            228,
+            "        # https://github.com/h5py/h5py/issues/1307"
+          ],
+          [
+            229,
+            "        if issubclass(np.dtype(dt_type).type, np.string_):"
+          ],
+          [
+            230,
+            "            dt_list[1] = f\"U{int(dt_type[2:])}\""
+          ],
+          [
+            231,
+            "        elif is_annotated or np.issubdtype(np.dtype(dt_type), np.str_):"
+          ],
+          [
+            232,
+            "            dt_list[1] = \"O\"  # Assumption that it’s a vlen str"
+          ],
+          [
+            233,
+            "        new_dtype.append(tuple(dt_list))"
+          ],
+          [
+            234,
+            "    return value.astype(new_dtype)"
+          ],
+          [
+            235,
+            ""
+          ],
+          [
+            236,
+            ""
+          ],
+          [
+            237,
+            "def _decode_structured_array("
+          ],
+          [
+            238,
+            "    arr: np.ndarray, dtype: np.dtype | None = None, copy: bool = False"
+          ],
+          [
+            239,
+            ") -> np.ndarray:"
+          ],
+          [
+            240,
+            "    \"\"\""
+          ],
+          [
+            241,
+            "    h5py 3.0 now reads all strings as bytes. There is a helper method which can convert these to strings,"
+          ],
+          [
+            242,
+            "    but there isn't anything for fields of structured dtypes."
+          ],
+          [
+            243,
+            ""
+          ],
+          [
+            244,
+            "    Params"
+          ],
+          [
+            245,
+            "    ------"
+          ]
+        ],
+        "ok": true,
+        "path": "src/anndata/compat/__init__.py",
+        "sites": [
+          "src/anndata/compat/__init__.py:215",
+          "src/anndata/compat/__init__.py:216",
+          "src/anndata/compat/__init__.py:217",
+          "src/anndata/compat/__init__.py:218",
+          "src/anndata/compat/__init__.py:219",
+          "src/anndata/compat/__init__.py:220",
+          "src/anndata/compat/__init__.py:221",
+          "src/anndata/compat/__init__.py:222",
+          "src/anndata/compat/__init__.py:223",
+          "src/anndata/compat/__init__.py:224",
+          "src/anndata/compat/__init__.py:225",
+          "src/anndata/compat/__init__.py:226",
+          "src/anndata/compat/__init__.py:227",
+          "src/anndata/compat/__init__.py:228",
+          "src/anndata/compat/__init__.py:229",
+          "src/anndata/compat/__init__.py:230",
+          "src/anndata/compat/__init__.py:231",
+          "src/anndata/compat/__init__.py:232",
+          "src/anndata/compat/__init__.py:233",
+          "src/anndata/compat/__init__.py:234",
+          "src/anndata/compat/__init__.py:235",
+          "src/anndata/compat/__init__.py:236",
+          "src/anndata/compat/__init__.py:237",
+          "src/anndata/compat/__init__.py:238",
+          "src/anndata/compat/__init__.py:239",
+          "src/anndata/compat/__init__.py:240",
+          "src/anndata/compat/__init__.py:241",
+          "src/anndata/compat/__init__.py:242",
+          "src/anndata/compat/__init__.py:243",
+          "src/anndata/compat/__init__.py:244",
+          "src/anndata/compat/__init__.py:245"
+        ],
+        "summary": "src/anndata/compat/__init__.py:215-245 (31 lines)",
+        "truncated": false
+      }
+    },
+    {
+      "args": {
+        "end": 535,
+        "path": "src/anndata/_core/merge.py",
+        "start": 480
+      },
+      "id": "call_21",
+      "model_id": "call_c4d4e102-7988-4a62-8c2b-7e4410555a23",
+      "name": "read_file",
+      "result": {
+        "lines": [
+          [
+            480,
+            "StrategiesLiteral = Literal[\"same\", \"unique\", \"first\", \"only\"]"
+          ],
+          [
+            481,
+            ""
+          ],
+          [
+            482,
+            ""
+          ],
+          [
+            483,
+            "def resolve_merge_strategy("
+          ],
+          [
+            484,
+            "    strategy: str | Callable | None,"
+          ],
+          [
+            485,
+            ") -> Callable[[Collection[Mapping]], Mapping]:"
+          ],
+          [
+            486,
+            "    if not isinstance(strategy, Callable):"
+          ],
+          [
+            487,
+            "        strategy = MERGE_STRATEGIES[strategy]"
+          ],
+          [
+            488,
+            "    return strategy"
+          ],
+          [
+            489,
+            ""
+          ],
+          [
+            490,
+            ""
+          ],
+          [
+            491,
+            "#####################"
+          ],
+          [
+            492,
+            "# Concatenation"
+          ],
+          [
+            493,
+            "#####################"
+          ],
+          [
+            494,
+            ""
+          ],
+          [
+            495,
+            ""
+          ],
+          [
+            496,
+            "class Reindexer:"
+          ],
+          [
+            497,
+            "    \"\"\""
+          ],
+          [
+            498,
+            "    Indexing to be applied to axis of 2d array orthogonal to the axis being concatenated."
+          ],
+          [
+            499,
+            ""
+          ],
+          [
+            500,
+            "    Attrs"
+          ],
+          [
+            501,
+            "    -----"
+          ],
+          [
+            502,
+            "    old_idx"
+          ],
+          [
+            503,
+            "        Original index"
+          ],
+          [
+            504,
+            "    new_idx"
+          ],
+          [
+            505,
+            "        Target index"
+          ],
+          [
+            506,
+            "    old_pos"
+          ],
+          [
+            507,
+            "        Indices of original index which will be kept"
+          ],
+          [
+            508,
+            "    new_pos"
+          ],
+          [
+            509,
+            "        Indices of new index which data from old_pos will be placed in."
+          ],
+          [
+            510,
+            "        Together with `old_pos` this forms a mapping."
+          ],
+          [
+            511,
+            "    \"\"\""
+          ],
+          [
+            512,
+            ""
+          ],
+          [
+            513,
+            "    def __init__(self, old_idx, new_idx):"
+          ],
+          [
+            514,
+            "        self.old_idx = old_idx"
+          ],
+          [
+            515,
+            "        self.new_idx = new_idx"
+          ],
+          [
+            516,
+            "        self.no_change = new_idx.equals(old_idx)"
+          ],
+          [
+            517,
+            ""
+          ],
+          [
+            518,
+            "        new_pos = new_idx.get_indexer(old_idx)"
+          ],
+          [
+            519,
+            "        old_pos = np.arange(len(new_pos))"
+          ],
+          [
+            520,
+            ""
+          ],
+          [
+            521,
+            "        mask = new_pos != -1"
+          ],
+          [
+            522,
+            ""
+          ],
+          [
+            523,
+            "        self.new_pos = new_pos[mask]"
+          ],
+          [
+            524,
+            "        self.old_pos = old_pos[mask]"
+          ],
+          [
+            525,
+            ""
+          ],
+          [
+            526,
+            "    def __call__(self, el, *, axis=1, fill_value=None):"
+          ],
+          [
+            527,
+            "        return self.apply(el, axis=axis, fill_value=fill_value)"
+          ],
+          [
+            528,
+            ""
+          ],
+          [
+            529,
+            "    def apply(self, el, *, axis, fill_value=None):"
+          ],
+          [
+            530,
+            "        \"\"\""
+          ],
+          [
+            531,
+            "        Reindex element so el[axis] is aligned to self.new_idx."
+          ],
+          [
+            532,
+            ""
+          ],
+          [
+            533,
+            "        Missing values are to be replaced with `fill_value`."
+          ],
+          [
+            534,
+            "        \"\"\""
+          ],
+          [
+            535,
+            "        if self.no_change and (dim_len(el, axis) == len(self.old_idx)):"
+          ]
+        ],
+        "ok": true,
+        "path": "src/anndata/_core/merge.py",
+        "sites": [
+          "src/anndata/_core/merge.py:480",
+          "src/anndata/_core/merge.py:481",
+          "src/anndata/_core/merge.py:482",
+          "src/anndata/_core/merge.py:483",
+          "src/anndata/_core/merge.py:484",
+          "src/anndata/_core/merge.py:485",
+          "src/anndata/_core/merge.py:486",
+          "src/anndata/_core/merge.py:487",
+          "src/anndata/_core/merge.py:488",
+          "src/anndata/_core/merge.py:489",
+          "src/anndata/_core/merge.py:490",
+          "src/anndata/_core/merge.py:491",
+          "src/anndata/_core/merge.py:492",
+          "src/anndata/_core/merge.py:493",
+          "src/anndata/_core/merge.py:494",
+          "src/anndata/_core/merge.py:495",
+          "src/anndata/_core/merge.py:496",
+          "src/anndata/_core/merge.py:497",
+          "src/anndata/_core/merge.py:498",
+          "src/anndata/_core/merge.py:499",
+          "src/anndata/_core/merge.py:500",
+          "src/anndata/_core/merge.py:501",
+          "src/anndata/_core/merge.py:502",
+          "src/anndata/_core/merge.py:503",
+          "src/anndata/_core/merge.py:504",
+          "src/anndata/_core/merge.py:505",
+          "src/anndata/_core/merge.py:506",
+          "src/anndata/_core/merge.py:507",
+          "src/anndata/_core/merge.py:508",
+          "src/anndata/_core/merge.py:509",
+          "src/anndata/_core/merge.py:510",
+          "src/anndata/_core/merge.py:511",
+          "src/anndata/_core/merge.py:512",
+          "src/anndata/_core/merge.py:513",
+          "src/anndata/_core/merge.py:514",
+          "src/anndata/_core/merge.py:515",
+          "src/anndata/_core/merge.py:516",
+          "src/anndata/_core/merge.py:517",
+          "src/anndata/_core/merge.py:518",
+          "src/anndata/_core/merge.py:519",
+          "src/anndata/_core/merge.py:520",
+          "src/anndata/_core/merge.py:521",
+          "src/anndata/_core/merge.py:522",
+          "src/anndata/_core/merge.py:523",
+          "src/anndata/_core/merge.py:524",
+          "src/anndata/_core/merge.py:525",
+          "src/anndata/_core/merge.py:526",
+          "src/anndata/_core/merge.py:527",
+          "src/anndata/_core/merge.py:528",
+          "src/anndata/_core/merge.py:529",
+          "src/anndata/_core/merge.py:530",
+          "src/anndata/_core/merge.py:531",
+          "src/anndata/_core/merge.py:532",
+          "src/anndata/_core/merge.py:533",
+          "src/anndata/_core/merge.py:534",
+          "src/anndata/_core/merge.py:535"
+        ],
+        "summary": "src/anndata/_core/merge.py:480-535 (56 lines)",
+        "truncated": false
+      }
+    }
+  ],
+  "triage": [],
+  "usage": {
+    "probe_calls": 6,
+    "tokens": 247760,
+    "tool_calls": 21,
+    "turns": 10
+  }
+}

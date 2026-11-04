@@ -1,0 +1,51 @@
+{
+  "at_risk": [],
+  "change_symbols": [
+    "Context.resolve",
+    "jinja2.Context.resolve",
+    "jinja2.Markup",
+    "jinja2.autoescape",
+    "jinja2.contextfilter",
+    "jinja2.contextfunction",
+    "jinja2.environmentfilter",
+    "jinja2.environmentfunction",
+    "jinja2.escape",
+    "jinja2.evalcontextfilter",
+    "jinja2.evalcontextfunction",
+    "jinja2.ext.AutoEscapeExtension",
+    "jinja2.ext.WithExtension",
+    "jinja2.filters.unicode_urlencode",
+    "jinja2.unicode_urlencode",
+    "jinja2.with",
+    "jinja2.with_"
+  ],
+  "changed_symbols": [],
+  "deprecated_symbols": [],
+  "hard": [
+    "aiohttp_jinja2",
+    "aiohttp_jinja2.helpers",
+    "aiohttp_jinja2.typedefs"
+  ],
+  "probe_entries": [],
+  "spine": [
+    "aiohttp_jinja2",
+    "aiohttp_jinja2.helpers"
+  ],
+  "spine_evidence": [
+    [
+      "aiohttp_jinja2",
+      "aiohttp_jinja2.helpers",
+      "aiohttp_jinja2/__init__.py",
+      24
+    ],
+    [
+      "aiohttp_jinja2.helpers",
+      "jinja2.contextfunction",
+      "aiohttp_jinja2/helpers.py",
+      23
+    ]
+  ],
+  "used_symbols": [
+    "jinja2.contextfunction"
+  ]
+}

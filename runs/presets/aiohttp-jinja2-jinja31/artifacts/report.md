@@ -36,6 +36,14 @@ Predicted layer-1 chain:
 - `aiohttp_jinja2.helpers` -> `jinja2.contextfunction` (aiohttp_jinja2/helpers.py:23)
 Chain vs layer-1 actual: MATCH
 
+## Investigator
+
+1 finding(s), 1 verified.
+
+Static: 3 HARD, 0 AT_RISK, chain MATCH
+Agent: 3 HARD, 0 AT_RISK, chain MATCH
+No test suite to score. Chain match unchanged (MATCH). Agent triaged out 16 symbol(s): Context.resolve, jinja2.Context.resolve, jinja2.Markup, jinja2.autoescape, jinja2.contextfilter, jinja2.environmentfilter, jinja2.environmentfunction, jinja2.escape, jinja2.evalcontextfilter, jinja2.evalcontextfunction, jinja2.ext.AutoEscapeExtension, jinja2.ext.WithExtension, jinja2.filters.unicode_urlencode, jinja2.unicode_urlencode, jinja2.with, jinja2.with_.
+
 ## Test suites
 
 - before: 31 passed

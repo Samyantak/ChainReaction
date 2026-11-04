@@ -61,6 +61,15 @@ Predicted layer-1 chain:
 - `flask_login.utils` -> `werkzeug.urls.url_decode` (src/flask_login/utils.py:14)
 Chain vs layer-1 actual: MATCH
 
+## Investigator
+
+1 finding(s), 0 verified.
+
+Static: 8 HARD, 3 AT_RISK, chain MATCH
+Agent: 8 HARD, 3 AT_RISK, chain MATCH
+Test P/R static 1.00/0.13 vs agent 1.00/0.13.
+Agent did not improve test scores (P 1.00→1.00, R 0.13→0.13). Chain match unchanged (MATCH). Agent triaged out 40 symbol(s): Client.charset, WWWAuthenticate.set_basic, auth.key, http.cookiejar, warnings.catch_warnings, werkzeug.Location, werkzeug.__version__, werkzeug.auth, werkzeug.charset, werkzeug.datastructures.WWWAuthenticate.set_basic, werkzeug.datastructures.WWWAuthenticate.set_digest, werkzeug.delete_cookie, werkzeug.domain, werkzeug.dump_cookie, werkzeug.generate_password_hash, werkzeug.http.dump_cookie, werkzeug.http.dump_header, werkzeug.http.parse_authorization_header, werkzeug.http.parse_dict_header, werkzeug.http.parse_www_authenticate_header, werkzeug.http.quote_header_value, werkzeug.http.unquote_header_value, werkzeug.iri_to_uri, werkzeug.make_chunk_iter, werkzeug.max_form_parts, werkzeug.parse_cookie, werkzeug.parse_www_authenticate_header, werkzeug.path, werkzeug.quote_header_value, werkzeug.routing.Map.charset, werkzeug.security.generate_password_hash, werkzeug.set_digest, werkzeug.unquote_header_value, werkzeug.urls.iri_to_uri, werkzeug.value, werkzeug.wrappers.Request.charset, werkzeug.wrappers.Request.get_json, werkzeug.wrappers.Request.url_charset, werkzeug.wsgi.make_chunk_iter, werkzeug.wsgi.make_line_iter.
+
 ## Test suites
 
 - before: 113 passed
@@ -90,13 +99,13 @@ Actual: (import ok)
 
 ## Fix loop
 
-Status: partial (max-rounds)
+Status: partial (no-progress-twice)
 
 Round 1: probe src/flask_login/utils.py:14 -> `src/flask_login/utils.py` (probe ok)
-Round 2: test src/flask_login/test_client.py:14 -> no edits (probe FAILED)
-Round 3: test src/flask_login/test_client.py:14 -> `src/flask_login/test_client.py` (probe ok)
-Round 4: test tests/test_login.py:1019 -> `tests/test_login.py` (probe ok)
-Round 5: test tests/test_login.py:743 -> `tests/test_login.py` (probe ok)
+Round 2: test src/flask_login/test_client.py:14 -> `src/flask_login/test_client.py` (probe ok)
+Round 3: test tests/test_login.py:1019 -> `tests/test_login.py` (probe ok)
+Round 4: test tests/test_login.py:743 -> `tests/test_login.py` (probe ok)
+Round 5: test tests/test_login.py:745 -> `tests/test_login.py` (probe ok)
 
 Counts: 107 fixed, 4 still failing, 0 newly broken (baseline: 0 failures)
 

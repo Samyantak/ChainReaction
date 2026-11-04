@@ -175,6 +175,15 @@ Import chain is clean (import succeeds); worst damage is at call time:
 
 - `tests/test_concatenate.py::test_batch_key[0]` runs `anndata._core.merge.Reindexer._apply_to_df` which uses `numpy.NaN` (`src/anndata/_core/merge.py:552`)
 
+## Investigator
+
+Investigation incomplete (model did not call submit_findings); static prediction kept.
+
+Static: 0 HARD, 17 AT_RISK, chain MATCH
+Agent: 0 HARD, 17 AT_RISK, chain MATCH
+Test P/R static 1.00/0.97 vs agent 1.00/0.97.
+Investigation incomplete (model did not call submit_findings); agent prediction equals static.
+
 ## Test suites
 
 - before: 16 errors, 1 failed, 4243 passed, 607 skipped

@@ -1,4 +1,40 @@
 {
+  "ablation": {
+    "agent": {
+      "at_risk": [],
+      "hard": [
+        "aiohttp_jinja2",
+        "aiohttp_jinja2.helpers",
+        "aiohttp_jinja2.typedefs"
+      ],
+      "spine": [
+        "aiohttp_jinja2",
+        "aiohttp_jinja2.helpers"
+      ],
+      "spine_match": true
+    },
+    "behavior_confirmed": 0,
+    "note": "No test suite to score. Chain match unchanged (MATCH). Agent triaged out 16 symbol(s): Context.resolve, jinja2.Context.resolve, jinja2.Markup, jinja2.autoescape, jinja2.contextfilter, jinja2.environmentfilter, jinja2.environmentfunction, jinja2.escape, jinja2.evalcontextfilter, jinja2.evalcontextfunction, jinja2.ext.AutoEscapeExtension, jinja2.ext.WithExtension, jinja2.filters.unicode_urlencode, jinja2.unicode_urlencode, jinja2.with, jinja2.with_.",
+    "static": {
+      "at_risk": [],
+      "hard": [
+        "aiohttp_jinja2",
+        "aiohttp_jinja2.helpers",
+        "aiohttp_jinja2.typedefs"
+      ],
+      "spine": [
+        "aiohttp_jinja2",
+        "aiohttp_jinja2.helpers"
+      ],
+      "spine_match": true
+    },
+    "test": {
+      "agent_precision": null,
+      "agent_recall": null,
+      "static_precision": null,
+      "static_recall": null
+    }
+  },
   "after_version": "3.1.6",
   "at_risk": [],
   "before_numpy": null,
@@ -78,7 +114,7 @@
           }
         ],
         "before": null,
-        "duration_ms": 13129,
+        "duration_ms": 5,
         "edits": [
           "aiohttp_jinja2/helpers.py"
         ],
@@ -134,7 +170,7 @@
           "ran": false,
           "reason": "no file-correspondence tests for edited files"
         },
-        "duration_ms": 7599,
+        "duration_ms": 1019,
         "edits": [
           "aiohttp_jinja2/helpers.py"
         ],
@@ -192,7 +228,7 @@
     },
     "status": "green",
     "stop_reason": "green",
-    "total_cmd_ms": 1048,
+    "total_cmd_ms": 1015,
     "touched": [
       "aiohttp_jinja2/helpers.py"
     ],
@@ -257,6 +293,33 @@
   "interpret_missed": [],
   "interpret_recall": null,
   "interpret_table_size": 0,
+  "investigation": {
+    "findings": 1,
+    "kinds": {
+      "breaks_import": 1
+    },
+    "reason": "",
+    "status": "complete",
+    "triaged_out": [
+      "Context.resolve",
+      "jinja2.Context.resolve",
+      "jinja2.Markup",
+      "jinja2.autoescape",
+      "jinja2.contextfilter",
+      "jinja2.environmentfilter",
+      "jinja2.environmentfunction",
+      "jinja2.escape",
+      "jinja2.evalcontextfilter",
+      "jinja2.evalcontextfunction",
+      "jinja2.ext.AutoEscapeExtension",
+      "jinja2.ext.WithExtension",
+      "jinja2.filters.unicode_urlencode",
+      "jinja2.unicode_urlencode",
+      "jinja2.with",
+      "jinja2.with_"
+    ],
+    "verified": 1
+  },
   "layers": [
     {
       "actual": [

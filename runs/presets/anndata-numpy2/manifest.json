@@ -1,11 +1,11 @@
 {
   "allow_untrusted": true,
   "base_url_host": "api.meta.ai",
-  "chainreaction_git_sha": "cc8768b90296c075804c02737c5d6a244c0d47a2",
+  "chainreaction_git_sha": "7b6656b296195b2a8c90dd18d487e04691558fe3",
   "changeset_source": "muse-spark",
   "commit_date": "2024-05-14",
   "coverage_used": true,
-  "created_at": "2026-11-04T05:42:59.453Z",
+  "created_at": "2026-11-04T07:45:52.182Z",
   "current_stage": null,
   "decision": "upgrade numpy to 2.0",
   "decision_package": "numpy",
@@ -16,7 +16,7 @@
     "before": "reused"
   },
   "error": null,
-  "finished_at": "2026-11-04T06:15:36.672Z",
+  "finished_at": "2026-11-04T08:19:27.293Z",
   "fix_rounds": 2,
   "fix_source": "muse-spark",
   "fix_status": "partial",
@@ -31,7 +31,7 @@
   "replay_from": null,
   "repo_url": "https://github.com/scverse/anndata",
   "resolved_commit": "1461fecd1712eefb1e5a5c0a75547b0e169a23d5",
-  "run_id": "8a3401ea2961422383785835b11da815",
+  "run_id": "224c232d69914e4f858f6c4562d31ff6",
   "status": "done",
   "workspace": "workspaces/scverse__anndata@1461fecd1712"
 }

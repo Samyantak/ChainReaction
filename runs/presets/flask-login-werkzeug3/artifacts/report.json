@@ -1,4 +1,60 @@
 {
+  "ablation": {
+    "agent": {
+      "at_risk": [
+        "flask_login.login_manager.LoginManager.needs_refresh",
+        "flask_login.login_manager.LoginManager.unauthorized",
+        "flask_login.utils.login_url"
+      ],
+      "hard": [
+        "flask_login",
+        "flask_login.__about__",
+        "flask_login.config",
+        "flask_login.login_manager",
+        "flask_login.mixins",
+        "flask_login.signals",
+        "flask_login.test_client",
+        "flask_login.utils"
+      ],
+      "spine": [
+        "flask_login",
+        "flask_login.login_manager",
+        "flask_login.utils"
+      ],
+      "spine_match": true
+    },
+    "behavior_confirmed": 0,
+    "note": "Agent did not improve test scores (P 1.00→1.00, R 0.13→0.13). Chain match unchanged (MATCH). Agent triaged out 40 symbol(s): Client.charset, WWWAuthenticate.set_basic, auth.key, http.cookiejar, warnings.catch_warnings, werkzeug.Location, werkzeug.__version__, werkzeug.auth, werkzeug.charset, werkzeug.datastructures.WWWAuthenticate.set_basic, werkzeug.datastructures.WWWAuthenticate.set_digest, werkzeug.delete_cookie, werkzeug.domain, werkzeug.dump_cookie, werkzeug.generate_password_hash, werkzeug.http.dump_cookie, werkzeug.http.dump_header, werkzeug.http.parse_authorization_header, werkzeug.http.parse_dict_header, werkzeug.http.parse_www_authenticate_header, werkzeug.http.quote_header_value, werkzeug.http.unquote_header_value, werkzeug.iri_to_uri, werkzeug.make_chunk_iter, werkzeug.max_form_parts, werkzeug.parse_cookie, werkzeug.parse_www_authenticate_header, werkzeug.path, werkzeug.quote_header_value, werkzeug.routing.Map.charset, werkzeug.security.generate_password_hash, werkzeug.set_digest, werkzeug.unquote_header_value, werkzeug.urls.iri_to_uri, werkzeug.value, werkzeug.wrappers.Request.charset, werkzeug.wrappers.Request.get_json, werkzeug.wrappers.Request.url_charset, werkzeug.wsgi.make_chunk_iter, werkzeug.wsgi.make_line_iter.",
+    "static": {
+      "at_risk": [
+        "flask_login.login_manager.LoginManager.needs_refresh",
+        "flask_login.login_manager.LoginManager.unauthorized",
+        "flask_login.utils.login_url"
+      ],
+      "hard": [
+        "flask_login",
+        "flask_login.__about__",
+        "flask_login.config",
+        "flask_login.login_manager",
+        "flask_login.mixins",
+        "flask_login.signals",
+        "flask_login.test_client",
+        "flask_login.utils"
+      ],
+      "spine": [
+        "flask_login",
+        "flask_login.login_manager",
+        "flask_login.utils"
+      ],
+      "spine_match": true
+    },
+    "test": {
+      "agent_precision": 1.0,
+      "agent_recall": 0.12612612612612611,
+      "static_precision": 1.0,
+      "static_recall": 0.12612612612612611
+    }
+  },
   "after_version": "3.0.6",
   "at_risk": [
     "flask_login.login_manager.LoginManager.needs_refresh",
@@ -224,7 +280,7 @@
           "ran": true,
           "tests": 97
         },
-        "duration_ms": 3108,
+        "duration_ms": 3239,
         "edits": [
           "src/flask_login/utils.py"
         ],
@@ -355,42 +411,6 @@
       {
         "attempts": [
           {
-            "applied": [],
-            "attempt": 0,
-            "prompt_hash": "8c81bdcc32e42167a6757ae31d2605e9cdac1ff9adefc349935d0c0c5c4b1733",
-            "rationale": "",
-            "validation": [
-              "src/flask_login/test_client.py: test files need test_file=true and a test-only failure",
-              "src/flask_login/test_client.py: test files need test_file=true and a test-only failure",
-              "src/flask_login/test_client.py: test files need test_file=true and a test-only failure"
-            ]
-          }
-        ],
-        "before": null,
-        "duration_ms": 66577,
-        "edits": [],
-        "failure": {
-          "error": "E   DeprecationWarning: The '__version__' attribute is deprecated and will be removed in Werkzeug 3.1. Use feature detection or 'importlib.metadata.version(\"werkzeug\")' instead.",
-          "frames": [
-            "src/flask_login/test_client.py:14",
-            "tests/test_login.py:1768"
-          ],
-          "kind": "test",
-          "site": "src/flask_login/test_client.py:14",
-          "test": "tests/test_login.py::CustomTestClientTestCase::test_fresh_login_arg_to_test_client"
-        },
-        "full": null,
-        "items": [
-          "werkzeug.__version__"
-        ],
-        "n": 2,
-        "probe": null,
-        "progress": false,
-        "targeted": null
-      },
-      {
-        "attempts": [
-          {
             "addresses": [
               "werkzeug.__version__"
             ],
@@ -398,9 +418,9 @@
               "src/flask_login/test_client.py"
             ],
             "attempt": 0,
-            "diff_lines": 13,
-            "prompt_hash": "d324052845dd7e824a5d28c2947477518267310982262805504b6e26602d1db2",
-            "rationale": "Werkzeug deprecated `__version__` in favor of `importlib.metadata.version(\"werkzeug\")` (#2770). Flask's test client still reads `werkzeug.__version__`, so pre-populate it via the documented replacement so FlaskLoginClient init does not trigger the DeprecationWarning.",
+            "diff_lines": 12,
+            "prompt_hash": "38210d91c3c1756b9ed0bb5653b2a63f25d5ad81aa4e3ec75bbd602d34ec6438",
+            "rationale": "Flask's test client accesses deprecated werkzeug.__version__. Pre-cache it via importlib.metadata.version(\"werkzeug\") per #2770 so Werkzeug's deprecated __getattr__ is not triggered.",
             "validation": [
               "src/flask_login/test_client.py: test files need test_file=true and a test-only failure"
             ]
@@ -416,7 +436,7 @@
           "ran": true,
           "tests": 113
         },
-        "duration_ms": 68077,
+        "duration_ms": 56922,
         "edits": [
           "src/flask_login/test_client.py"
         ],
@@ -449,7 +469,7 @@
         "items": [
           "werkzeug.__version__"
         ],
-        "n": 3,
+        "n": 2,
         "probe": {
           "error": "",
           "frames": [],
@@ -472,15 +492,15 @@
         "attempts": [
           {
             "addresses": [
-              "Client.set_cookie"
+              "test_invalid_remember_cookie"
             ],
             "applied": [
               "tests/test_login.py"
             ],
             "attempt": 0,
             "diff_lines": 11,
-            "prompt_hash": "5c45d549d5d11e090f41210e73e0897a431266dc3dfcef9a7b259190f327b0c3",
-            "rationale": "Werkzeug 2.3/3.x removed the leading server_name argument from Client.set_cookie, changing it to (key, value, domain=...). Update the test call to the new signature.",
+            "prompt_hash": "e24abd11360ac0216e5f3139c0f9bc05463d371359342a94e2e42ef704e24b7f",
+            "rationale": "Werkzeug 3.x changed Client.set_cookie to set_cookie(key, value, *, domain=...), so the old positional (domain, key, value) call fails; update test to the new keyword form.",
             "validation": []
           }
         ],
@@ -499,7 +519,7 @@
           "ran": true,
           "tests": 113
         },
-        "duration_ms": 23858,
+        "duration_ms": 28069,
         "edits": [
           "tests/test_login.py"
         ],
@@ -528,7 +548,7 @@
           "total": 113
         },
         "items": [],
-        "n": 4,
+        "n": 3,
         "probe": {
           "error": "",
           "frames": [],
@@ -551,15 +571,15 @@
         "attempts": [
           {
             "addresses": [
-              "cookie_jar"
+              "test_remember_me_accepts_duration_as_int"
             ],
             "applied": [
               "tests/test_login.py"
             ],
             "attempt": 0,
-            "diff_lines": 21,
-            "prompt_hash": "3f71afb3fb324ebd5bcb4c42a014aab256accf9dc547418269e9bfee85b15bfb",
-            "rationale": "Werkzeug 2.3/3.x removed Client.cookie_jar in favor of Client.get_cookie(key, domain, path). Use get_cookie and normalize expires (datetime vs timestamp, aware vs naive) for the existing comparison.",
+            "diff_lines": 19,
+            "prompt_hash": "05182addf70a06934b9de1b17e4575c541a0b178541275aac1a196f96a3f4d5e",
+            "rationale": "Werkzeug 3.x removed Client.cookie_jar in favor of Client.get_cookie(), whose Cookie.expires is a datetime. Use get_cookie with domain lookup and handle both datetime and timestamp expires.",
             "validation": []
           }
         ],
@@ -580,7 +600,7 @@
           "ran": true,
           "tests": 113
         },
-        "duration_ms": 72544,
+        "duration_ms": 53044,
         "edits": [
           "tests/test_login.py"
         ],
@@ -591,6 +611,89 @@
           ],
           "kind": "test",
           "site": "tests/test_login.py:743",
+          "test": "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int"
+        },
+        "full": {
+          "counts": {
+            "failed": 4,
+            "passed": 109
+          },
+          "error_files": [],
+          "escalated": false,
+          "failed": [
+            "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
+            "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration_uses_custom_cookie",
+            "tests/test_login.py::LoginTestCase::test_remember_me_refresh_every_request",
+            "tests/test_login.py::LoginTestCase::test_remember_me_uses_custom_cookie_parameters"
+          ],
+          "total": 113
+        },
+        "items": [],
+        "n": 4,
+        "probe": {
+          "error": "",
+          "frames": [],
+          "modules": [],
+          "ok": true,
+          "site": null,
+          "trace": ""
+        },
+        "progress": false,
+        "targeted": {
+          "counts": {
+            "failed": 4,
+            "passed": 109
+          },
+          "method": "coverage (no covering tests; running full suite)",
+          "ran_full": true
+        }
+      },
+      {
+        "attempts": [
+          {
+            "addresses": [
+              "test_remember_me_accepts_duration_as_int"
+            ],
+            "applied": [
+              "tests/test_login.py"
+            ],
+            "attempt": 0,
+            "diff_lines": 15,
+            "prompt_hash": "5d299dd46f3368f355e23b6f2dd3c55cfaaaf2a8c8597e55a654e9cb49010a67",
+            "rationale": "Werkzeug 3.x Client.get_cookie defaults to origin_only=True, so cookies set with an explicit REMEMBER_COOKIE_DOMAIN are filtered out and return None. Passing origin_only=False with leading-dot fallback restores the documented retrieval.",
+            "validation": [
+              "model_error: RuntimeError: empty response from model (finish_reason=length)"
+            ]
+          }
+        ],
+        "before": {
+          "counts": {
+            "failed": 2,
+            "passed": 111
+          },
+          "failed": [
+            "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie",
+            "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int"
+          ],
+          "method": "full-suite (no covering tests)",
+          "newly_broken": [
+            "tests/test_login.py::LoginTestCase::test_invalid_remember_cookie",
+            "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int"
+          ],
+          "ran": true,
+          "tests": 113
+        },
+        "duration_ms": 96217,
+        "edits": [
+          "tests/test_login.py"
+        ],
+        "failure": {
+          "error": "E   AttributeError: 'NoneType' object has no attribute 'expires'",
+          "frames": [
+            "tests/test_login.py:745"
+          ],
+          "kind": "test",
+          "site": "tests/test_login.py:745",
           "test": "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int"
         },
         "full": {
@@ -753,8 +856,8 @@
       }
     },
     "status": "partial",
-    "stop_reason": "max-rounds",
-    "total_cmd_ms": 10166,
+    "stop_reason": "no-progress-twice",
+    "total_cmd_ms": 11410,
     "touched": [
       "src/flask_login/test_client.py",
       "src/flask_login/utils.py",
@@ -833,6 +936,57 @@
   "interpret_missed": [],
   "interpret_recall": null,
   "interpret_table_size": 0,
+  "investigation": {
+    "findings": 1,
+    "kinds": {
+      "breaks_import": 1
+    },
+    "reason": "",
+    "status": "complete",
+    "triaged_out": [
+      "Client.charset",
+      "WWWAuthenticate.set_basic",
+      "auth.key",
+      "http.cookiejar",
+      "warnings.catch_warnings",
+      "werkzeug.Location",
+      "werkzeug.__version__",
+      "werkzeug.auth",
+      "werkzeug.charset",
+      "werkzeug.datastructures.WWWAuthenticate.set_basic",
+      "werkzeug.datastructures.WWWAuthenticate.set_digest",
+      "werkzeug.delete_cookie",
+      "werkzeug.domain",
+      "werkzeug.dump_cookie",
+      "werkzeug.generate_password_hash",
+      "werkzeug.http.dump_cookie",
+      "werkzeug.http.dump_header",
+      "werkzeug.http.parse_authorization_header",
+      "werkzeug.http.parse_dict_header",
+      "werkzeug.http.parse_www_authenticate_header",
+      "werkzeug.http.quote_header_value",
+      "werkzeug.http.unquote_header_value",
+      "werkzeug.iri_to_uri",
+      "werkzeug.make_chunk_iter",
+      "werkzeug.max_form_parts",
+      "werkzeug.parse_cookie",
+      "werkzeug.parse_www_authenticate_header",
+      "werkzeug.path",
+      "werkzeug.quote_header_value",
+      "werkzeug.routing.Map.charset",
+      "werkzeug.security.generate_password_hash",
+      "werkzeug.set_digest",
+      "werkzeug.unquote_header_value",
+      "werkzeug.urls.iri_to_uri",
+      "werkzeug.value",
+      "werkzeug.wrappers.Request.charset",
+      "werkzeug.wrappers.Request.get_json",
+      "werkzeug.wrappers.Request.url_charset",
+      "werkzeug.wsgi.make_chunk_iter",
+      "werkzeug.wsgi.make_line_iter"
+    ],
+    "verified": 0
+  },
   "layers": [
     {
       "actual": [

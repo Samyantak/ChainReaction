@@ -172,7 +172,7 @@
         "ran": true,
         "tests": 1
       },
-      "duration_ms": 68034,
+      "duration_ms": 65521,
       "edits": [
         "nibabel/quaternions.py"
       ],
@@ -431,7 +431,7 @@
         "ran": true,
         "tests": 1
       },
-      "duration_ms": 80336,
+      "duration_ms": 67581,
       "edits": [
         "nibabel/affines.py"
       ],
@@ -667,8 +667,8 @@
           ],
           "attempt": 0,
           "diff_lines": 11,
-          "prompt_hash": "47eedd6bcc9833bd5bb405561370f51a0906a257452f0e346ba1806a5469b732",
-          "rationale": "Per NumPy 2.0 NEP 50 change item NumPy scalars are strong types so value-based np.can_cast fails; converting min/max to Python scalars via .item() restores weak-scalar value-based checks.",
+          "prompt_hash": "4ccbc70daf7a74e8d2164c853cbdd2e83b4df13c598633488062ca9f42280f15",
+          "rationale": "Per NumPy 2.0 NEP 50 can_cast change, numpy scalars use dtype-based casting so float64 values fail; converting min/max to Python scalars via .item() restores value-based checks for int32/float32 compatibility.",
           "validation": []
         }
       ],
@@ -683,7 +683,7 @@
         "ran": true,
         "tests": 1
       },
-      "duration_ms": 110323,
+      "duration_ms": 2454,
       "edits": [
         "nibabel/nifti1.py"
       ],
@@ -736,9 +736,9 @@
             "nibabel/nifti1.py"
           ],
           "attempt": 0,
-          "diff_lines": 25,
-          "prompt_hash": "24e0cefb8f7620815e6b506842e4ad2724b904c728d18bd1d9eabc9967800bcc",
-          "rationale": "Per NEP 50 change item np.can_cast no longer supports Python ints/floats with value-based logic. Replace with explicit iinfo/finfo range checks and exact float32 representability for ints, preserving int32 then float32 priority.",
+          "diff_lines": 23,
+          "prompt_hash": "be2b75af6d802adf2f0fd25fac9e8e947f850d516dd733d7337ce1d5acdd44f0",
+          "rationale": "Per NEP 50 change item np.can_cast no longer accepts Python ints/floats and NumPy scalars are dtype-based, so replace value-based can_cast with explicit iinfo/finfo range and float32 exactness checks preserving int32 then float32 logic.",
           "validation": []
         }
       ],
@@ -753,7 +753,7 @@
         "ran": true,
         "tests": 1
       },
-      "duration_ms": 81172,
+      "duration_ms": 120218,
       "edits": [
         "nibabel/nifti1.py"
       ],
@@ -949,7 +949,7 @@
   },
   "status": "partial",
   "stop_reason": "no-progress-twice",
-  "total_cmd_ms": 302494,
+  "total_cmd_ms": 302340,
   "touched": [
     "nibabel/affines.py",
     "nibabel/casting.py",

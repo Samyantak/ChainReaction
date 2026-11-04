@@ -116,10 +116,17 @@
     "errors": 2
   },
   "after_escalated": false,
+  "agent_added_tests": [],
   "baseline_counts": {
     "passed": 113
   },
   "baseline_failed": [],
+  "behavior": {
+    "confirmed": 0,
+    "precision": null,
+    "predicted": [],
+    "recall": null
+  },
   "conflict": null,
   "failure_groups": [
     {
@@ -148,6 +155,24 @@
     "tests/test_login.py::TestLoginUrlGeneration::test_login_url_generation",
     "tests/test_login.py::TestLoginUrlGeneration::test_login_url_generation_with_view"
   ],
+  "static_precision": 1.0,
+  "static_predicted_failing": [
+    "tests/test_login.py::LoginTestCase::test_needs_refresh_fires_flash_when_redirect_to_refresh_view",
+    "tests/test_login.py::LoginTestCase::test_needs_refresh_flash_message_localized",
+    "tests/test_login.py::LoginTestCase::test_redirects_to_refresh_view",
+    "tests/test_login.py::LoginTestCase::test_set_login_view_without_blueprints",
+    "tests/test_login.py::LoginTestCase::test_unauthorized_flash_message_localized",
+    "tests/test_login.py::LoginTestCase::test_unauthorized_flashes_message_with_login_view",
+    "tests/test_login.py::LoginTestCase::test_unauthorized_redirects_to_login_view",
+    "tests/test_login.py::LoginTestCase::test_unauthorized_uses_blueprint_login_view",
+    "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_ignores_host_from_x_forwarded_for_header",
+    "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_config_when_available",
+    "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_next_url",
+    "tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_x_forwarded_for_header",
+    "tests/test_login.py::TestLoginUrlGeneration::test_login_url_generation",
+    "tests/test_login.py::TestLoginUrlGeneration::test_login_url_generation_with_view"
+  ],
+  "static_recall": 0.12612612612612611,
   "suites": "ok",
   "test_chain": {
     "file": "src/flask_login/utils.py",

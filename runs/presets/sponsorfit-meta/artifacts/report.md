@@ -17,6 +17,14 @@ Predicted call chain:
 - `sponsorfit.llm.MeteredLLMClient.call` -> `sponsorfit.llm` (src/sponsorfit/llm.py:14)
 Chain vs decision actual: MATCH
 
+## Investigator
+
+3 finding(s), 2 verified.
+
+Static: 2 HARD, 5 AT_RISK, chain MATCH
+Agent: 2 HARD, 5 AT_RISK, chain MATCH
+No test suite to score. Chain match unchanged (MATCH).
+
 ## Verification
 
 ### decision (recall 1.00)

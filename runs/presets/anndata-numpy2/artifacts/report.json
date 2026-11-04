@@ -1,4 +1,62 @@
 {
+  "ablation": {
+    "agent": {
+      "at_risk": [
+        "anndata._core.merge.Reindexer.__call__",
+        "anndata._core.merge.Reindexer._apply_to_df",
+        "anndata._core.merge.Reindexer.apply",
+        "anndata._io.h5ad.read_dataframe",
+        "anndata._io.h5ad.read_dataframe_legacy",
+        "anndata._io.h5ad.read_dataset",
+        "anndata._io.h5ad.read_h5ad",
+        "anndata._io.h5ad.read_h5ad.callback",
+        "anndata._io.h5ad.read_h5ad_backed",
+        "anndata._io.specs.methods.read_basic",
+        "anndata._io.specs.methods.read_basic_zarr",
+        "anndata._io.specs.methods.read_recarray",
+        "anndata._io.zarr.read_dataframe",
+        "anndata._io.zarr.read_dataframe_legacy",
+        "anndata._io.zarr.read_dataset",
+        "anndata._io.zarr.read_zarr.callback",
+        "anndata.compat._from_fixed_length_strings"
+      ],
+      "hard": [],
+      "spine": [],
+      "spine_match": true
+    },
+    "behavior_confirmed": 0,
+    "note": "Investigation incomplete (model did not call submit_findings); agent prediction equals static.",
+    "static": {
+      "at_risk": [
+        "anndata._core.merge.Reindexer.__call__",
+        "anndata._core.merge.Reindexer._apply_to_df",
+        "anndata._core.merge.Reindexer.apply",
+        "anndata._io.h5ad.read_dataframe",
+        "anndata._io.h5ad.read_dataframe_legacy",
+        "anndata._io.h5ad.read_dataset",
+        "anndata._io.h5ad.read_h5ad",
+        "anndata._io.h5ad.read_h5ad.callback",
+        "anndata._io.h5ad.read_h5ad_backed",
+        "anndata._io.specs.methods.read_basic",
+        "anndata._io.specs.methods.read_basic_zarr",
+        "anndata._io.specs.methods.read_recarray",
+        "anndata._io.zarr.read_dataframe",
+        "anndata._io.zarr.read_dataframe_legacy",
+        "anndata._io.zarr.read_dataset",
+        "anndata._io.zarr.read_zarr.callback",
+        "anndata.compat._from_fixed_length_strings"
+      ],
+      "hard": [],
+      "spine": [],
+      "spine_match": true
+    },
+    "test": {
+      "agent_precision": 1.0,
+      "agent_recall": 0.9673202614379085,
+      "static_precision": 1.0,
+      "static_recall": 0.9673202614379085
+    }
+  },
   "after_version": "2.0.2",
   "at_risk": [
     "anndata._core.merge.Reindexer.__call__",
@@ -865,7 +923,7 @@
           "ran": true,
           "tests": 1
         },
-        "duration_ms": 300116,
+        "duration_ms": 312023,
         "edits": [
           "src/anndata/__init__.py"
         ],
@@ -1557,7 +1615,7 @@
           "ran": false,
           "reason": "no coverage tests for edited files"
         },
-        "duration_ms": 299911,
+        "duration_ms": 282955,
         "edits": [
           "conftest.py"
         ],
@@ -2846,7 +2904,7 @@
     },
     "status": "partial",
     "stop_reason": "max-rounds",
-    "total_cmd_ms": 551339,
+    "total_cmd_ms": 609492,
     "touched": [
       "conftest.py",
       "src/anndata/__init__.py"
@@ -2969,6 +3027,14 @@
   ],
   "interpret_recall": 0.2831858407079646,
   "interpret_table_size": 113,
+  "investigation": {
+    "findings": 0,
+    "kinds": {},
+    "reason": "model did not call submit_findings",
+    "status": "incomplete",
+    "triaged_out": [],
+    "verified": 0
+  },
   "layers": [
     {
       "actual": [],

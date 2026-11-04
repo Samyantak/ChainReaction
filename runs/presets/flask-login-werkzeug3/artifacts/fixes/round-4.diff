@@ -1,11 +1,19 @@
 --- a/tests/test_login.py
 +++ b/tests/test_login.py
-@@ -1016,7 +1016,7 @@
-             c.get("/login-notch-remember")
-             with c.session_transaction() as sess:
-                 sess["_user_id"] = None
--            c.set_cookie(domain, self.remember_cookie_name, "foo")
-+            c.set_cookie(self.remember_cookie_name, "foo", domain=domain)
-             result = c.get("/username")
-             self.assertEqual("Anonymous", result.data.decode("utf-8"))
+@@ -740,9 +740,13 @@
+             result = c.get("/login-notch-remember")
+             self.assertEqual(result.status_code, 200)
+ 
+-            cookie = c.cookie_jar._cookies[domain]["/"][name]
+-
+-            expiration_date = datetime.utcfromtimestamp(cookie.expires)
++            cookie = c.get_cookie(name, domain=domain)
++
++            expires = cookie.expires
++            if isinstance(expires, datetime):
++                expiration_date = expires.replace(tzinfo=None)
++            else:
++                expiration_date = datetime.utcfromtimestamp(expires)
+             expected_date = datetime.utcnow() + duration
+             difference = expected_date - expiration_date
  

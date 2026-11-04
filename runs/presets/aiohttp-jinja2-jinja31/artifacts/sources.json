@@ -21,11 +21,11 @@
       "used": true
     },
     {
-      "bytes": 449565,
+      "bytes": 449580,
       "clean": "text",
       "found_via": "search",
       "note": "",
-      "sha256": "56e7f6b5fd6d975cdbdc108180fdee4e57745e259e1e31bdd8293824890118dd",
+      "sha256": "c7739cdce9e08d01f0f661e30e15654859f279f8058ac90545299f0615dd9d33",
       "url": "https://github.com/pallets/jinja/blob/main/CHANGES.rst",
       "used": false
     }

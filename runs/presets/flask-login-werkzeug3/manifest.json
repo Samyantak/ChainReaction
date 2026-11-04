@@ -1,11 +1,11 @@
 {
   "allow_untrusted": true,
   "base_url_host": "api.meta.ai",
-  "chainreaction_git_sha": "fb6510482cbb402373e0f2d0242853ac0168f19f",
+  "chainreaction_git_sha": "7b6656b296195b2a8c90dd18d487e04691558fe3",
   "changeset_source": "muse-spark",
   "commit_date": "2023-09-01",
   "coverage_used": true,
-  "created_at": "2026-11-04T02:15:51.514Z",
+  "created_at": "2026-11-04T07:36:35.988Z",
   "current_stage": null,
   "decision": "upgrade werkzeug from 2.2 to 3.0",
   "decision_package": "werkzeug",
@@ -16,7 +16,7 @@
     "before": "reused"
   },
   "error": null,
-  "finished_at": "2026-11-04T02:20:00.829Z",
+  "finished_at": "2026-11-04T07:44:09.608Z",
   "fix_rounds": null,
   "fix_source": "muse-spark",
   "fix_status": "partial",
@@ -31,7 +31,7 @@
   "replay_from": null,
   "repo_url": "https://github.com/maxcountryman/flask-login",
   "resolved_commit": "31e20a3cc143b8d07d6a67f18d4613e3ef85f1a0",
-  "run_id": "0162a9bc33b148eba8ec5699d16d9faa",
+  "run_id": "c9bde38c1be84be9bde9533ff4142dec",
   "status": "done",
   "workspace": "workspaces/maxcountryman__flask-login@31e20a3cc143"
 }
