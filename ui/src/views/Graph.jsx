@@ -6,7 +6,7 @@ import { getJSON, useApi, withOptional } from '../api'
 cytoscape.use(dagre)
 import { Status } from '../components'
 import { CodeBlock, FileHead } from '../CodeBlock'
-import { GRAPH_MAX_ZOOM, GRAPH_MIN_FIT_ZOOM, describeEdge } from '../graphUtils'
+import { GRAPH_MAX_ZOOM, GRAPH_MIN_FIT_ZOOM, describeEdge, nodeVisible } from '../graphUtils'
 import '../graph.css'
 
 const base = (file) => (file ? file.split('/').pop() : '')
@@ -103,8 +103,9 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
             label: `${short(n.id)}\n${n.status === 'HARD' ? 'HARD' : 'AT RISK'}`,
             status: n.status,
             chain: n.chain ? 1 : 0,
+            behavior: n.behavior ? 1 : 0,
           },
-          classes: n.chain ? 'chain' : '',
+          classes: [n.chain && 'chain', n.behavior && 'behavior'].filter(Boolean).join(' '),
         })),
         ...clusters.map((c) => ({
           data: { id: c.id, label: c.label, cluster: 1 },
@@ -153,6 +154,13 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
             'border-style': 'dashed',
             'border-width': 2,
             'font-size': 12,
+          },
+        },
+        {
+          selector: 'node.behavior',
+          style: {
+            'border-style': 'dotted',
+            'border-color': cssVar('--sky-ink'),
           },
         },
         {
@@ -243,9 +251,12 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
         node.style('display', q ? 'none' : 'element')
         return
       }
-      const statusOk = filters[node.data('status')]
-      const textOk = !q || node.id().toLowerCase().includes(q)
-      node.style('display', statusOk && textOk ? 'element' : 'none')
+      const shown = nodeVisible(
+        { status: node.data('status'), behavior: node.data('behavior'), id: node.id() },
+        filters,
+        query,
+      )
+      node.style('display', shown ? 'element' : 'none')
       if (node.id() === selected) node.select()
       else node.unselect()
     })
@@ -354,7 +365,7 @@ export default function GraphView({ runId }) {
   const [full, setFull] = useState(null)
   const [expanding, setExpanding] = useState(false)
   const [selected, setSelected] = useState(null)
-  const [filters, setFilters] = useState({ HARD: true, AT_RISK: true })
+  const [filters, setFilters] = useState({ HARD: true, AT_RISK: true, BEHAVIOR: true })
   const [query, setQuery] = useState('')
   const [animDone, setAnimDone] = useState(false)
   const [round, setRound] = useState(0)
@@ -418,33 +429,39 @@ export default function GraphView({ runId }) {
         onReplay={() => setRound((r) => r + 1)}
       />
       <div className="graph-toolbar">
-        <div className="legend">
-          <span className="legend-item">
+        <fieldset className="legend">
+          <legend>Show</legend>
+          <label className="legend-item">
+            <input
+              type="checkbox"
+              checked={filters.HARD}
+              onChange={(e) => setFilters((f) => ({ ...f, HARD: e.target.checked }))}
+            />
             <span className="swatch hard" /> HARD
-          </span>
-          <span className="legend-item">
+          </label>
+          <label className="legend-item">
+            <input
+              type="checkbox"
+              checked={filters.AT_RISK}
+              onChange={(e) => setFilters((f) => ({ ...f, AT_RISK: e.target.checked }))}
+            />
             <span className="swatch risk" /> AT RISK
-          </span>
+          </label>
+          <label
+            className="legend-item"
+            title="Modules in upstream behavior-change files (not predicted breakage)"
+          >
+            <input
+              type="checkbox"
+              checked={filters.BEHAVIOR}
+              onChange={(e) => setFilters((f) => ({ ...f, BEHAVIOR: e.target.checked }))}
+            />
+            <span className="swatch behavior" /> behavior
+          </label>
           <span className="legend-item">
             <span className="swatch chain" /> on chain
           </span>
-        </div>
-        <label className="filter">
-          <input
-            type="checkbox"
-            checked={filters.HARD}
-            onChange={(e) => setFilters((f) => ({ ...f, HARD: e.target.checked }))}
-          />{' '}
-          HARD
-        </label>
-        <label className="filter">
-          <input
-            type="checkbox"
-            checked={filters.AT_RISK}
-            onChange={(e) => setFilters((f) => ({ ...f, AT_RISK: e.target.checked }))}
-          />{' '}
-          AT RISK
-        </label>
+        </fieldset>
         <input
           className="graph-search"
           type="search"

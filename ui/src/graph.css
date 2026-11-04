@@ -65,18 +65,34 @@
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
-.legend { display: flex; gap: 12px; }
+.legend {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  border: var(--rule) solid var(--ink);
+  padding: 6px 12px;
+  margin: 0;
+}
+.legend legend {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+  padding: 0 6px;
+}
 .legend-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
+  cursor: pointer;
 }
+span.legend-item { cursor: default; }
 .swatch { width: 16px; height: 16px; border: 1.5px solid var(--ink); display: inline-block; }
 .swatch.hard { border-color: var(--red); }
 .swatch.risk { background: var(--sheet); }
 .swatch.chain { background: var(--sky); }
-.filter { font-size: 14px; display: inline-flex; align-items: center; gap: 4px; }
+.swatch.behavior { border-style: dotted; border-color: var(--sky-ink); }
 .graph-search {
   font: inherit;
   font-size: 13px;

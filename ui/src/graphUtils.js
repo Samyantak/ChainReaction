@@ -13,3 +13,14 @@ export function describeEdge({ isChain, endsVisible, selected, sourceId, targetI
   const lit = selected != null && (sourceId === selected || targetId === selected)
   return [lit ? 'element' : 'none', lit]
 }
+
+/* Node visibility from the merged legend control: the status checkbox
+ * must be on, behavior-tagged nodes additionally need BEHAVIOR on, and
+ * the module search must match. */
+export function nodeVisible({ status, behavior, id }, filters, query) {
+  const statusOk = !!filters[status]
+  const behaviorOk = !!filters.BEHAVIOR || !behavior
+  const q = (query || '').trim().toLowerCase()
+  const textOk = !q || String(id || '').toLowerCase().includes(q)
+  return statusOk && behaviorOk && textOk
+}

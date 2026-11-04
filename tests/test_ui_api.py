@@ -614,6 +614,45 @@ def test_graph_endpoint_function_nodes(tmp_path, monkeypatch):
         ui_api.cached_repo_graph.cache_clear()
 
 
+def test_graph_endpoint_behavior_tags(tmp_path, monkeypatch):
+    """Nodes in report file_behavior files carry behavior=True for the filter."""
+    import json
+    import shutil
+
+    from chainreaction import ui_api
+    from chainreaction.runs.scrub import ROOT
+
+    ui_api.cached_repo_graph.cache_clear()
+    target = ROOT / "workspaces" / "_test_graph_beh"
+    if target.exists():
+        shutil.rmtree(target)
+    pkg = target / "mypkg"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("")
+    (pkg / "alpha.py").write_text("X = 1\n")
+    (pkg / "beta.py").write_text("Y = 2\n")
+    runs = tmp_path / "runs"
+    art = runs / "presets" / "gx" / "artifacts"
+    art.mkdir(parents=True)
+    (runs / "presets" / "gx" / "manifest.json").write_text(
+        json.dumps({"status": "done", "decision": "do X"}))
+    (art / "prediction.json").write_text(json.dumps({
+        "hard": ["mypkg.alpha", "mypkg.beta"], "at_risk": [],
+        "spine": [], "spine_evidence": []}))
+    (art / "report.json").write_text(json.dumps(
+        {"target": "workspaces/_test_graph_beh", "package": "mypkg",
+         "file_behavior": ["mypkg/alpha.py"]}))
+    monkeypatch.setenv("CHAINREACTION_RUNS_DIR", str(runs))
+    try:
+        body = client.get("/api/runs/preset:gx/graph").json()
+        by_id = {n["id"]: n for n in body["nodes"]}
+        assert by_id["mypkg.alpha"]["behavior"] is True
+        assert by_id["mypkg.beta"]["behavior"] is False
+    finally:
+        shutil.rmtree(target, ignore_errors=True)
+        ui_api.cached_repo_graph.cache_clear()
+
+
 def test_graph_endpoint_no_prediction_404(tmp_path, monkeypatch):
     import json
 

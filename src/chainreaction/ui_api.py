@@ -474,7 +474,8 @@ def cluster_impacted(modules: dict, edges: list, main: list,
 def _node(modules: dict, module: str, on_chain: bool) -> dict:
     info = modules[module]
     node = {"id": module, "status": info["status"],
-            "file": info.get("file"), "chain": on_chain}
+            "file": info.get("file"), "chain": on_chain,
+            "behavior": bool(info.get("behavior"))}
     if info.get("tests") is not None:
         node["tests"] = info["tests"]
         node["tests_more"] = info.get("tests_more", 0)
@@ -542,9 +543,11 @@ def ui_graph(run_id: str, full: bool = False) -> dict:
     impacted = {n for n in hard | at_risk | set(spine)
                 if graph.nodes.get(n, {}).get("kind")
                 in ("module", "function", "class")}
+    behavior_files = set(report.get("file_behavior") or [])
     modules = {
         n: {"status": "HARD" if n in hard else "AT_RISK",
-            "file": graph.nodes[n].get("file")}
+            "file": graph.nodes[n].get("file"),
+            "behavior": graph.nodes[n].get("file") in behavior_files}
         for n in impacted
     }
     edges = [

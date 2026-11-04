@@ -1,6 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { GRAPH_MAX_ZOOM, GRAPH_MIN_FIT_ZOOM, describeEdge } from '../src/graphUtils.js'
+import {
+  GRAPH_MAX_ZOOM,
+  GRAPH_MIN_FIT_ZOOM,
+  describeEdge,
+  nodeVisible,
+} from '../src/graphUtils.js'
 
 test('zoom stays inside the readable band', () => {
   assert.equal(GRAPH_MAX_ZOOM, 1.2)
@@ -25,4 +30,23 @@ test('plain edges appear only around the selection', () => {
   assert.deepEqual(describeEdge({ ...base, selected: 'b' }), ['element', true])
   assert.deepEqual(describeEdge({ ...base, selected: 'c' }), ['none', false])
   assert.deepEqual(describeEdge({ ...base, selected: 'a', endsVisible: false }), ['none', false])
+})
+
+test('legend filters combine status, behavior, and search', () => {
+  const all = { HARD: true, AT_RISK: true, BEHAVIOR: true }
+  assert.equal(nodeVisible({ status: 'HARD', behavior: 0, id: 'a.b' }, all, ''), true)
+  assert.equal(
+    nodeVisible({ status: 'HARD', behavior: 0, id: 'a.b' }, { ...all, HARD: false }, ''),
+    false,
+  )
+  assert.equal(
+    nodeVisible({ status: 'AT_RISK', behavior: 1, id: 'a.b' }, { ...all, BEHAVIOR: false }, ''),
+    false,
+  )
+  assert.equal(
+    nodeVisible({ status: 'AT_RISK', behavior: 1, id: 'a.b' }, all, ''),
+    true,
+  )
+  assert.equal(nodeVisible({ status: 'HARD', behavior: 0, id: 'a.b' }, all, 'zzz'), false)
+  assert.equal(nodeVisible({ status: 'HARD', behavior: 0, id: 'a.b' }, all, 'A.B'), true)
 })
