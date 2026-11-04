@@ -1,0 +1,57 @@
+{
+  "_example": "Fixture only. Shaped to the M5 outputs for UI development and feature-page demo mode. Never rendered on a real run.",
+  "status": "green",
+  "stop_reason": "no decision-caused failures remain",
+  "tests_before": {"failed": 4, "passed": 120},
+  "rounds": [
+    {
+      "n": 1,
+      "target": "layer1 ImportError at nibabel/casting.py:717",
+      "failure_site": "nibabel/casting.py:717",
+      "rationale": "Replace the removed np.sctypes lookup with explicit float types per the migration guide.",
+      "addresses": ["numpy.sctypes"],
+      "edits": [
+        {
+          "path": "nibabel/casting.py",
+          "search": "    floats = np.sctypes['float'][:]",
+          "replace": "    floats = [np.float16, np.float32, np.float64, np.longdouble]"
+        }
+      ],
+      "validation": {"ok": true},
+      "probe": {"ok": false, "error": "ImportError at nibabel/quaternions.py:32"},
+      "tests_after": {"failed": 1, "passed": 123},
+      "diff": "fixes/round-1.diff",
+      "diff_text": "--- a/nibabel/casting.py\n+++ b/nibabel/casting.py\n@@ -714,7 +714,7 @@\n     \"\"\"\n     # copy float list so we don't change the numpy global\n-    floats = np.sctypes['float'][:]\n+    floats = [np.float16, np.float32, np.float64, np.longdouble]\n     if best_float() != np.longdouble and np.longdouble in floats:\n",
+      "duration_s": 48
+    },
+    {
+      "n": 2,
+      "target": "layer2 ImportError at nibabel/quaternions.py:32",
+      "failure_site": "nibabel/quaternions.py:32",
+      "rationale": "Same removal one layer down; maximum_sctype has no replacement, inline the call.",
+      "addresses": ["numpy.maximum_sctype"],
+      "edits": [
+        {
+          "path": "nibabel/quaternions.py",
+          "search": "    x = np.maximum_sctype(t)",
+          "replace": "    x = t if t in (np.float32, np.float64) else np.float64"
+        }
+      ],
+      "validation": {"ok": true},
+      "probe": {"ok": true},
+      "tests_after": {"failed": 0, "passed": 124},
+      "diff": "fixes/round-2.diff",
+      "diff_text": "--- a/nibabel/quaternions.py\n+++ b/nibabel/quaternions.py\n@@ -29,7 +29,7 @@\n def _promote(t):\n-    x = np.maximum_sctype(t)\n+    x = t if t in (np.float32, np.float64) else np.float64\n     return x\n",
+      "duration_s": 61
+    }
+  ],
+  "counts": {"baseline_excluded": 0, "fixed": 4, "still_failing": 0, "newly_broken": 0},
+  "guards": [
+    {"check": "no new skip/xfail markers", "ok": true},
+    {"check": "no removed test functions", "ok": true},
+    {"check": "no silenced exceptions", "ok": true},
+    {"check": "no dependency file edits", "ok": true}
+  ],
+  "before_env": {"ok": true, "detail": "targeted tests pass on numpy 1.26.4"},
+  "patch": "fixes/final.patch"
+}

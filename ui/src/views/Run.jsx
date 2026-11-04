@@ -6,17 +6,20 @@ import { useRun } from '../useRun'
 import { LogRows } from '../log'
 import GraphView from './Graph'
 import SetupView from './Setup'
+import InterpretView from './Interpret'
+import InvestigateView from './Investigate'
+import FixView from './Fix'
 import VerifyView from './Verify'
 import ReportView from './Report'
 import '../run.css'
 
 const VIEW_TITLES = {
   setup: ['Setup', 'Clone, detect, build envs, baselines.'],
-  interpret: ['Interpret', 'The change set. Full view lands in step 8.'],
-  investigate: ['Investigate', 'Tool calls and findings. Full view lands in step 8.'],
+  interpret: ['Interpret', 'The change set, quoted from the guide.'],
+  investigate: ['Investigate', 'Tool calls and findings.'],
   graph: ['Prediction graph', 'Domino tiles + impacted subgraph.'],
   verify: ['Verify', 'Before vs after, predicted vs actual.'],
-  fix: ['Fix', 'Rounds to green. Full view lands in step 8.'],
+  fix: ['Fix', 'Rounds to green.'],
   report: ['Report', 'Narrative, scoreboard, exports.'],
 }
 
@@ -220,6 +223,12 @@ export default function Run({ id, view }) {
           <ReportView runId={id} />
         ) : view === 'setup' ? (
           <SetupView runId={id} snapshot={snapshot} events={events} />
+        ) : view === 'interpret' ? (
+          <InterpretView runId={id} />
+        ) : view === 'investigate' ? (
+          <InvestigateView runId={id} snapshot={snapshot} events={events} />
+        ) : view === 'fix' ? (
+          <FixView runId={id} snapshot={snapshot} />
         ) : (
           <ViewPanel runId={id} view={view} stage={stage} state={states[stage]} events={events} />
         )}

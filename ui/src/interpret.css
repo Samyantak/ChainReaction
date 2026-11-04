@@ -1,0 +1,44 @@
+/* Interpret view: change-set summary + items table. */
+
+.interpret-view section { margin-bottom: 24px; }
+
+.interp-kv {
+  display: flex;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 14px;
+}
+.interp-key {
+  flex: 0 0 130px;
+  color: var(--ink-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-top: 2px;
+}
+.source-entry { display: block; padding: 1px 0; }
+.source-counts { color: var(--ink-muted); font-size: 12px; }
+
+.item-list { display: flex; flex-direction: column; }
+.item-row { padding: 0; }
+.item-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.item-symbol { font-weight: 600; overflow-wrap: anywhere; }
+.item-meta { font-size: 12px; color: var(--ink-muted); }
+.item-body { padding: 0 14px 12px 14px; border-top: var(--rule) solid var(--ink); }
+.item-quote { font-style: italic; }
+
+.dropped-block { margin-top: 16px; }
+.dropped-block summary { cursor: pointer; font-weight: 600; }
+.dropped-row { font-size: 13px; padding: 2px 0; color: var(--ink-muted); }

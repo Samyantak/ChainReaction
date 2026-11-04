@@ -1,0 +1,44 @@
+/* Investigate view: tool-call log, findings, triage. */
+
+.investigate-view h3 { margin: 20px 0 8px; }
+.invest-summary { font-size: 15px; }
+.demo-note { font-size: 13px; color: var(--ink-muted); }
+
+.call-list { display: flex; flex-direction: column; }
+.call-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--sheet);
+  border: var(--rule) solid var(--ink);
+  border-top: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.call-list .call-row:first-child { border-top: var(--rule) solid var(--ink); }
+.call-row.selected { background: var(--sky); }
+.call-id { color: var(--sky-ink); }
+.call-name { font-weight: 600; }
+.call-args { color: var(--ink-muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+.call-dur { font-size: 12px; color: var(--ink-muted); }
+
+.finding-card { margin-bottom: 12px; }
+.finding-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.finding-id { color: var(--sky-ink); }
+.finding-claim { font-size: 15px; margin: 8px 0; }
+.finding-reason { color: var(--red-ink); }
+.finding-meta { font-size: 12px; color: var(--ink-muted); }
+.finding-site { white-space: nowrap; }
+.finding-evidence { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+.evidence-chip {
+  font-size: 11px;
+  border: 1px solid var(--ink);
+  padding: 1px 6px;
+  background: var(--paper);
+}
+
+.triage-row { font-size: 13px; padding: 2px 0; }

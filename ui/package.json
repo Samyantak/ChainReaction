@@ -8,7 +8,7 @@
     "build": "vite build && node scripts/dist-hash.js --write",
     "preview": "vite preview",
     "check-dist": "node scripts/dist-hash.js",
-    "test": "node --test test/stages.test.js test/verify.test.js test/forms.test.js"
+    "test": "node --test test/stages.test.js test/verify.test.js test/forms.test.js test/item3.test.js"
   },
   "dependencies": {
     "cytoscape": "^3.28.0",

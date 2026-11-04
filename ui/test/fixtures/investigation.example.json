@@ -1,0 +1,66 @@
+{
+  "_example": "Fixture only. Shaped to the M4 findings schema for UI development and feature-page demo mode. Never rendered on a real run.",
+  "status": "complete",
+  "summary": "Confirmed the layer-1 import break at casting.py:717 and triaged 2 of 3 removals as relevant.",
+  "calls": [
+    {
+      "id": "call_1",
+      "name": "find_usages",
+      "args": {"symbol": "numpy.sctypes"},
+      "summary": "3 usage sites, 1 import-time",
+      "ok": true,
+      "truncated": false,
+      "duration_ms": 120,
+      "result": {"sites": [{"file": "nibabel/casting.py", "line": 717, "context": "import-time"}]}
+    },
+    {
+      "id": "call_2",
+      "name": "run_import_probe",
+      "args": {"module": "nibabel.casting", "env": "after"},
+      "summary": "ImportError at nibabel/casting.py:717",
+      "ok": false,
+      "truncated": false,
+      "duration_ms": 8400,
+      "result": {"ok": false, "chain": ["nibabel", "nibabel.casting"], "error_line": "nibabel/casting.py:717"}
+    },
+    {
+      "id": "call_3",
+      "name": "tests_covering",
+      "args": {"modules": ["nibabel.casting"]},
+      "summary": "4 covering tests",
+      "ok": true,
+      "truncated": false,
+      "duration_ms": 90,
+      "result": {"tests": ["nibabel/tests/test_casting.py::test_shared_range"]}
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "claim": "numpy.sctypes removal breaks nibabel.casting at import",
+      "kind": "breaks_import",
+      "symbol": "numpy.sctypes",
+      "sites": ["nibabel/casting.py:717"],
+      "tests": ["nibabel/tests/test_casting.py::test_shared_range"],
+      "evidence": ["call_1", "call_2", "call_3"],
+      "confidence": "confirmed",
+      "verified": true
+    },
+    {
+      "id": "F2",
+      "claim": "quaternions maximum_sctype usage is affected",
+      "kind": "breaks_call",
+      "symbol": "numpy.maximum_sctype",
+      "sites": ["nibabel/quaternions.py:32"],
+      "tests": [],
+      "evidence": ["call_1"],
+      "confidence": "speculative",
+      "verified": false,
+      "reason": "site nibabel/quaternions.py:32 not in any cited result"
+    }
+  ],
+  "triage": [
+    {"symbol": "numpy.sctypes", "relevant": true, "reason": "import-time usage confirmed", "evidence": ["call_1"]},
+    {"symbol": "numpy.add_docstring", "relevant": false, "reason": "only appears in a comment", "evidence": ["call_1"]}
+  ]
+}

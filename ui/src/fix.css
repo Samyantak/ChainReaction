@@ -1,0 +1,46 @@
+/* Fix view: rounds timeline, diff viewer, test counter. */
+
+.fix-view h3 { margin: 20px 0 8px; }
+.demo-note { font-size: 13px; color: var(--ink-muted); }
+.stop-reason { color: var(--ink-muted); }
+
+.counter-block { margin: 12px 0 20px; }
+.counter-numbers { font-size: 20px; font-weight: 700; }
+.counter-bar {
+  height: 14px;
+  border: var(--rule) solid var(--ink);
+  background: var(--red);
+  margin: 6px 0;
+}
+.counter-green {
+  height: 100%;
+  background: var(--ok);
+  transition: width 600ms ease-out;
+}
+.counter-round { font-size: 12px; color: var(--ink-muted); }
+
+.round-card { margin-bottom: 12px; }
+.round-head { display: flex; align-items: center; gap: 10px; }
+.round-target { font-size: 13px; }
+.round-addresses { font-size: 12px; color: var(--sky-ink); }
+.round-edits { font-size: 12px; color: var(--ink-muted); }
+.round-tests { font-size: 12px; color: var(--ink-muted); }
+
+.diff-box {
+  font-family: "Martian Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  background: var(--paper);
+  border: var(--rule) solid var(--ink);
+  padding: 8px 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+.diff-row { padding: 0 12px; }
+.diff-meta { color: var(--ink-muted); }
+.diff-hunk { color: var(--sky-ink); font-weight: 600; }
+.diff-add { background: rgb(47 125 91 / 12%); }
+.diff-del { color: var(--red-ink); font-weight: 600; }
+
+.guard-row { padding: 2px 0; }
+.fix-actions { display: flex; gap: 8px; margin-top: 16px; }
