@@ -89,6 +89,9 @@ export default function SetupView({ runId, snapshot, events }) {
   )
   const baselineCounts = fmtCounts(scores?.baseline_counts)
   const decisionPkg = envs?.decision?.package || manifest.decision_package || null
+  // Curated presets (nibabel) skip detection: they run in pinned envs
+  // prepared ahead of time and prove the break with an import probe.
+  const curated = !active && !project && !envs && !manifest.workspace && !!manifest.preset
 
   return (
     <div className="run-view setup-view">
@@ -108,6 +111,21 @@ export default function SetupView({ runId, snapshot, events }) {
         </Sheet>
       </section>
 
+      {curated && (
+        <section>
+          <h3>Curated preset</h3>
+          <Sheet>
+            <p className="setup-curated">
+              This preset skips detection and the baseline suite. It runs in pinned
+              before/after environments prepared ahead of time and proves the break
+              with an import probe in each one. The versions and the probe results
+              are on the Verify sheet.
+            </p>
+          </Sheet>
+        </section>
+      )}
+
+      {!curated && (<>
       <section>
         <h3>Detection</h3>
         {project ? (
@@ -196,6 +214,7 @@ export default function SetupView({ runId, snapshot, events }) {
           </p>
         )}
       </section>
+      </>)}
 
       <section>
         <h3>Log</h3>

@@ -25,15 +25,17 @@
   gap: 26px;
   align-items: start;
 }
-@media (max-width: 960px) { .invest-grid { grid-template-columns: 1fr; } }
+@media (max-width: 960px) { .invest-grid { grid-template-columns: minmax(0, 1fr); } }
+.invest-grid > * { min-width: 0; }
 
 /* findings */
 .finding { padding: 14px 16px; margin-bottom: 14px; }
 .finding-flagged { border-color: var(--red); box-shadow: 5px 5px 0 var(--red); }
 .finding-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .finding-id { font-weight: 600; color: var(--sky-ink); }
-.finding-claim { font-size: 15px; line-height: 1.5; margin: 8px 0; }
-.finding-reason { color: var(--red-ink); font-size: 13px; margin: 0 0 8px; }
+.finding-claim { font-size: 15px; line-height: 1.5; margin: 8px 0; overflow-wrap: anywhere; }
+.finding-reason { color: var(--red-ink); font-size: 13px; margin: 0 0 8px; overflow-wrap: anywhere; }
+.finding-head .status { white-space: normal; }
 .finding-sites { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .finding-tests { font-size: 11px; color: var(--ink-muted); overflow-wrap: anywhere; margin-bottom: 6px; }
 .finding-evidence { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 11px; }

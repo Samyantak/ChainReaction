@@ -31,3 +31,4 @@
   .env-grid { grid-template-columns: 1fr; }
   .setup-key { flex-basis: 96px; }
 }
+.setup-curated { margin: 0; max-width: 680px; line-height: 1.55; }

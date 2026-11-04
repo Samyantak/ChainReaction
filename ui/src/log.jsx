@@ -15,8 +15,12 @@ export function summarize(event, runId) {
       return { tone: 'ok', text: `— ${d.stage} done —` }
     case 'error':
       return { tone: 'flag', text: d.error || 'error' }
-    case 'fetch':
-      return { tone: 'mute', text: `GET ${d.url} → ${d.status} (${d.bytes} bytes)` }
+    case 'fetch': {
+      // Replayed fetches carry no byte count; say where the page came from.
+      const size = Number.isFinite(d.bytes) ? ` (${d.bytes.toLocaleString('en-US')} bytes)` : ''
+      const from = d.replayed ? ' · from recording' : ''
+      return { tone: 'mute', text: `GET ${d.url} → ${d.status ?? '—'}${size}${from}` }
+    }
     case 'llm_call':
       return {
         tone: 'mute',
