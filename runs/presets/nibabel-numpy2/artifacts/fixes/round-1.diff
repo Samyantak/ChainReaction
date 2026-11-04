@@ -1,0 +1,12 @@
+--- a/nibabel/casting.py
++++ b/nibabel/casting.py
+@@ -713,8 +713,7 @@
+ 
+     Remove longdouble if it has no higher precision than float64
+     """
+-    # copy float list so we don't change the numpy global
+-    floats = np.sctypes['float'][:]
++    floats = [np.float16, np.float32, np.float64, np.longdouble]
+     if best_float() != np.longdouble and np.longdouble in floats:
+         floats.remove(np.longdouble)
+     return sorted(floats, key=lambda f: type_info(f)['nmant'])

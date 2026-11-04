@@ -929,6 +929,22 @@ def test_preset_replay_matches_committed(monkeypatch, tmp_path, preset_id):
     replay_report = (store.run_dir(replay) / "artifacts"
                      / "report.json").read_bytes()
     assert live_report == replay_report
+    # M5 acceptance #7: the fix artifacts reproduce byte-identical
+    # (fix.json plus every round diff and final.patch) when the
+    # preset recorded a fix loop.
+    live_fixes = dest / "artifacts" / "fixes"
+    replay_fixes = store.run_dir(replay) / "artifacts" / "fixes"
+    live_fix_json = dest / "artifacts" / "fix.json"
+    if live_fix_json.is_file():
+        assert live_fix_json.read_bytes() == (
+            store.run_dir(replay) / "artifacts" / "fix.json").read_bytes()
+    if live_fixes.is_dir():
+        assert replay_fixes.is_dir()
+        assert sorted(p.name for p in live_fixes.iterdir()) == sorted(
+            p.name for p in replay_fixes.iterdir())
+        for diff in live_fixes.iterdir():
+            assert diff.read_bytes() == (
+                replay_fixes / diff.name).read_bytes()
     if preset_id == "nibabel-numpy2":
         # Non-vacuous layers: the recorded break maps to the documented
         # layer-1 chain (an empty `actual` with recall 1.0 is the tell).

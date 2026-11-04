@@ -30,6 +30,19 @@ Site: `src/sponsorfit/llm.py:78`
 ValueError: unknown provider: meta
 ```
 
+## Fix loop
+
+Status: green (green)
+
+Round 1: probe src/sponsorfit/llm.py:78 -> `src/sponsorfit/llm.py`, `src/sponsorfit/pricing.py` (probe FAILED)
+Round 2: probe src/sponsorfit/llm.py:79 -> `src/sponsorfit/llm.py` (probe ok)
+
+Counts: 0 fixed, 0 still failing, 0 newly broken (baseline: 0 failures)
+
+Guards: clean
+
+Patch: `fixes/final.patch`
+
 ## Baselines
 
 - grep: 7 hits

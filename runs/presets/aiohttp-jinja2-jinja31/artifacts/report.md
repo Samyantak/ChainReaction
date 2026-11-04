@@ -60,6 +60,19 @@ AttributeError: module 'jinja2' has no attribute 'contextfunction'
 
 Actual: (import ok)
 
+## Fix loop
+
+Status: green (green)
+
+Round 1: probe aiohttp_jinja2/helpers.py:23 -> `aiohttp_jinja2/helpers.py` (probe FAILED)
+Round 2: probe aiohttp_jinja2/helpers.py:61 -> `aiohttp_jinja2/helpers.py` (probe ok)
+
+Counts: 0 fixed, 0 still failing, 0 newly broken (baseline: 0 failures)
+
+Guards: clean
+
+Patch: `fixes/final.patch`
+
 ## Baselines
 
 - grep: 5 hits

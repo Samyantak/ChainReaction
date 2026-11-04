@@ -44,6 +44,7 @@ class RunRequest:
     ref: str | None = None
     package: str | None = None
     allow_untrusted: bool = False
+    fix_rounds: int | None = None  # M5 re-run knob (default 5)
 
 
 @dataclass
@@ -120,6 +121,9 @@ def create_run(req: RunRequest) -> str:
             "changeset_source": source.get("changeset_source"),
             "interpret_flow": source.get("interpret_flow", "legacy"),
             "narrative_source": source.get("narrative_source"),
+            "fix_source": source.get("fix_source"),
+            "fix_status": source.get("fix_status"),
+            "fix_rounds": source.get("fix_rounds"),
             "chainreaction_git_sha": _code_sha(),
             "created_at": utc_now_iso(),
             "finished_at": None,
@@ -178,6 +182,9 @@ def create_run(req: RunRequest) -> str:
             "base_url_host": _base_host(),
             "changeset_source": None,  # the interpret stage sets it
             "narrative_source": None,  # the report stage sets it
+            "fix_source": None,  # the fix stage sets it
+            "fix_status": None,  # the fix stage sets it
+            "fix_rounds": req.fix_rounds,
             "chainreaction_git_sha": _code_sha(),
             "created_at": utc_now_iso(),
             "finished_at": None,

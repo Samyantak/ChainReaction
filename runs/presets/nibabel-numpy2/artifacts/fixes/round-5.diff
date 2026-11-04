@@ -1,0 +1,25 @@
+--- a/nibabel/nifti1.py
++++ b/nibabel/nifti1.py
+@@ -2443,10 +2443,18 @@
+         return np.dtype('int16' if arr.max() <= np.iinfo(np.int16).max else 'int32')
+ 
+     mn, mx = arr.min().item(), arr.max().item()
+-    if np.can_cast(mn, np.int32) and np.can_cast(mx, np.int32):
+-        return np.dtype('int32')
+-    if np.can_cast(mn, np.float32) and np.can_cast(mx, np.float32):
+-        return np.dtype('float32')
++    if isinstance(mn, int) and isinstance(mx, int):
++        iinfo32 = np.iinfo(np.int32)
++        if iinfo32.min <= mn <= iinfo32.max and iinfo32.min <= mx <= iinfo32.max:
++            return np.dtype('int32')
++        if mn == np.float32(mn) and mx == np.float32(mx):
++            return np.dtype('float32')
++    elif isinstance(mn, float) and isinstance(mx, float):
++        finfo32 = np.finfo(np.float32)
++        def _fits_float32(v):
++            return np.isnan(v) or np.isinf(v) or finfo32.min <= v <= finfo32.max
++        if _fits_float32(mn) and _fits_float32(mx):
++            return np.dtype('float32')
+ 
+     raise ValueError(
+         f'Cannot find analyze-compatible dtype for array with dtype={dtype} (min={mn}, max={mx})'

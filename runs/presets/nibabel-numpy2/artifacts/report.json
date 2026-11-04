@@ -244,6 +244,1006 @@
   ],
   "file_precision": 1.0,
   "file_recall": 0.625,
+  "fix": {
+    "counts": {
+      "baseline_failures": 125,
+      "baseline_measured": true,
+      "error_files": {
+        "baseline": [],
+        "fixed": [
+          "nibabel"
+        ],
+        "newly_broken": [],
+        "still_failing": [
+          "nibabel\\cifti2\\tests\\test_cifti2io_header.py",
+          "nibabel\\freesurfer\\tests\\test_mghformat.py",
+          "nibabel\\tests\\test_analyze.py",
+          "nibabel\\tests\\test_arraywriters.py",
+          "nibabel\\tests\\test_ecat.py",
+          "nibabel\\tests\\test_nifti1.py",
+          "nibabel\\tests\\test_nifti2.py",
+          "nibabel\\tests\\test_scaling.py",
+          "nibabel\\tests\\test_spm2analyze.py",
+          "nibabel\\tests\\test_spm99analyze.py",
+          "nibabel\\tests\\test_volumeutils.py",
+          "nibabel\\tests\\test_wrapstruct.py"
+        ]
+      },
+      "fixed": [],
+      "newly_broken": [],
+      "still_failing": [
+        "nibabel\\freesurfer\\tests\\test_io.py::test_write_morph_data",
+        "nibabel\\streamlines\\tests\\test_trk.py::TestTRK::test_load_complex_file_in_big_endian",
+        "nibabel\\streamlines\\tests\\test_trk.py::TestTRK::test_load_file_with_wrong_information",
+        "nibabel\\tests\\test_casting.py::test_able_casting",
+        "nibabel\\tests\\test_casting.py::test_able_int_type",
+        "nibabel\\tests\\test_casting.py::test_casting",
+        "nibabel\\tests\\test_casting.py::test_int_abs",
+        "nibabel\\tests\\test_casting.py::test_shared_range",
+        "nibabel\\tests\\test_dataobj_images.py::TestDataobjAPI::test_data_interface",
+        "nibabel\\tests\\test_floating.py::test_as_int_np_fix",
+        "nibabel\\tests\\test_floating.py::test_type_info",
+        "nibabel\\tests\\test_image_api.py::TestAnalyzeAPI::test_data_interface",
+        "nibabel\\tests\\test_image_api.py::TestMinc1API::test_data_interface",
+        "nibabel\\tests\\test_image_api.py::TestMinc2API::test_data_interface",
+        "nibabel\\tests\\test_image_api.py::TestNifti1PairAPI::test_data_interface",
+        "nibabel\\tests\\test_image_api.py::TestNifti2PairAPI::test_data_interface",
+        "nibabel\\tests\\test_image_api.py::TestSpatialImageAPI::test_data_interface",
+        "nibabel\\tests\\test_image_api.py::TestSpm2AnalyzeAPI::test_data_interface",
+        "nibabel\\tests\\test_image_api.py::TestSpm99AnalyzeAPI::test_data_interface",
+        "nibabel\\tests\\test_pointset.py::TestGrids::test_from_image[shape0]",
+        "nibabel\\tests\\test_pointset.py::TestGrids::test_from_image[shape1]",
+        "nibabel\\tests\\test_pointset.py::TestGrids::test_from_image[shape2]",
+        "nibabel\\tests\\test_pointset.py::TestGrids::test_from_mask",
+        "nibabel\\tests\\test_pointset.py::test_GridIndices",
+        "nibabel\\tests\\test_proxy_api.py::TestAnalyzeProxyAPI::test_array_interface_with_dtype",
+        "nibabel\\tests\\test_proxy_api.py::TestEcatAPI::test_array_interface_with_dtype",
+        "nibabel\\tests\\test_proxy_api.py::TestMGHAPI::test_array_interface_with_dtype",
+        "nibabel\\tests\\test_proxy_api.py::TestMinc1API::test_array_interface_with_dtype",
+        "nibabel\\tests\\test_proxy_api.py::TestMinc2API::test_array_interface_with_dtype",
+        "nibabel\\tests\\test_proxy_api.py::TestNifti1ProxyAPI::test_array_interface_with_dtype",
+        "nibabel\\tests\\test_proxy_api.py::TestPARRECAPI::test_array_interface_with_dtype",
+        "nibabel\\tests\\test_proxy_api.py::TestSpm2AnalyzeProxyAPI::test_array_interface_with_dtype",
+        "nibabel\\tests\\test_proxy_api.py::TestSpm99AnalyzeProxyAPI::test_array_interface_with_dtype",
+        "nibabel\\tests\\test_round_trip.py::test_round_trip",
+        "nibabel\\tests\\test_testing.py::test_assert_allclose_safely"
+      ],
+      "suite_fresh": true
+    },
+    "final_status": "partial",
+    "guards": {
+      "ok": true,
+      "violations": []
+    },
+    "patch": "fixes/final.patch",
+    "probe_start": {
+      "error": "",
+      "frames": [],
+      "modules": [],
+      "ok": true,
+      "site": null,
+      "trace": ""
+    },
+    "rounds": [
+      {
+        "attempts": [
+          {
+            "addresses": [
+              "nibabel/casting.py:717"
+            ],
+            "applied": [
+              "nibabel/casting.py"
+            ],
+            "attempt": 0,
+            "diff_lines": 12,
+            "prompt_hash": "834335ac36c8db42626656164c7b1ed1abd07a229e2b4e373bc99c42e6a1bd2b",
+            "rationale": "Replace removed numpy.sctypes access with explicit float dtype list. This follows the change item guidance to access dtypes explicitly instead and preserves ok_floats sorting behavior.",
+            "validation": []
+          }
+        ],
+        "before": null,
+        "duration_ms": 0,
+        "edits": [
+          "nibabel/casting.py"
+        ],
+        "failure": {
+          "error": "AttributeError: `np.sctypes` was removed in the NumPy 2.0 release. Access dtypes explicitly instead.. Did you mean: 'dtypes'?",
+          "frames": [
+            "nibabel/casting.py:717",
+            "nibabel/casting.py:723",
+            "nibabel/volumeutils.py:23",
+            "nibabel/arrayproxy.py:39",
+            "nibabel/analyze.py:88",
+            "nibabel/__init__.py:41"
+          ],
+          "kind": "probe",
+          "site": "nibabel/casting.py:717",
+          "test": null
+        },
+        "full": null,
+        "items": [
+          "numpy.sctypes"
+        ],
+        "n": 1,
+        "probe": {
+          "error": "AttributeError: `np.maximum_sctype` was removed in the NumPy 2.0 release. Use a specific dtype instead. You should avoid relying on any implicit mechanism and select the largest dtype of a kind explicitly in the code.",
+          "frames": [
+            "nibabel/quaternions.py:32",
+            "nibabel/nifti1.py:28",
+            "nibabel/cifti2/cifti2.py:31",
+            "nibabel/cifti2/__init__.py:20",
+            "nibabel/imageclasses.py:14",
+            "nibabel/imagestats.py:12",
+            "nibabel/__init__.py:42"
+          ],
+          "modules": [
+            "nibabel",
+            "nibabel.imagestats",
+            "nibabel.imageclasses",
+            "nibabel.cifti2",
+            "nibabel.cifti2.cifti2",
+            "nibabel.nifti1",
+            "nibabel.quaternions"
+          ],
+          "ok": false,
+          "site": "nibabel/quaternions.py:32",
+          "trace": "Traceback (most recent call last):\n  File \"<string>\", line 7, in <module>\n  File \"<fixwork>/nibabel/__init__.py\", line 42, in <module>\n    from . import ecat, imagestats, mriutils\n  File \"<fixwork>/nibabel/imagestats.py\", line 12, in <module>\n    from nibabel.imageclasses import spatial_axes_first\n  File \"<fixwork>/nibabel/imageclasses.py\", line 14, in <module>\n    from .cifti2 import Cifti2Image\n  File \"<fixwork>/nibabel/cifti2/__init__.py\", line 20, in <module>\n    from .cifti2 import (\n  File \"<fixwork>/nibabel/cifti2/cifti2.py\", line 31, in <module>\n    from ..nifti1 import Nifti1Extensions\n  File \"<fixwork>/nibabel/nifti1.py\", line 28, in <module>\n    from .quaternions import fillpositive, mat2quat, quat2mat\n  File \"<fixwork>/nibabel/quaternions.py\", line 32, in <module>\n    MAX_FLOAT = np.maximum_sctype(float)\n                ^^^^^^^^^^^^^^^^^\n  File \"<env:numpy2>/site-packages/numpy/__init__.py\", line 411, in __getattr__\n    raise AttributeError(\nAttributeError: `np.maximum_sctype` was removed in the NumPy 2.0 release. Use a specific dtype instead. You should avoid relying on any implicit mechanism and select the largest dtype of a kind explicitly in the code."
+        },
+        "progress": true,
+        "targeted": null
+      },
+      {
+        "attempts": [
+          {
+            "addresses": [
+              "numpy.maximum_sctype"
+            ],
+            "applied": [
+              "nibabel/quaternions.py"
+            ],
+            "attempt": 0,
+            "diff_lines": 11,
+            "prompt_hash": "672ca2e3af442188788e3c62af828b0e3521286f0847dc9fd5ae86699b667287",
+            "rationale": "Replace removed np.maximum_sctype(float) with explicit largest float dtype np.longdouble, per change item guidance to use a specific dtype instead.",
+            "validation": []
+          }
+        ],
+        "before": {
+          "counts": {
+            "passed": 1132
+          },
+          "failed": [],
+          "method": "file-correspondence",
+          "newly_broken": [],
+          "ran": true,
+          "tests": 1
+        },
+        "duration_ms": 68034,
+        "edits": [
+          "nibabel/quaternions.py"
+        ],
+        "failure": {
+          "error": "AttributeError: `np.maximum_sctype` was removed in the NumPy 2.0 release. Use a specific dtype instead. You should avoid relying on any implicit mechanism and select the largest dtype of a kind explicitly in the code.",
+          "frames": [
+            "nibabel/quaternions.py:32",
+            "nibabel/nifti1.py:28",
+            "nibabel/cifti2/cifti2.py:31",
+            "nibabel/cifti2/__init__.py:20",
+            "nibabel/imageclasses.py:14",
+            "nibabel/imagestats.py:12",
+            "nibabel/__init__.py:42"
+          ],
+          "kind": "probe",
+          "site": "nibabel/quaternions.py:32",
+          "test": null
+        },
+        "full": {
+          "counts": {
+            "errors": 109,
+            "failed": 68,
+            "passed": 3456,
+            "skipped": 42
+          },
+          "error_files": [
+            "nibabel\\cifti2\\tests\\test_cifti2io_header.py",
+            "nibabel\\freesurfer\\tests\\test_mghformat.py",
+            "nibabel\\tests\\test_analyze.py",
+            "nibabel\\tests\\test_arraywriters.py",
+            "nibabel\\tests\\test_ecat.py",
+            "nibabel\\tests\\test_nifti1.py",
+            "nibabel\\tests\\test_nifti2.py",
+            "nibabel\\tests\\test_scaling.py",
+            "nibabel\\tests\\test_spm2analyze.py",
+            "nibabel\\tests\\test_spm99analyze.py",
+            "nibabel\\tests\\test_volumeutils.py",
+            "nibabel\\tests\\test_wrapstruct.py"
+          ],
+          "escalated": false,
+          "failed": [
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_data_interface",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_dtype",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_file_stream_equivalence",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_filenames",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_from_file_url",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_from_url",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_get_data_deprecated",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_header",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_init_dtype_override",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_mmap_parameter",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_ndim",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_no_slicing",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_shape",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_to_file_dtype_override",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_to_from_bytes",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_to_from_stream",
+            "nibabel\\cmdline\\tests\\test_conform.py::test_default",
+            "nibabel\\cmdline\\tests\\test_conform.py::test_nondefault",
+            "nibabel\\cmdline\\tests\\test_convert.py::test_convert_aliases[float64-compat-float32]",
+            "nibabel\\cmdline\\tests\\test_convert.py::test_convert_aliases[int64-compat-int32]",
+            "nibabel\\freesurfer\\tests\\test_io.py::test_write_morph_data",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_load_complex_file",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_load_empty_file",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_load_simple_file",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_complex_file",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_from_generator",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_simple_file",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_sliced_tractogram",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_tractogram_file",
+            "nibabel\\streamlines\\tests\\test_trk.py::TestTRK::test_load_complex_file_in_big_endian",
+            "nibabel\\streamlines\\tests\\test_trk.py::TestTRK::test_load_file_with_wrong_information",
+            "nibabel\\tests\\test_casting.py::test_able_casting",
+            "nibabel\\tests\\test_casting.py::test_able_int_type",
+            "nibabel\\tests\\test_casting.py::test_casting",
+            "nibabel\\tests\\test_casting.py::test_int_abs",
+            "nibabel\\tests\\test_casting.py::test_shared_range",
+            "nibabel\\tests\\test_dataobj_images.py::TestDataobjAPI::test_data_interface",
+            "nibabel\\tests\\test_deprecated.py::TestNibabelDeprecator::test_dep_func",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_file_stream_equivalence",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_filenames",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_from_file_url",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_from_url",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_get_data_deprecated",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_header",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_no_slicing",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_to_from_bytes",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_to_from_stream",
+            "nibabel\\tests\\test_floating.py::test_as_int_np_fix",
+            "nibabel\\tests\\test_floating.py::test_type_info",
+            "nibabel\\tests\\test_image_api.py::TestAnalyzeAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_affine",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_dtype",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_file_stream_equivalence",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_filenames",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_from_file_url",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_from_url",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_get_data_deprecated",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_header",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_header_shape",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_mmap_parameter",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_ndim",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_no_slicing",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_path_maybe_image",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_shape",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_to_from_bytes",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_to_from_stream",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_affine",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_dtype",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_file_stream_equivalence",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_filenames",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_from_file_url",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_from_url",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_get_data_deprecated",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_header",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_header_shape",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_mmap_parameter",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_ndim",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_no_slicing",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_path_maybe_image",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_shape",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_to_from_bytes",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_to_from_stream",
+            "nibabel\\tests\\test_image_api.py::TestMinc1API::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestMinc2API::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_affine",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_dtype",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_file_stream_equivalence",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_filenames",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_from_file_url",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_from_url",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_get_data_deprecated",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_header",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_header_shape",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_init_dtype_override",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_mmap_parameter",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_ndim",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_no_slicing",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_path_maybe_image",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_shape",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_to_file_dtype_override",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_to_from_bytes",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_to_from_stream",
+            "nibabel\\tests\\test_image_api.py::TestNifti1PairAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_affine",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_dtype",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_file_stream_equivalence",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_filenames",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_from_file_url",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_from_url",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_get_data_deprecated",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_header",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_header_shape",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_init_dtype_override",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_mmap_parameter",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_ndim",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_no_slicing",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_path_maybe_image",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_shape",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_to_file_dtype_override",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_to_from_bytes",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_to_from_stream",
+            "nibabel\\tests\\test_image_api.py::TestNifti2PairAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestSpatialImageAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestSpm2AnalyzeAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestSpm99AnalyzeAPI::test_data_interface",
+            "nibabel\\tests\\test_pkg_info.py::test_cmp_pkg_version_0",
+            "nibabel\\tests\\test_pointset.py::TestGrids::test_from_image[shape0]",
+            "nibabel\\tests\\test_pointset.py::TestGrids::test_from_image[shape1]",
+            "nibabel\\tests\\test_pointset.py::TestGrids::test_from_image[shape2]",
+            "nibabel\\tests\\test_pointset.py::TestGrids::test_from_mask",
+            "nibabel\\tests\\test_pointset.py::test_GridIndices",
+            "nibabel\\tests\\test_processing.py::test_conform",
+            "nibabel\\tests\\test_processing.py::test_resample_from_to",
+            "nibabel\\tests\\test_processing.py::test_resample_to_output",
+            "nibabel\\tests\\test_proxy_api.py::TestAnalyzeProxyAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestEcatAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestMGHAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestMinc1API::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestMinc2API::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestNifti1ProxyAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestPARRECAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestSpm2AnalyzeProxyAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestSpm99AnalyzeProxyAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_removalschedule.py::test_unremoved_attr",
+            "nibabel\\tests\\test_removalschedule.py::test_unremoved_module",
+            "nibabel\\tests\\test_removalschedule.py::test_unremoved_object",
+            "nibabel\\tests\\test_round_trip.py::test_round_trip",
+            "nibabel\\tests\\test_scripts.py::test_help",
+            "nibabel\\tests\\test_scripts.py::test_nib_diff",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args0]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args1]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args2]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args3]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args4]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args5]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls_multiple",
+            "nibabel\\tests\\test_scripts.py::test_nib_nifti_dx",
+            "nibabel\\tests\\test_scripts.py::test_nib_tck2trk",
+            "nibabel\\tests\\test_scripts.py::test_nib_trk2tck",
+            "nibabel\\tests\\test_scripts.py::test_parrec2nii",
+            "nibabel\\tests\\test_testing.py::test_assert_allclose_safely"
+          ],
+          "total": 3675
+        },
+        "items": [
+          "numpy.maximum_sctype"
+        ],
+        "n": 2,
+        "probe": {
+          "error": "",
+          "frames": [],
+          "modules": [],
+          "ok": true,
+          "site": null,
+          "trace": ""
+        },
+        "progress": true,
+        "targeted": {
+          "counts": {
+            "passed": 1132
+          },
+          "error_files": [],
+          "failed": [],
+          "method": "file-correspondence",
+          "tests": 1
+        }
+      },
+      {
+        "attempts": [
+          {
+            "addresses": [
+              "rescale_affine"
+            ],
+            "applied": [
+              "nibabel/affines.py"
+            ],
+            "attempt": 0,
+            "diff_lines": 11,
+            "prompt_hash": "d8c3848c4b0f1ffb9ee0374764a42ec1ffa210566138d8ebf16bd8badc549423",
+            "rationale": "Per NumPy 2.0 migration guide change item for copy keyword, np.array(copy=False) must become np.asarray to allow copy when needed. This preserves NumPy 1.x behavior.",
+            "validation": []
+          }
+        ],
+        "before": {
+          "counts": {
+            "passed": 7
+          },
+          "failed": [],
+          "method": "file-correspondence",
+          "newly_broken": [],
+          "ran": true,
+          "tests": 1
+        },
+        "duration_ms": 80336,
+        "edits": [
+          "nibabel/affines.py"
+        ],
+        "failure": {
+          "error": "E   For more details, see https://numpy.org/devdocs/numpy_2_0_migration_guide.html#adapting-to-changes-in-the-copy-keyword.",
+          "frames": [
+            "nibabel/affines.py:368",
+            "nibabel/processing.py:388",
+            "nibabel/cmdline/conform.py:57",
+            "nibabel/cmdline/tests/test_conform.py:28"
+          ],
+          "kind": "test",
+          "site": "nibabel/affines.py:368",
+          "test": "nibabel\\cmdline\\tests\\test_conform.py::test_default"
+        },
+        "full": {
+          "counts": {
+            "errors": 109,
+            "failed": 65,
+            "passed": 3459,
+            "skipped": 42
+          },
+          "error_files": [
+            "nibabel\\cifti2\\tests\\test_cifti2io_header.py",
+            "nibabel\\freesurfer\\tests\\test_mghformat.py",
+            "nibabel\\tests\\test_analyze.py",
+            "nibabel\\tests\\test_arraywriters.py",
+            "nibabel\\tests\\test_ecat.py",
+            "nibabel\\tests\\test_nifti1.py",
+            "nibabel\\tests\\test_nifti2.py",
+            "nibabel\\tests\\test_scaling.py",
+            "nibabel\\tests\\test_spm2analyze.py",
+            "nibabel\\tests\\test_spm99analyze.py",
+            "nibabel\\tests\\test_volumeutils.py",
+            "nibabel\\tests\\test_wrapstruct.py"
+          ],
+          "escalated": false,
+          "failed": [
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_data_interface",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_dtype",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_file_stream_equivalence",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_filenames",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_from_file_url",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_from_url",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_get_data_deprecated",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_header",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_init_dtype_override",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_mmap_parameter",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_ndim",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_no_slicing",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_shape",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_to_file_dtype_override",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_to_from_bytes",
+            "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_to_from_stream",
+            "nibabel\\cmdline\\tests\\test_convert.py::test_convert_aliases[float64-compat-float32]",
+            "nibabel\\cmdline\\tests\\test_convert.py::test_convert_aliases[int64-compat-int32]",
+            "nibabel\\freesurfer\\tests\\test_io.py::test_write_morph_data",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_load_complex_file",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_load_empty_file",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_load_simple_file",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_complex_file",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_from_generator",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_simple_file",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_sliced_tractogram",
+            "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_tractogram_file",
+            "nibabel\\streamlines\\tests\\test_trk.py::TestTRK::test_load_complex_file_in_big_endian",
+            "nibabel\\streamlines\\tests\\test_trk.py::TestTRK::test_load_file_with_wrong_information",
+            "nibabel\\tests\\test_casting.py::test_able_casting",
+            "nibabel\\tests\\test_casting.py::test_able_int_type",
+            "nibabel\\tests\\test_casting.py::test_casting",
+            "nibabel\\tests\\test_casting.py::test_int_abs",
+            "nibabel\\tests\\test_casting.py::test_shared_range",
+            "nibabel\\tests\\test_dataobj_images.py::TestDataobjAPI::test_data_interface",
+            "nibabel\\tests\\test_deprecated.py::TestNibabelDeprecator::test_dep_func",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_file_stream_equivalence",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_filenames",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_from_file_url",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_from_url",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_get_data_deprecated",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_header",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_no_slicing",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_to_from_bytes",
+            "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_to_from_stream",
+            "nibabel\\tests\\test_floating.py::test_as_int_np_fix",
+            "nibabel\\tests\\test_floating.py::test_type_info",
+            "nibabel\\tests\\test_image_api.py::TestAnalyzeAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_affine",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_dtype",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_file_stream_equivalence",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_filenames",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_from_file_url",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_from_url",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_get_data_deprecated",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_header",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_header_shape",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_mmap_parameter",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_ndim",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_no_slicing",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_path_maybe_image",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_shape",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_to_from_bytes",
+            "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_to_from_stream",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_affine",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_dtype",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_file_stream_equivalence",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_filenames",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_from_file_url",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_from_url",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_get_data_deprecated",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_header",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_header_shape",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_mmap_parameter",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_ndim",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_no_slicing",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_path_maybe_image",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_shape",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_to_from_bytes",
+            "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_to_from_stream",
+            "nibabel\\tests\\test_image_api.py::TestMinc1API::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestMinc2API::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_affine",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_dtype",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_file_stream_equivalence",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_filenames",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_from_file_url",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_from_url",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_get_data_deprecated",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_header",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_header_shape",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_init_dtype_override",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_mmap_parameter",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_ndim",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_no_slicing",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_path_maybe_image",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_shape",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_to_file_dtype_override",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_to_from_bytes",
+            "nibabel\\tests\\test_image_api.py::TestNifti1API::test_to_from_stream",
+            "nibabel\\tests\\test_image_api.py::TestNifti1PairAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_affine",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_dtype",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_file_stream_equivalence",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_filenames",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_from_file_url",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_from_url",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_get_data_deprecated",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_header",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_header_shape",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_init_dtype_override",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_mmap_parameter",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_ndim",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_no_slicing",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_path_maybe_image",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_shape",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_to_file_dtype_override",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_to_from_bytes",
+            "nibabel\\tests\\test_image_api.py::TestNifti2API::test_to_from_stream",
+            "nibabel\\tests\\test_image_api.py::TestNifti2PairAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestSpatialImageAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestSpm2AnalyzeAPI::test_data_interface",
+            "nibabel\\tests\\test_image_api.py::TestSpm99AnalyzeAPI::test_data_interface",
+            "nibabel\\tests\\test_pkg_info.py::test_cmp_pkg_version_0",
+            "nibabel\\tests\\test_pointset.py::TestGrids::test_from_image[shape0]",
+            "nibabel\\tests\\test_pointset.py::TestGrids::test_from_image[shape1]",
+            "nibabel\\tests\\test_pointset.py::TestGrids::test_from_image[shape2]",
+            "nibabel\\tests\\test_pointset.py::TestGrids::test_from_mask",
+            "nibabel\\tests\\test_pointset.py::test_GridIndices",
+            "nibabel\\tests\\test_processing.py::test_resample_from_to",
+            "nibabel\\tests\\test_processing.py::test_resample_to_output",
+            "nibabel\\tests\\test_proxy_api.py::TestAnalyzeProxyAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestEcatAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestMGHAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestMinc1API::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestMinc2API::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestNifti1ProxyAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestPARRECAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestSpm2AnalyzeProxyAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_proxy_api.py::TestSpm99AnalyzeProxyAPI::test_array_interface_with_dtype",
+            "nibabel\\tests\\test_removalschedule.py::test_unremoved_attr",
+            "nibabel\\tests\\test_removalschedule.py::test_unremoved_module",
+            "nibabel\\tests\\test_removalschedule.py::test_unremoved_object",
+            "nibabel\\tests\\test_round_trip.py::test_round_trip",
+            "nibabel\\tests\\test_scripts.py::test_help",
+            "nibabel\\tests\\test_scripts.py::test_nib_diff",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args0]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args1]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args2]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args3]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args4]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls[args5]",
+            "nibabel\\tests\\test_scripts.py::test_nib_ls_multiple",
+            "nibabel\\tests\\test_scripts.py::test_nib_nifti_dx",
+            "nibabel\\tests\\test_scripts.py::test_nib_tck2trk",
+            "nibabel\\tests\\test_scripts.py::test_nib_trk2tck",
+            "nibabel\\tests\\test_scripts.py::test_parrec2nii",
+            "nibabel\\tests\\test_testing.py::test_assert_allclose_safely"
+          ],
+          "total": 3675
+        },
+        "items": [],
+        "n": 3,
+        "probe": {
+          "error": "",
+          "frames": [],
+          "modules": [],
+          "ok": true,
+          "site": null,
+          "trace": ""
+        },
+        "progress": true,
+        "targeted": {
+          "counts": {
+            "passed": 7
+          },
+          "error_files": [],
+          "failed": [],
+          "method": "file-correspondence",
+          "tests": 1
+        }
+      },
+      {
+        "attempts": [
+          {
+            "addresses": [
+              "_get_analyze_compat_dtype"
+            ],
+            "applied": [
+              "nibabel/nifti1.py"
+            ],
+            "attempt": 0,
+            "diff_lines": 11,
+            "prompt_hash": "47eedd6bcc9833bd5bb405561370f51a0906a257452f0e346ba1806a5469b732",
+            "rationale": "Per NumPy 2.0 NEP 50 change item NumPy scalars are strong types so value-based np.can_cast fails; converting min/max to Python scalars via .item() restores weak-scalar value-based checks.",
+            "validation": []
+          }
+        ],
+        "before": {
+          "counts": {
+            "passed": 651,
+            "skipped": 3
+          },
+          "failed": [],
+          "method": "file-correspondence",
+          "newly_broken": [],
+          "ran": true,
+          "tests": 1
+        },
+        "duration_ms": 110323,
+        "edits": [
+          "nibabel/nifti1.py"
+        ],
+        "failure": {
+          "error": "E   ValueError: Cannot find analyze-compatible dtype for array with dtype=float64 (min=0.0, max=23.0)",
+          "frames": [
+            "nibabel/nifti1.py:2451",
+            "nibabel/nifti1.py:2187",
+            "nibabel/nifti1.py:2216",
+            "nibabel/filebasedimages.py:307",
+            "nibabel/loadsave.py:163",
+            "nibabel/cmdline/convert.py:72",
+            "nibabel/cmdline/tests/test_convert.py:164"
+          ],
+          "kind": "test",
+          "site": "nibabel/nifti1.py:2451",
+          "test": "nibabel\\cmdline\\tests\\test_convert.py::test_convert_aliases[float64-compat-float32]"
+        },
+        "full": null,
+        "items": [],
+        "n": 4,
+        "probe": {
+          "error": "",
+          "frames": [],
+          "modules": [],
+          "ok": true,
+          "site": null,
+          "trace": ""
+        },
+        "progress": false,
+        "targeted": {
+          "counts": {
+            "errors": 1
+          },
+          "error_files": [
+            "nibabel\\tests\\test_nifti1.py"
+          ],
+          "failed": [],
+          "method": "file-correspondence",
+          "tests": 1
+        }
+      },
+      {
+        "attempts": [
+          {
+            "addresses": [
+              "_get_analyze_compat_dtype"
+            ],
+            "applied": [
+              "nibabel/nifti1.py"
+            ],
+            "attempt": 0,
+            "diff_lines": 25,
+            "prompt_hash": "24e0cefb8f7620815e6b506842e4ad2724b904c728d18bd1d9eabc9967800bcc",
+            "rationale": "Per NEP 50 change item np.can_cast no longer supports Python ints/floats with value-based logic. Replace with explicit iinfo/finfo range checks and exact float32 representability for ints, preserving int32 then float32 priority.",
+            "validation": []
+          }
+        ],
+        "before": {
+          "counts": {
+            "passed": 651,
+            "skipped": 3
+          },
+          "failed": [],
+          "method": "file-correspondence",
+          "newly_broken": [],
+          "ran": true,
+          "tests": 1
+        },
+        "duration_ms": 81172,
+        "edits": [
+          "nibabel/nifti1.py"
+        ],
+        "failure": {
+          "error": "E   This change was part of adopting NEP 50, we may explicitly allow them again in the future.",
+          "frames": [
+            "nibabel/nifti1.py:2446",
+            "nibabel/nifti1.py:2187",
+            "nibabel/nifti1.py:2216",
+            "nibabel/filebasedimages.py:307",
+            "nibabel/loadsave.py:163",
+            "nibabel/cmdline/convert.py:72",
+            "nibabel/cmdline/tests/test_convert.py:164"
+          ],
+          "kind": "test",
+          "site": "nibabel/nifti1.py:2446",
+          "test": "nibabel\\cmdline\\tests\\test_convert.py::test_convert_aliases[float64-compat-float32]"
+        },
+        "full": null,
+        "items": [],
+        "n": 5,
+        "probe": {
+          "error": "",
+          "frames": [],
+          "modules": [],
+          "ok": true,
+          "site": null,
+          "trace": ""
+        },
+        "progress": false,
+        "targeted": {
+          "counts": {
+            "errors": 1
+          },
+          "error_files": [
+            "nibabel\\tests\\test_nifti1.py"
+          ],
+          "failed": [],
+          "method": "file-correspondence",
+          "tests": 1
+        }
+      }
+    ],
+    "seeded": {
+      "baseline": {
+        "counts": {
+          "errors": 97,
+          "failed": 28,
+          "passed": 5485,
+          "skipped": 56
+        },
+        "env": "numpy1",
+        "error_files": [],
+        "escalated": false,
+        "failed": [
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_data_interface",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_dtype",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_file_stream_equivalence",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_filenames",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_from_file_url",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_from_url",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_get_data_deprecated",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_header",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_init_dtype_override",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_mmap_parameter",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_ndim",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_no_slicing",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_shape",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_to_file_dtype_override",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_to_from_bytes",
+          "nibabel\\cifti2\\tests\\test_cifti2.py::TestCifti2ImageAPI::test_to_from_stream",
+          "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_load_complex_file",
+          "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_load_empty_file",
+          "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_load_simple_file",
+          "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_complex_file",
+          "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_from_generator",
+          "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_simple_file",
+          "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_sliced_tractogram",
+          "nibabel\\streamlines\\tests\\test_streamlines.py::TestLoadSave::test_save_tractogram_file",
+          "nibabel\\tests\\test_deprecated.py::TestNibabelDeprecator::test_dep_func",
+          "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_file_stream_equivalence",
+          "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_filenames",
+          "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_from_file_url",
+          "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_from_url",
+          "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_get_data_deprecated",
+          "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_header",
+          "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_no_slicing",
+          "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_to_from_bytes",
+          "nibabel\\tests\\test_filebasedimages.py::TestSerializableImageAPI::test_to_from_stream",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_affine",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_data_interface",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_dtype",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_file_stream_equivalence",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_filenames",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_from_file_url",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_from_url",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_get_data_deprecated",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_header",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_header_shape",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_mmap_parameter",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_ndim",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_no_slicing",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_path_maybe_image",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_shape",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_to_from_bytes",
+          "nibabel\\tests\\test_image_api.py::TestGiftiAPI::test_to_from_stream",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_affine",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_data_interface",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_dtype",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_file_stream_equivalence",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_filenames",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_from_file_url",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_from_url",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_get_data_deprecated",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_header",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_header_shape",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_mmap_parameter",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_ndim",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_no_slicing",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_path_maybe_image",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_shape",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_to_from_bytes",
+          "nibabel\\tests\\test_image_api.py::TestMGHAPI::test_to_from_stream",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_affine",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_data_interface",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_dtype",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_file_stream_equivalence",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_filenames",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_from_file_url",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_from_url",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_get_data_deprecated",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_header",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_header_shape",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_init_dtype_override",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_mmap_parameter",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_ndim",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_no_slicing",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_path_maybe_image",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_shape",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_to_file_dtype_override",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_to_from_bytes",
+          "nibabel\\tests\\test_image_api.py::TestNifti1API::test_to_from_stream",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_affine",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_data_interface",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_dtype",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_file_stream_equivalence",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_filenames",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_from_file_url",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_from_url",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_get_data_deprecated",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_header",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_header_shape",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_init_dtype_override",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_mmap_parameter",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_ndim",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_no_slicing",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_path_maybe_image",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_shape",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_to_file_dtype_override",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_to_from_bytes",
+          "nibabel\\tests\\test_image_api.py::TestNifti2API::test_to_from_stream",
+          "nibabel\\tests\\test_pkg_info.py::test_cmp_pkg_version_0",
+          "nibabel\\tests\\test_processing.py::test_resample_from_to",
+          "nibabel\\tests\\test_processing.py::test_resample_to_output",
+          "nibabel\\tests\\test_removalschedule.py::test_unremoved_attr",
+          "nibabel\\tests\\test_removalschedule.py::test_unremoved_module",
+          "nibabel\\tests\\test_removalschedule.py::test_unremoved_object",
+          "nibabel\\tests\\test_scripts.py::test_help",
+          "nibabel\\tests\\test_scripts.py::test_nib_diff",
+          "nibabel\\tests\\test_scripts.py::test_nib_ls[args0]",
+          "nibabel\\tests\\test_scripts.py::test_nib_ls[args1]",
+          "nibabel\\tests\\test_scripts.py::test_nib_ls[args2]",
+          "nibabel\\tests\\test_scripts.py::test_nib_ls[args3]",
+          "nibabel\\tests\\test_scripts.py::test_nib_ls[args4]",
+          "nibabel\\tests\\test_scripts.py::test_nib_ls[args5]",
+          "nibabel\\tests\\test_scripts.py::test_nib_ls_multiple",
+          "nibabel\\tests\\test_scripts.py::test_nib_nifti_dx",
+          "nibabel\\tests\\test_scripts.py::test_nib_tck2trk",
+          "nibabel\\tests\\test_scripts.py::test_nib_trk2tck",
+          "nibabel\\tests\\test_scripts.py::test_parrec2nii"
+        ],
+        "ran": true,
+        "total": 5666
+      },
+      "red": {
+        "counts": {
+          "errors": 1,
+          "passed": 4
+        },
+        "failed": [],
+        "ran": true
+      }
+    },
+    "status": "partial",
+    "stop_reason": "no-progress-twice",
+    "total_cmd_ms": 302494,
+    "touched": [
+      "nibabel/affines.py",
+      "nibabel/casting.py",
+      "nibabel/nifti1.py",
+      "nibabel/quaternions.py"
+    ],
+    "upstream": {
+      "extra": [
+        "nibabel/affines.py"
+      ],
+      "missed": [
+        "nibabel/conftest.py",
+        "nibabel/ecat.py",
+        "nibabel/freesurfer/io.py",
+        "nibabel/spatialimages.py",
+        "nibabel/streamlines/trk.py"
+      ],
+      "overlap": [
+        "nibabel/casting.py",
+        "nibabel/nifti1.py",
+        "nibabel/quaternions.py"
+      ],
+      "pr_tests": {
+        "counts": {
+          "errors": 2,
+          "failed": 5,
+          "passed": 1156
+        },
+        "failed": [
+          "nibabel\\tests\\test_casting.py::test_able_casting",
+          "nibabel\\tests\\test_casting.py::test_able_int_type",
+          "nibabel\\tests\\test_casting.py::test_casting",
+          "nibabel\\tests\\test_casting.py::test_int_abs",
+          "nibabel\\tests\\test_casting.py::test_shared_range"
+        ],
+        "method": "file-correspondence (PR has no test files)",
+        "selection": [
+          "nibabel/tests/test_casting.py",
+          "nibabel/tests/test_ecat.py",
+          "nibabel/tests/test_nifti1.py",
+          "nibabel/tests/test_quaternions.py",
+          "nibabel/tests/test_spatialimages.py"
+        ]
+      },
+      "pr_url": "https://github.com/nipy/nibabel/pull/1250",
+      "ran": true
+    }
+  },
   "fix_order": [
     "layer1: nibabel/casting.py:717",
     "layer2 (peeled): nibabel/quaternions.py:32"

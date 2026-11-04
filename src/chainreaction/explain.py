@@ -84,6 +84,9 @@ class Report:
     # site for vendor decisions. The brief reads this; the fix loop
     # peels it one entry at a time.
     fix_order: list[str] = field(default_factory=list)
+    # M5 fix loop outcome (fix.json content): status, rounds summary,
+    # counts, guards, patch path. {} when the loop never ran.
+    fix: dict = field(default_factory=dict)
 
 
 _MODULE_RE = re.compile(r"\b([A-Za-z_]\w*(?:\.\w+)+)\b")
@@ -619,6 +622,63 @@ def _interpret_m3_lines(metrics: dict | None) -> list[str]:
     ]
 
 
+def _fix_loop_lines(report: Report) -> list[str]:
+    """Fix loop section (M5 §7); [] when the loop never ran."""
+    fix = getattr(report, "fix", None) or {}
+    if not fix:
+        return []
+    status = fix.get("final_status") or fix.get("status") or "unknown"
+    rounds = fix.get("rounds") or []
+    counts = fix.get("counts") or {}
+    guards = fix.get("guards") or {}
+    lines = ["## Fix loop", "",
+             f"Status: {status} ({fix.get('stop_reason') or 'no reason'})",
+             ""]
+    for rnd in rounds:
+        failure = rnd.get("failure") or {}
+        where = failure.get("site") or failure.get("test") or "unknown"
+        edits = ", ".join(f"`{p}`" for p in rnd.get("edits") or [])
+        probe = rnd.get("probe") or {}
+        lines.append(
+            f"Round {rnd.get('n')}: {failure.get('kind')} {where} "
+            f"-> {edits or 'no edits'} "
+            f"(probe {'ok' if probe.get('ok') else 'FAILED'})")
+    if rounds:
+        lines.append("")
+    lines += [
+        f"Counts: {len(counts.get('fixed') or [])} fixed, "
+        f"{len(counts.get('still_failing') or [])} still failing, "
+        f"{len(counts.get('newly_broken') or [])} newly broken "
+        f"(baseline: {counts.get('baseline_failures', 0)} failures"
+        + ("" if counts.get("baseline_measured", True)
+           else ", baseline unmeasured")
+        + ")",
+        "",
+    ]
+    violations = guards.get("violations") or []
+    lines.append("Guards: " + ("clean" if guards.get("ok", True)
+                               and not violations
+                               else "; ".join(violations)))
+    lines.append("")
+    if fix.get("patch"):
+        lines += [f"Patch: `{fix['patch']}`", ""]
+    upstream = fix.get("upstream") or {}
+    if upstream.get("ran"):
+        overlap = upstream.get("overlap") or []
+        lines += [
+            "Upstream overlap "
+            f"(vs {upstream.get('pr_url') or 'the PR'}):",
+            "",
+            f"- files in common: "
+            + (", ".join(f"`{f}`" for f in overlap) or "none"),
+            f"- PR files missed: "
+            + (", ".join(f"`{f}`" for f in upstream.get("missed") or [])
+               or "none"),
+            "",
+        ]
+    return lines
+
+
 def render_markdown(report: Report, extra: dict | None = None) -> str:
     decision = report.probe_kind == "decision"
     target_line = (f"Target: `{report.target}` "
@@ -730,6 +790,7 @@ def render_markdown(report: Report, extra: dict | None = None) -> str:
         if layer.error_tail:
             lines += ["```", layer.error_tail, "```"]
         lines.append("")
+    lines += _fix_loop_lines(report)
     lines += [
         "## Baselines",
         "",

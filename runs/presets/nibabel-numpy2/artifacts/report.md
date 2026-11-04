@@ -133,6 +133,27 @@ AttributeError: `np.maximum_sctype` was removed in the NumPy 2.0 release. Use a 
 
 Actual: (import ok)
 
+## Fix loop
+
+Status: partial (no-progress-twice)
+
+Round 1: probe nibabel/casting.py:717 -> `nibabel/casting.py` (probe FAILED)
+Round 2: probe nibabel/quaternions.py:32 -> `nibabel/quaternions.py` (probe ok)
+Round 3: test nibabel/affines.py:368 -> `nibabel/affines.py` (probe ok)
+Round 4: test nibabel/nifti1.py:2451 -> `nibabel/nifti1.py` (probe ok)
+Round 5: test nibabel/nifti1.py:2446 -> `nibabel/nifti1.py` (probe ok)
+
+Counts: 0 fixed, 35 still failing, 0 newly broken (baseline: 125 failures)
+
+Guards: clean
+
+Patch: `fixes/final.patch`
+
+Upstream overlap (vs https://github.com/nipy/nibabel/pull/1250):
+
+- files in common: `nibabel/casting.py`, `nibabel/nifti1.py`, `nibabel/quaternions.py`
+- PR files missed: `nibabel/conftest.py`, `nibabel/ecat.py`, `nibabel/freesurfer/io.py`, `nibabel/spatialimages.py`, `nibabel/streamlines/trk.py`
+
 ## Baselines
 
 - grep: 315 hits

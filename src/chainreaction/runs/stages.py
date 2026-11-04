@@ -925,8 +925,61 @@ def stage_verify(ctx) -> None:
                                  for n, p in probes)})
 
 
+def _verify_found_failures(ctx) -> bool:
+    """True when verify blamed the decision for any failure."""
+    for name, probe in ctx.state.get("probes") or []:
+        lowered = str(name).lower()
+        if lowered.startswith("before") or "untouched" in lowered:
+            continue
+        if not probe.ok:
+            return True
+    scores = ctx.state.get("scores") or {}
+    return bool(scores.get("actual_new"))
+
+
+def _stage_fix_skipped(ctx, stop_reason: str, detail: str) -> None:
+    from chainreaction import fixloop as fixloop_mod
+
+    record = fixloop_mod.skipped_record(stop_reason, detail)
+    ctx.save_artifact("fix.json", record)
+    ctx.state["fix"] = record
+    if ctx.mode == "live":
+        ctx.set_manifest(fix_source=stop_reason,
+                         fix_status=record["status"])
+    ctx.emit("log", {"message": f"fix: skipped ({detail})"})
+
+
 def stage_fix(ctx) -> None:
-    ctx.emit("log", {"message": f"fix loop arrives in M5 ({NOT_IN_M1})"})
+    from chainreaction import fixloop as fixloop_mod
+
+    if ctx.mode == "replay":
+        # Replay follows the recording's fix decision, never local
+        # state (a key existing now must not invent rounds then).
+        source = ctx.manifest.get("fix_source") or ""
+        if source != "muse-spark":
+            _stage_fix_skipped(ctx, source or "skipped-unknown",
+                               source or "unknown skip reason")
+            return
+        ctx.state["fix"] = fixloop_mod.run_loop(ctx)
+        return
+    if not llm_mod.has_key():
+        _stage_fix_skipped(ctx, "skipped-no-key", "no MODEL_API_KEY")
+        return
+    if ctx.state.get("untouched"):
+        _stage_fix_skipped(ctx, "skipped-untouched",
+                           "decision package not imported")
+        return
+    if ctx.state.get("dependency_conflict") is not None:
+        _stage_fix_skipped(ctx, "skipped-conflict",
+                           "after env has a dependency conflict")
+        return
+    if not _verify_found_failures(ctx):
+        _stage_fix_skipped(ctx, "skipped-clean",
+                           "verify found no decision failures")
+        return
+    record = fixloop_mod.run_loop(ctx)
+    ctx.state["fix"] = record
+    ctx.set_manifest(fix_source="muse-spark", fix_status=record["status"])
 
 
 def _stage_report_generic(ctx) -> None:
@@ -954,7 +1007,8 @@ def _stage_report_generic(ctx) -> None:
         scen, changeset, symbols, g, impacts, layers,
         probes[0][1].numpy_version, before_numpy, grep_count, ruff_count,
         ctx.state.get("interpret_stats"), decision_package=decision_package,
-        before_version=before_version, after_version=after_version)
+        before_version=before_version, after_version=after_version,
+        fix=ctx.state.get("fix"))
     scores = ctx.state.get("scores") or {}
     extra = {
         "scores": scores,
@@ -1040,7 +1094,8 @@ def stage_report(ctx) -> None:
     report = build_report(scen, changeset, symbols, g, impacts, layers,
                           probes[0][1].numpy_version, before_numpy,
                           grep_count, ruff_count,
-                          ctx.state.get("interpret_stats"))
+                          ctx.state.get("interpret_stats"),
+                          fix=ctx.state.get("fix"))
     if ctx.mode == "replay":
         want_narrative = (ctx.manifest.get("narrative_source")
                           == "muse-spark")

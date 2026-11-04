@@ -1,0 +1,61 @@
+--- a/nibabel/affines.py
++++ b/nibabel/affines.py
+@@ -365,7 +365,7 @@
+         A new affine transform with the specified voxel sizes
+ 
+     """
+-    shape = np.array(shape, copy=False)
++    shape = np.asarray(shape)
+     new_shape = np.array(new_shape if new_shape is not None else shape)
+ 
+     s = voxel_sizes(affine)
+--- a/nibabel/casting.py
++++ b/nibabel/casting.py
+@@ -713,8 +713,7 @@
+ 
+     Remove longdouble if it has no higher precision than float64
+     """
+-    # copy float list so we don't change the numpy global
+-    floats = np.sctypes['float'][:]
++    floats = [np.float16, np.float32, np.float64, np.longdouble]
+     if best_float() != np.longdouble and np.longdouble in floats:
+         floats.remove(np.longdouble)
+     return sorted(floats, key=lambda f: type_info(f)['nmant'])
+--- a/nibabel/nifti1.py
++++ b/nibabel/nifti1.py
+@@ -2442,11 +2442,19 @@
+     elif dtype == np.uint16:
+         return np.dtype('int16' if arr.max() <= np.iinfo(np.int16).max else 'int32')
+ 
+-    mn, mx = arr.min(), arr.max()
+-    if np.can_cast(mn, np.int32) and np.can_cast(mx, np.int32):
+-        return np.dtype('int32')
+-    if np.can_cast(mn, np.float32) and np.can_cast(mx, np.float32):
+-        return np.dtype('float32')
++    mn, mx = arr.min().item(), arr.max().item()
++    if isinstance(mn, int) and isinstance(mx, int):
++        iinfo32 = np.iinfo(np.int32)
++        if iinfo32.min <= mn <= iinfo32.max and iinfo32.min <= mx <= iinfo32.max:
++            return np.dtype('int32')
++        if mn == np.float32(mn) and mx == np.float32(mx):
++            return np.dtype('float32')
++    elif isinstance(mn, float) and isinstance(mx, float):
++        finfo32 = np.finfo(np.float32)
++        def _fits_float32(v):
++            return np.isnan(v) or np.isinf(v) or finfo32.min <= v <= finfo32.max
++        if _fits_float32(mn) and _fits_float32(mx):
++            return np.dtype('float32')
+ 
+     raise ValueError(
+         f'Cannot find analyze-compatible dtype for array with dtype={dtype} (min={mn}, max={mx})'
+--- a/nibabel/quaternions.py
++++ b/nibabel/quaternions.py
+@@ -29,7 +29,7 @@
+ 
+ import numpy as np
+ 
+-MAX_FLOAT = np.maximum_sctype(float)
++MAX_FLOAT = np.longdouble
+ FLOAT_EPS = np.finfo(float).eps
+ 
+ 

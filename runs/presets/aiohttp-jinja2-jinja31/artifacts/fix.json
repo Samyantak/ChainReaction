@@ -1,0 +1,170 @@
+{
+  "counts": {
+    "baseline_failures": 0,
+    "baseline_measured": true,
+    "error_files": {
+      "baseline": [],
+      "fixed": [],
+      "newly_broken": [],
+      "still_failing": []
+    },
+    "fixed": [],
+    "newly_broken": [],
+    "still_failing": [],
+    "suite_fresh": true
+  },
+  "final_status": "green",
+  "guards": {
+    "ok": true,
+    "violations": []
+  },
+  "patch": "fixes/final.patch",
+  "probe_start": {
+    "error": "",
+    "frames": [],
+    "modules": [],
+    "ok": true,
+    "site": null,
+    "trace": ""
+  },
+  "rounds": [
+    {
+      "attempts": [
+        {
+          "addresses": [
+            "jinja2.contextfunction"
+          ],
+          "applied": [
+            "aiohttp_jinja2/helpers.py"
+          ],
+          "attempt": 0,
+          "diff_lines": 11,
+          "prompt_hash": "b1222ce969c5acff2808ed898f45f18205377011ac5d76b941d4c0a96f7938d3",
+          "rationale": "Replace removed jinja2.contextfunction with jinja2.pass_context per Jinja 3.0 changelog.",
+          "validation": []
+        }
+      ],
+      "before": null,
+      "duration_ms": 13129,
+      "edits": [
+        "aiohttp_jinja2/helpers.py"
+      ],
+      "failure": {
+        "error": "AttributeError: module 'jinja2' has no attribute 'contextfunction'",
+        "frames": [
+          "aiohttp_jinja2/helpers.py:23",
+          "aiohttp_jinja2/__init__.py:24"
+        ],
+        "kind": "probe",
+        "site": "aiohttp_jinja2/helpers.py:23",
+        "test": null
+      },
+      "full": null,
+      "items": [
+        "jinja2.contextfunction"
+      ],
+      "n": 1,
+      "probe": {
+        "error": "AttributeError: module 'jinja2' has no attribute 'contextfunction'",
+        "frames": [
+          "aiohttp_jinja2/helpers.py:61",
+          "aiohttp_jinja2/__init__.py:24"
+        ],
+        "modules": [
+          "aiohttp_jinja2",
+          "aiohttp_jinja2.helpers"
+        ],
+        "ok": false,
+        "site": "aiohttp_jinja2/helpers.py:61",
+        "trace": "Traceback (most recent call last):\n  File \"<string>\", line 7, in <module>\n  File \"<fixwork>/aiohttp_jinja2/__init__.py\", line 24, in <module>\n    from .helpers import GLOBAL_HELPERS\n  File \"<fixwork>/aiohttp_jinja2/helpers.py\", line 61, in <module>\n    @jinja2.contextfunction\nAttributeError: module 'jinja2' has no attribute 'contextfunction'"
+      },
+      "progress": true,
+      "targeted": null
+    },
+    {
+      "attempts": [
+        {
+          "addresses": [
+            "jinja2.contextfunction"
+          ],
+          "applied": [
+            "aiohttp_jinja2/helpers.py"
+          ],
+          "attempt": 0,
+          "diff_lines": 11,
+          "prompt_hash": "64f6d6c3e87b1a6cefc6b80d6a7adf11c3c071c8ea099d17daff4a9de46a75b4",
+          "rationale": "Replace removed jinja2.contextfunction with jinja2.pass_context per Jinja 3.0 changelog for static_url helper.",
+          "validation": []
+        }
+      ],
+      "before": {
+        "ran": false,
+        "reason": "no file-correspondence tests for edited files"
+      },
+      "duration_ms": 7599,
+      "edits": [
+        "aiohttp_jinja2/helpers.py"
+      ],
+      "failure": {
+        "error": "AttributeError: module 'jinja2' has no attribute 'contextfunction'",
+        "frames": [
+          "aiohttp_jinja2/helpers.py:61",
+          "aiohttp_jinja2/__init__.py:24"
+        ],
+        "kind": "probe",
+        "site": "aiohttp_jinja2/helpers.py:61",
+        "test": null
+      },
+      "full": {
+        "counts": {
+          "passed": 31
+        },
+        "error_files": [],
+        "escalated": false,
+        "failed": [],
+        "total": 31
+      },
+      "items": [
+        "jinja2.contextfunction"
+      ],
+      "n": 2,
+      "probe": {
+        "error": "",
+        "frames": [],
+        "modules": [],
+        "ok": true,
+        "site": null,
+        "trace": ""
+      },
+      "progress": true,
+      "targeted": {
+        "counts": {
+          "passed": 31
+        },
+        "method": "full-suite (no correspondent tests)",
+        "ran_full": true
+      }
+    }
+  ],
+  "seeded": {
+    "baseline": {
+      "failed": [],
+      "ran": true,
+      "reused_from": "verify"
+    },
+    "red": {
+      "failed": [],
+      "reused_from": "verify"
+    }
+  },
+  "status": "green",
+  "stop_reason": "green",
+  "total_cmd_ms": 1048,
+  "touched": [
+    "aiohttp_jinja2/helpers.py"
+  ],
+  "upstream": {
+    "ran": false,
+    "reason": "no ground-truth PR files"
+  }
+}
