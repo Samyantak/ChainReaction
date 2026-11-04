@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { postJSON, useApi } from '../api'
+import React, { useEffect, useState } from 'react'
+import { getJSON, postJSON, useApi, withOptional } from '../api'
 import { navigate } from '../router'
 import { Button, Sheet, Status } from '../components'
 import InterpretView from './Interpret'
@@ -36,9 +36,13 @@ const FEATURES = [
     id: 'investigation',
     title: 'Investigation',
     blurb:
-      'The investigator agent traces each change with deterministic tools — usages, importers, probes — and submits findings citing the exact tool calls. Below is an example trace; live runs show the real one.',
+      'The investigator agent traces each change with deterministic tools — usages, importers, probes — and submits findings citing the exact tool calls.',
     view: 'investigate',
-    render: () => <InvestigateView runId={PRESET_RUN} snapshot={null} events={[]} demo={investigationDemo} />,
+    artifact: 'investigation.json',
+    fixture: investigationDemo,
+    render: (demo) => (
+      <InvestigateView runId={PRESET_RUN} snapshot={null} events={[]} demo={demo} />
+    ),
   },
   {
     id: 'prediction',
@@ -60,9 +64,11 @@ const FEATURES = [
     id: 'fix',
     title: 'Fix',
     blurb:
-      'Each break gets a proposed patch, applied to a throwaway copy and proven by re-running probes and tests until the counter goes green. Below is an example loop; live runs show the real one.',
+      'Each break gets a proposed patch, applied to a throwaway copy and proven by re-running probes and tests until the counter goes green.',
     view: 'fix',
-    render: () => <FixView runId={PRESET_RUN} snapshot={null} demo={fixDemo} />,
+    artifact: 'fix.json',
+    fixture: fixDemo,
+    render: (demo) => <FixView runId={PRESET_RUN} snapshot={null} demo={demo} />,
   },
   {
     id: 'report',
@@ -167,12 +173,34 @@ function ReplayDemo() {
   )
 }
 
+/* Presence check with a real loaded state (useApi's `loading` never
+ * clears for null bodies, which is exactly what a missing artifact is). */
+function useArtifactState(runId, name) {
+  const [state, setState] = useState(name ? 'loading' : 'n/a')
+  useEffect(() => {
+    if (!name) return undefined
+    let live = true
+    setState('loading')
+    getJSON(withOptional(`/api/runs/${runId}/artifacts/${name}`))
+      .then((d) => live && setState(d ? 'present' : 'missing'))
+      .catch(() => live && setState('missing'))
+    return () => {
+      live = false
+    }
+  }, [runId, name])
+  return state
+}
+
 export default function FeatureView({ id }) {
   const index = FEATURES.findIndex((f) => f.id === id)
+  const feature = index >= 0 ? FEATURES[index] : null
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  // Investigation/fix show the fixture only until the preset records the
+  // real artifact — then the header flips to live and the fixture retires.
+  const artifactState = useArtifactState(PRESET_RUN, feature?.artifact)
 
-  if (index < 0) {
+  if (!feature) {
     return (
       <div className="page">
         <Sheet>
@@ -190,7 +218,9 @@ export default function FeatureView({ id }) {
     )
   }
 
-  const feature = FEATURES[index]
+  const checking = !!feature.artifact && artifactState === 'loading'
+  const useDemo = !!feature.artifact && artifactState === 'missing'
+  const demo = useDemo ? feature.fixture : undefined
   const prev = FEATURES[(index + FEATURES.length - 1) % FEATURES.length]
   const next = FEATURES[(index + 1) % FEATURES.length]
 
@@ -221,8 +251,10 @@ export default function FeatureView({ id }) {
           {error && <div className="view-error">{error}</div>}
         </div>
         <div className="feature-demo">
-          <div className="mono sheet-no">LIVE PRESET DATA · NIBABEL</div>
-          {feature.render()}
+          <div className="mono sheet-no">
+            {useDemo ? 'EXAMPLE · fixture data' : 'LIVE PRESET DATA · NIBABEL'}
+          </div>
+          {checking ? <p>Loading…</p> : feature.render(demo)}
         </div>
       </div>
       <nav className="feature-nav">
