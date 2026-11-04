@@ -103,6 +103,53 @@ Open **New analysis**, enter a GitHub URL, an optional ref, and a decision (`upg
 
 ---
 
+## Harness, evaluation and automation
+
+### Agent harness
+- **One recorded gateway.** Every model call, tool call, shell command, web fetch and search goes through a single `RunContext` (`src/chainreaction/runs/`), which records the prompt, response, parameters, tokens and timing of each.
+- **Two agent loops with budgets.**
+  - **Investigator:** Muse Spark with tool calling over 10 deterministic tools, capped by tool calls, probe calls, tokens and wall time, ending in a required `submit_findings`.
+  - **Fix loop:** propose structured search/replace edits, validate them (each search text must occur exactly once), apply to a throwaway copy, re-run the probe and tests, then keep or revert. At most 5 rounds; it stops early after two rounds without progress.
+- **Guardrails in the loop.**
+  - Change items must quote their source word for word.
+  - Findings must cite tool calls that support them.
+  - Fixes are rejected for skips, deleted tests, silenced exceptions or dependency edits.
+  - Target code runs with an allowlisted environment that never contains the key, and a leak scan checks every recording.
+
+### Evaluation
+Every preset is a real breakage with ground truth, and every metric is computed from execution, not from the model's own claims:
+
+| What is evaluated | Ground truth | Metric |
+|---|---|---|
+| Predicted domino chain | the real traceback in the after environment | MATCH / DIFFER |
+| Predicted files | files changed by the upstream fix PR (nibabel #1250) | precision / recall |
+| Predicted failing tests | tests that fail after the change, excluding baseline failures | precision / recall |
+| Change set | the NumPy 2.0 guide's removal table | recall |
+| Fix | the full suite in the after environment, plus the guard checks | GREEN / PARTIAL / FAILED; fixed, still failing, newly broken |
+| Report narrative | the run's own artifacts | each claim verified or flagged |
+
+- **Baselines:** grep, ruff (`NPY201`), and Muse Spark alone.
+- **Ablations:** model alone vs. with deterministic table extraction; guide-only vs. code-aware interpreter (1M-token context); static prediction vs. static + investigator agent.
+- The numbers are in [Results](#results), including the ablation where the agent did not help.
+
+### Regression testing and automation
+- **Record and replay.** Each recorded model call is keyed by a hash of its full prompt and parameters. Replay serves the recordings back with no key and no network, and stops with `ReplayMiss` the moment anything in the pipeline would send a different prompt.
+- **CI on every push** (Ubuntu, macOS, Windows):
+  - the full test suite
+  - a byte-for-byte replay of all five presets
+  - the UI tests and a check that the committed UI build matches its sources
+  - the leak scan
+- **End-to-end automation.** One decision runs all seven stages with no human in the loop. Re-recording a preset is one script (`scripts/record_preset.py`).
+
+### Scale and what is not covered yet
+- **Small eval set:** five presets plus one ad-hoc live run (flask-wtf).
+- **No variance measurement:** each preset was recorded once, so run-to-run variance isn't measured.
+- **CI checks replay, not fresh live quality:** there is no scheduled live re-evaluation.
+- **One model:** `muse-spark-1.3`.
+- **No automatic trigger:** runs aren't started from Dependabot or Renovate PRs yet.
+
+---
+
 ## Results
 
 All numbers come from the committed recordings in `runs/presets/`. Replay any of them to check. The analyzed repos are pre-existing projects, not part of this build.
