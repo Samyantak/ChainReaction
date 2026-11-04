@@ -1,57 +1,526 @@
 {
-  "_example": "Fixture only. Shaped to the M5 outputs for UI development and feature-page demo mode. Never rendered on a real run.",
-  "status": "green",
-  "stop_reason": "no decision-caused failures remain",
-  "tests_before": {"failed": 4, "passed": 120},
-  "rounds": [
+ "_example": "Fixture only \u2014 shaped exactly like fix.json from the M5 fix loop (taken from a local nibabel x numpy 2.0 run, trimmed). Rendered only in feature-page demo mode, always labeled example; a real fix.json replaces it.",
+ "counts": {
+  "baseline_failures": 125,
+  "baseline_measured": true,
+  "error_files": {
+   "baseline": [],
+   "fixed": [
+    "nibabel"
+   ],
+   "newly_broken": [],
+   "still_failing": [
+    "nibabel/cifti2/tests/test_cifti2io_header.py",
+    "nibabel/freesurfer/tests/test_mghformat.py",
+    "nibabel/tests/test_analyze.py",
+    "nibabel/tests/test_arraywriters.py",
+    "nibabel/tests/test_ecat.py",
+    "nibabel/tests/test_nifti1.py",
+    "nibabel/tests/test_nifti2.py",
+    "nibabel/tests/test_scaling.py",
+    "nibabel/tests/test_spm2analyze.py",
+    "nibabel/tests/test_spm99analyze.py",
+    "nibabel/tests/test_volumeutils.py",
+    "nibabel/tests/test_wrapstruct.py"
+   ]
+  },
+  "fixed": [],
+  "newly_broken": [],
+  "still_failing": [
+   "nibabel/freesurfer/tests/test_io.py::test_write_morph_data",
+   "nibabel/streamlines/tests/test_trk.py::TestTRK::test_load_complex_file_in_big_endian",
+   "nibabel/streamlines/tests/test_trk.py::TestTRK::test_load_file_with_wrong_information",
+   "nibabel/tests/test_casting.py::test_able_casting",
+   "nibabel/tests/test_casting.py::test_able_int_type",
+   "nibabel/tests/test_casting.py::test_casting",
+   "nibabel/tests/test_casting.py::test_int_abs",
+   "nibabel/tests/test_casting.py::test_shared_range",
+   "nibabel/tests/test_dataobj_images.py::TestDataobjAPI::test_data_interface",
+   "nibabel/tests/test_floating.py::test_as_int_np_fix",
+   "nibabel/tests/test_floating.py::test_type_info",
+   "nibabel/tests/test_image_api.py::TestAnalyzeAPI::test_data_interface",
+   "nibabel/tests/test_image_api.py::TestMinc1API::test_data_interface",
+   "nibabel/tests/test_image_api.py::TestMinc2API::test_data_interface",
+   "nibabel/tests/test_image_api.py::TestNifti1PairAPI::test_data_interface",
+   "nibabel/tests/test_image_api.py::TestNifti2PairAPI::test_data_interface",
+   "nibabel/tests/test_image_api.py::TestSpatialImageAPI::test_data_interface",
+   "nibabel/tests/test_image_api.py::TestSpm2AnalyzeAPI::test_data_interface",
+   "nibabel/tests/test_image_api.py::TestSpm99AnalyzeAPI::test_data_interface",
+   "nibabel/tests/test_pointset.py::TestGrids::test_from_image[shape0]",
+   "nibabel/tests/test_pointset.py::TestGrids::test_from_image[shape1]",
+   "nibabel/tests/test_pointset.py::TestGrids::test_from_image[shape2]",
+   "nibabel/tests/test_pointset.py::TestGrids::test_from_mask",
+   "nibabel/tests/test_pointset.py::test_GridIndices",
+   "nibabel/tests/test_proxy_api.py::TestAnalyzeProxyAPI::test_array_interface_with_dtype",
+   "nibabel/tests/test_proxy_api.py::TestEcatAPI::test_array_interface_with_dtype",
+   "nibabel/tests/test_proxy_api.py::TestMGHAPI::test_array_interface_with_dtype",
+   "nibabel/tests/test_proxy_api.py::TestMinc1API::test_array_interface_with_dtype",
+   "nibabel/tests/test_proxy_api.py::TestMinc2API::test_array_interface_with_dtype",
+   "nibabel/tests/test_proxy_api.py::TestNifti1ProxyAPI::test_array_interface_with_dtype",
+   "nibabel/tests/test_proxy_api.py::TestPARRECAPI::test_array_interface_with_dtype",
+   "nibabel/tests/test_proxy_api.py::TestSpm2AnalyzeProxyAPI::test_array_interface_with_dtype",
+   "nibabel/tests/test_proxy_api.py::TestSpm99AnalyzeProxyAPI::test_array_interface_with_dtype",
+   "nibabel/tests/test_round_trip.py::test_round_trip",
+   "nibabel/tests/test_testing.py::test_assert_allclose_safely"
+  ],
+  "suite_fresh": true
+ },
+ "final_status": "partial",
+ "guards": {
+  "ok": true,
+  "violations": []
+ },
+ "patch": "fixes/final.patch",
+ "probe_start": {
+  "error": "",
+  "frames": [],
+  "modules": [],
+  "ok": true,
+  "site": null,
+  "trace": ""
+ },
+ "rounds": [
+  {
+   "attempts": [
     {
-      "n": 1,
-      "target": "layer1 ImportError at nibabel/casting.py:717",
-      "failure_site": "nibabel/casting.py:717",
-      "rationale": "Replace the removed np.sctypes lookup with explicit float types per the migration guide.",
-      "addresses": ["numpy.sctypes"],
-      "edits": [
-        {
-          "path": "nibabel/casting.py",
-          "search": "    floats = np.sctypes['float'][:]",
-          "replace": "    floats = [np.float16, np.float32, np.float64, np.longdouble]"
-        }
-      ],
-      "validation": {"ok": true},
-      "probe": {"ok": false, "error": "ImportError at nibabel/quaternions.py:32"},
-      "tests_after": {"failed": 1, "passed": 123},
-      "diff": "fixes/round-1.diff",
-      "diff_text": "--- a/nibabel/casting.py\n+++ b/nibabel/casting.py\n@@ -714,7 +714,7 @@\n     \"\"\"\n     # copy float list so we don't change the numpy global\n-    floats = np.sctypes['float'][:]\n+    floats = [np.float16, np.float32, np.float64, np.longdouble]\n     if best_float() != np.longdouble and np.longdouble in floats:\n",
-      "duration_s": 48
-    },
-    {
-      "n": 2,
-      "target": "layer2 ImportError at nibabel/quaternions.py:32",
-      "failure_site": "nibabel/quaternions.py:32",
-      "rationale": "Same removal one layer down; maximum_sctype has no replacement, inline the call.",
-      "addresses": ["numpy.maximum_sctype"],
-      "edits": [
-        {
-          "path": "nibabel/quaternions.py",
-          "search": "    x = np.maximum_sctype(t)",
-          "replace": "    x = t if t in (np.float32, np.float64) else np.float64"
-        }
-      ],
-      "validation": {"ok": true},
-      "probe": {"ok": true},
-      "tests_after": {"failed": 0, "passed": 124},
-      "diff": "fixes/round-2.diff",
-      "diff_text": "--- a/nibabel/quaternions.py\n+++ b/nibabel/quaternions.py\n@@ -29,7 +29,7 @@\n def _promote(t):\n-    x = np.maximum_sctype(t)\n+    x = t if t in (np.float32, np.float64) else np.float64\n     return x\n",
-      "duration_s": 61
+     "addresses": [
+      "nibabel/casting.py:717"
+     ],
+     "applied": [
+      "nibabel/casting.py"
+     ],
+     "attempt": 0,
+     "diff_lines": 12,
+     "rationale": "Replace removed numpy.sctypes access with explicit float dtype list. This follows the change item guidance to access dtypes explicitly instead and preserves ok_floats sorting behavior.",
+     "validation": []
     }
+   ],
+   "before": null,
+   "duration_ms": 0,
+   "edits": [
+    "nibabel/casting.py"
+   ],
+   "failure": {
+    "error": "AttributeError: `np.sctypes` was removed in the NumPy 2.0 release. Access dtypes explicitly instead.. Did you mean: 'dtypes'?",
+    "frames": [
+     "nibabel/casting.py:717",
+     "nibabel/casting.py:723",
+     "nibabel/volumeutils.py:23"
+    ],
+    "kind": "probe",
+    "site": "nibabel/casting.py:717",
+    "test": null
+   },
+   "full": null,
+   "items": [
+    "numpy.sctypes"
+   ],
+   "n": 1,
+   "probe": {
+    "error": "AttributeError: `np.maximum_sctype` was removed in the NumPy 2.0 release. Use a specific dtype instead. You should avoid relying on any implicit mechanism and select the largest dtype of a kind explicitly in the code.",
+    "frames": [
+     "nibabel/quaternions.py:32",
+     "nibabel/nifti1.py:28",
+     "nibabel/cifti2/cifti2.py:31"
+    ],
+    "modules": [
+     "nibabel",
+     "nibabel.imagestats",
+     "nibabel.imageclasses",
+     "nibabel.cifti2",
+     "nibabel.cifti2.cifti2",
+     "nibabel.nifti1",
+     "nibabel.quaternions"
+    ],
+    "ok": false,
+    "site": "nibabel/quaternions.py:32"
+   },
+   "progress": true,
+   "targeted": null,
+   "diff_text": "--- a/nibabel/casting.py\n+++ b/nibabel/casting.py\n@@ -713,8 +713,7 @@\n \n     Remove longdouble if it has no higher precision than float64\n     \"\"\"\n-    # copy float list so we don't change the numpy global\n-    floats = np.sctypes['float'][:]\n+    floats = [np.float16, np.float32, np.float64, np.longdouble]\n     if best_float() != np.longdouble and np.longdouble in floats:\n         floats.remove(np.longdouble)\n     return sorted(floats, key=lambda f: type_info(f)['nmant'])\n"
+  },
+  {
+   "attempts": [
+    {
+     "addresses": [
+      "numpy.maximum_sctype"
+     ],
+     "applied": [
+      "nibabel/quaternions.py"
+     ],
+     "attempt": 0,
+     "diff_lines": 11,
+     "rationale": "Replace removed np.maximum_sctype(float) with explicit largest float dtype np.longdouble, per change item guidance to use a specific dtype instead.",
+     "validation": []
+    }
+   ],
+   "before": {
+    "counts": {
+     "passed": 1132
+    },
+    "failed": [],
+    "method": "file-correspondence",
+    "newly_broken": [],
+    "ran": true,
+    "tests": 1
+   },
+   "duration_ms": 68034,
+   "edits": [
+    "nibabel/quaternions.py"
+   ],
+   "failure": {
+    "error": "AttributeError: `np.maximum_sctype` was removed in the NumPy 2.0 release. Use a specific dtype instead. You should avoid relying on any implicit mechanism and select the largest dtype of a kind explicitly in the code.",
+    "frames": [
+     "nibabel/quaternions.py:32",
+     "nibabel/nifti1.py:28",
+     "nibabel/cifti2/cifti2.py:31"
+    ],
+    "kind": "probe",
+    "site": "nibabel/quaternions.py:32",
+    "test": null
+   },
+   "full": {
+    "counts": {
+     "errors": 109,
+     "failed": 68,
+     "passed": 3456,
+     "skipped": 42
+    },
+    "error_files": [
+     "nibabel/cifti2/tests/test_cifti2io_header.py",
+     "nibabel/freesurfer/tests/test_mghformat.py",
+     "nibabel/tests/test_analyze.py",
+     "nibabel/tests/test_arraywriters.py",
+     "nibabel/tests/test_ecat.py",
+     "nibabel/tests/test_nifti1.py",
+     "nibabel/tests/test_nifti2.py",
+     "nibabel/tests/test_scaling.py",
+     "nibabel/tests/test_spm2analyze.py",
+     "nibabel/tests/test_spm99analyze.py",
+     "nibabel/tests/test_volumeutils.py",
+     "nibabel/tests/test_wrapstruct.py"
+    ],
+    "escalated": false,
+    "failed": [
+     "nibabel/cifti2/tests/test_cifti2.py::TestCifti2ImageAPI::test_data_interface",
+     "nibabel/cifti2/tests/test_cifti2.py::TestCifti2ImageAPI::test_dtype",
+     "nibabel/cifti2/tests/test_cifti2.py::TestCifti2ImageAPI::test_file_stream_equivalence"
+    ],
+    "total": 3675
+   },
+   "items": [
+    "numpy.maximum_sctype"
+   ],
+   "n": 2,
+   "probe": {
+    "error": "",
+    "frames": [],
+    "modules": [],
+    "ok": true,
+    "site": null
+   },
+   "progress": true,
+   "targeted": {
+    "counts": {
+     "passed": 1132
+    },
+    "error_files": [],
+    "failed": [],
+    "method": "file-correspondence",
+    "tests": 1
+   },
+   "diff_text": "--- a/nibabel/quaternions.py\n+++ b/nibabel/quaternions.py\n@@ -29,7 +29,7 @@\n \n import numpy as np\n \n-MAX_FLOAT = np.maximum_sctype(float)\n+MAX_FLOAT = np.longdouble\n FLOAT_EPS = np.finfo(float).eps\n \n \n"
+  },
+  {
+   "attempts": [
+    {
+     "addresses": [
+      "rescale_affine"
+     ],
+     "applied": [
+      "nibabel/affines.py"
+     ],
+     "attempt": 0,
+     "diff_lines": 11,
+     "rationale": "Per NumPy 2.0 migration guide change item for copy keyword, np.array(copy=False) must become np.asarray to allow copy when needed. This preserves NumPy 1.x behavior.",
+     "validation": []
+    }
+   ],
+   "before": {
+    "counts": {
+     "passed": 7
+    },
+    "failed": [],
+    "method": "file-correspondence",
+    "newly_broken": [],
+    "ran": true,
+    "tests": 1
+   },
+   "duration_ms": 80336,
+   "edits": [
+    "nibabel/affines.py"
+   ],
+   "failure": {
+    "error": "E   For more details, see https://numpy.org/devdocs/numpy_2_0_migration_guide.html#adapting-to-changes-in-the-copy-keyword.",
+    "frames": [
+     "nibabel/affines.py:368",
+     "nibabel/processing.py:388",
+     "nibabel/cmdline/conform.py:57"
+    ],
+    "kind": "test",
+    "site": "nibabel/affines.py:368",
+    "test": "nibabel/cmdline/tests/test_conform.py::test_default"
+   },
+   "full": {
+    "counts": {
+     "errors": 109,
+     "failed": 65,
+     "passed": 3459,
+     "skipped": 42
+    },
+    "error_files": [
+     "nibabel/cifti2/tests/test_cifti2io_header.py",
+     "nibabel/freesurfer/tests/test_mghformat.py",
+     "nibabel/tests/test_analyze.py",
+     "nibabel/tests/test_arraywriters.py",
+     "nibabel/tests/test_ecat.py",
+     "nibabel/tests/test_nifti1.py",
+     "nibabel/tests/test_nifti2.py",
+     "nibabel/tests/test_scaling.py",
+     "nibabel/tests/test_spm2analyze.py",
+     "nibabel/tests/test_spm99analyze.py",
+     "nibabel/tests/test_volumeutils.py",
+     "nibabel/tests/test_wrapstruct.py"
+    ],
+    "escalated": false,
+    "failed": [
+     "nibabel/cifti2/tests/test_cifti2.py::TestCifti2ImageAPI::test_data_interface",
+     "nibabel/cifti2/tests/test_cifti2.py::TestCifti2ImageAPI::test_dtype",
+     "nibabel/cifti2/tests/test_cifti2.py::TestCifti2ImageAPI::test_file_stream_equivalence"
+    ],
+    "total": 3675
+   },
+   "items": [],
+   "n": 3,
+   "probe": {
+    "error": "",
+    "frames": [],
+    "modules": [],
+    "ok": true,
+    "site": null
+   },
+   "progress": true,
+   "targeted": {
+    "counts": {
+     "passed": 7
+    },
+    "error_files": [],
+    "failed": [],
+    "method": "file-correspondence",
+    "tests": 1
+   },
+   "diff_text": "--- a/nibabel/affines.py\n+++ b/nibabel/affines.py\n@@ -365,7 +365,7 @@\n         A new affine transform with the specified voxel sizes\n \n     \"\"\"\n-    shape = np.array(shape, copy=False)\n+    shape = np.asarray(shape)\n     new_shape = np.array(new_shape if new_shape is not None else shape)\n \n     s = voxel_sizes(affine)\n"
+  },
+  {
+   "attempts": [
+    {
+     "addresses": [
+      "_get_analyze_compat_dtype"
+     ],
+     "applied": [
+      "nibabel/nifti1.py"
+     ],
+     "attempt": 0,
+     "diff_lines": 11,
+     "rationale": "Per NumPy 2.0 NEP 50 change item NumPy scalars are strong types so value-based np.can_cast fails; converting min/max to Python scalars via .item() restores weak-scalar value-based checks.",
+     "validation": []
+    }
+   ],
+   "before": {
+    "counts": {
+     "passed": 651,
+     "skipped": 3
+    },
+    "failed": [],
+    "method": "file-correspondence",
+    "newly_broken": [],
+    "ran": true,
+    "tests": 1
+   },
+   "duration_ms": 110323,
+   "edits": [
+    "nibabel/nifti1.py"
+   ],
+   "failure": {
+    "error": "E   ValueError: Cannot find analyze-compatible dtype for array with dtype=float64 (min=0.0, max=23.0)",
+    "frames": [
+     "nibabel/nifti1.py:2451",
+     "nibabel/nifti1.py:2187",
+     "nibabel/nifti1.py:2216"
+    ],
+    "kind": "test",
+    "site": "nibabel/nifti1.py:2451",
+    "test": "nibabel/cmdline/tests/test_convert.py::test_convert_aliases[float64-compat-float32]"
+   },
+   "full": null,
+   "items": [],
+   "n": 4,
+   "probe": {
+    "error": "",
+    "frames": [],
+    "modules": [],
+    "ok": true,
+    "site": null
+   },
+   "progress": false,
+   "targeted": {
+    "counts": {
+     "errors": 1
+    },
+    "error_files": [
+     "nibabel/tests/test_nifti1.py"
+    ],
+    "failed": [],
+    "method": "file-correspondence",
+    "tests": 1
+   },
+   "diff_text": "--- a/nibabel/nifti1.py\n+++ b/nibabel/nifti1.py\n@@ -2442,7 +2442,7 @@\n     elif dtype == np.uint16:\n         return np.dtype('int16' if arr.max() <= np.iinfo(np.int16).max else 'int32')\n \n-    mn, mx = arr.min(), arr.max()\n+    mn, mx = arr.min().item(), arr.max().item()\n     if np.can_cast(mn, np.int32) and np.can_cast(mx, np.int32):\n         return np.dtype('int32')\n     if np.can_cast(mn, np.float32) and np.can_cast(mx, np.float32):\n"
+  },
+  {
+   "attempts": [
+    {
+     "addresses": [
+      "_get_analyze_compat_dtype"
+     ],
+     "applied": [
+      "nibabel/nifti1.py"
+     ],
+     "attempt": 0,
+     "diff_lines": 25,
+     "rationale": "Per NEP 50 change item np.can_cast no longer supports Python ints/floats with value-based logic. Replace with explicit iinfo/finfo range checks and exact float32 representability for ints, preserving int32 then float32 priority.",
+     "validation": []
+    }
+   ],
+   "before": {
+    "counts": {
+     "passed": 651,
+     "skipped": 3
+    },
+    "failed": [],
+    "method": "file-correspondence",
+    "newly_broken": [],
+    "ran": true,
+    "tests": 1
+   },
+   "duration_ms": 81172,
+   "edits": [
+    "nibabel/nifti1.py"
+   ],
+   "failure": {
+    "error": "E   This change was part of adopting NEP 50, we may explicitly allow them again in the future.",
+    "frames": [
+     "nibabel/nifti1.py:2446",
+     "nibabel/nifti1.py:2187",
+     "nibabel/nifti1.py:2216"
+    ],
+    "kind": "test",
+    "site": "nibabel/nifti1.py:2446",
+    "test": "nibabel/cmdline/tests/test_convert.py::test_convert_aliases[float64-compat-float32]"
+   },
+   "full": null,
+   "items": [],
+   "n": 5,
+   "probe": {
+    "error": "",
+    "frames": [],
+    "modules": [],
+    "ok": true,
+    "site": null
+   },
+   "progress": false,
+   "targeted": {
+    "counts": {
+     "errors": 1
+    },
+    "error_files": [
+     "nibabel/tests/test_nifti1.py"
+    ],
+    "failed": [],
+    "method": "file-correspondence",
+    "tests": 1
+   },
+   "diff_text": "--- a/nibabel/nifti1.py\n+++ b/nibabel/nifti1.py\n@@ -2443,10 +2443,18 @@\n         return np.dtype('int16' if arr.max() <= np.iinfo(np.int16).max else 'int32')\n \n     mn, mx = arr.min().item(), arr.max().item()\n-    if np.can_cast(mn, np.int32) and np.can_cast(mx, np.int32):\n-        return np.dtype('int32')\n-    if np.can_cast(mn, np.float32) and np.can_cast(mx, np.float32):\n-        return np.dtype('float32')\n+    if isinstance(mn, int) and isinstance(mx, int):\n+        iinfo32 = np.iinfo(np.int32)\n+        if iinfo32.min <= mn <= iinfo32.max and iinfo32.min <= mx <= iinfo32.max:\n+            return np.dtype('int32')\n+        if mn == np.float32(mn) and mx == np.float32(mx):\n+            return np.dtype('float32')\n+    elif isinstance(mn, float) and isinstance(mx, float):\n+        finfo32 = np.finfo(np.float32)\n+        def _fits_float32(v):\n+            return np.isnan(v) or np.isinf(v) or finfo32.min <= v <= finfo32.max\n+        if _fits_float32(mn) and _fits_float32(mx):\n+            return np.dtype('float32')\n \n     raise ValueError(\n         f'Cannot find analyze-compatible dtype for array with dtype={dtype} (min={mn}, max={mx})'\n"
+  }
+ ],
+ "seeded": {
+  "baseline": {
+   "counts": {
+    "errors": 97,
+    "failed": 28,
+    "passed": 5485,
+    "skipped": 56
+   },
+   "env": "numpy1",
+   "error_files": [],
+   "escalated": false,
+   "failed": [
+    "nibabel/cifti2/tests/test_cifti2.py::TestCifti2ImageAPI::test_data_interface",
+    "nibabel/cifti2/tests/test_cifti2.py::TestCifti2ImageAPI::test_dtype",
+    "nibabel/cifti2/tests/test_cifti2.py::TestCifti2ImageAPI::test_file_stream_equivalence"
+   ],
+   "ran": true,
+   "total": 5666
+  },
+  "red": {
+   "counts": {
+    "errors": 1,
+    "passed": 4
+   },
+   "failed": [],
+   "ran": true
+  }
+ },
+ "status": "partial",
+ "stop_reason": "no-progress-twice",
+ "total_cmd_ms": 302494,
+ "touched": [
+  "nibabel/affines.py",
+  "nibabel/casting.py",
+  "nibabel/nifti1.py",
+  "nibabel/quaternions.py"
+ ],
+ "upstream": {
+  "extra": [
+   "nibabel/affines.py"
   ],
-  "counts": {"baseline_excluded": 0, "fixed": 4, "still_failing": 0, "newly_broken": 0},
-  "guards": [
-    {"check": "no new skip/xfail markers", "ok": true},
-    {"check": "no removed test functions", "ok": true},
-    {"check": "no silenced exceptions", "ok": true},
-    {"check": "no dependency file edits", "ok": true}
+  "missed": [
+   "nibabel/conftest.py",
+   "nibabel/ecat.py",
+   "nibabel/freesurfer/io.py",
+   "nibabel/spatialimages.py",
+   "nibabel/streamlines/trk.py"
   ],
-  "before_env": {"ok": true, "detail": "targeted tests pass on numpy 1.26.4"},
-  "patch": "fixes/final.patch"
+  "overlap": [
+   "nibabel/casting.py",
+   "nibabel/nifti1.py",
+   "nibabel/quaternions.py"
+  ],
+  "pr_tests": {
+   "counts": {
+    "errors": 2,
+    "failed": 5,
+    "passed": 1156
+   },
+   "failed": [
+    "nibabel/tests/test_casting.py::test_able_casting",
+    "nibabel/tests/test_casting.py::test_able_int_type",
+    "nibabel/tests/test_casting.py::test_casting",
+    "nibabel/tests/test_casting.py::test_int_abs",
+    "nibabel/tests/test_casting.py::test_shared_range"
+   ],
+   "method": "file-correspondence (PR has no test files)"
+  },
+  "pr_url": "https://github.com/nipy/nibabel/pull/1250",
+  "ran": true
+ }
 }

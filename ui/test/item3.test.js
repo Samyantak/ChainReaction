@@ -7,7 +7,8 @@ import {
   survivalRate,
   tallyKinds,
 } from '../src/interpretUtils.js'
-import { counterSeries, parseDiff } from '../src/fixUtils.js'
+import { diffFiles, fixModel, guardRows, parseDiff, splitDiff, stopText } from '../src/fixUtils.js'
+import { readFileSync } from 'node:fs'
 
 test('kinds tally sorted by count', () => {
   assert.deepEqual(
@@ -65,12 +66,45 @@ test('diff parses hunks, adds, dels, context', () => {
   assert.equal(rows[5].text, 'new')
 })
 
-test('counter series tracks failures per round', () => {
-  const fix = {
-    tests_before: { failed: 4, passed: 120 },
-    rounds: [{ tests_after: { failed: 1 } }, { tests_after: { failed: 0 } }],
-  }
-  assert.deepEqual(counterSeries(fix), [4, 1, 0])
-  assert.equal(counterSeries({}), null)
-  assert.equal(counterSeries({ tests_before: { failed: 2 }, rounds: [{}] }), null)
+test('diff rows carry line numbers from hunk headers', () => {
+  const rows = parseDiff('--- a/x.py\n+++ b/x.py\n@@ -10,3 +10,3 @@\n a\n-old\n+new\n b\n')
+  assert.deepEqual(rows.filter((r) => r.type === 'ctx').map((r) => [r.oldNo, r.newNo]), [[10, 10], [12, 12]])
+  assert.equal(rows.find((r) => r.type === 'del').oldNo, 11)
+  assert.equal(rows.find((r) => r.type === 'add').newNo, 11)
+  assert.deepEqual(diffFiles('--- a/x.py\n+++ b/x.py\n--- a/y.py\n+++ b/y.py\n'), ['x.py', 'y.py'])
+})
+
+test('split diff pairs deletions with the additions that replace them', () => {
+  const pairs = splitDiff(parseDiff('@@ -1,3 +1,4 @@\n a\n-b\n-c\n+B\n d\n+e\n'))
+  assert.equal(pairs[0].hunk, '@@ -1,3 +1,4 @@')
+  assert.equal(pairs[1].left.text, 'a')
+  assert.deepEqual([pairs[2].left.text, pairs[2].right.text], ['b', 'B'])
+  assert.deepEqual([pairs[3].left.text, pairs[3].right], ['c', null])
+  assert.deepEqual([pairs[5].left, pairs[5].right.text], [null, 'e'])
+})
+
+test('fix model follows the real fix.json shape', () => {
+  const fix = JSON.parse(readFileSync(new URL('./fixtures/fix.example.json', import.meta.url)))
+  const m = fixModel(fix)
+  assert.equal(m.verdict.label, 'PARTIAL')
+  assert.equal(m.rounds.length, 5)
+  assert.equal(m.importBroken, true)
+  assert.equal(m.importFixedAt, 2)
+  assert.equal(m.rounds[0].kind, 'probe')
+  assert.match(m.rounds[0].outcome, /next break at nibabel\/quaternions.py:32/)
+  assert.equal(m.rounds[1].outcome, 'import now succeeds')
+  assert.equal(m.rounds[3].progress, false)
+  assert.equal(m.rounds[0].diffPath, 'fixes/round-1.diff')
+  assert.equal(m.stillFailing, 35)
+  assert.equal(m.newlyBroken, 0)
+  assert.equal(m.baselineFailures, 125)
+  assert.equal(m.guards.ok, true)
+  assert.deepEqual(m.upstream.overlap.length, 3)
+  assert.equal(stopText('no-progress-twice'), 'stopped after two rounds without progress')
+})
+
+test('guard rows turn red per violation category', () => {
+  const rows = guardRows({ ok: false, violations: ['added skip/xfail marker: @pytest.mark.skip', 'setup.cfg: dependency/packaging file edited'] })
+  assert.deepEqual(rows.map((r) => r.ok), [false, true, true, false])
+  assert.deepEqual(guardRows({ ok: true, violations: [] }).every((r) => r.ok), true)
 })

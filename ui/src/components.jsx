@@ -19,6 +19,22 @@ export function DotBreak({ text }) {
   )
 }
 
+/* PathBreak: file paths break after '/' only, never mid-name. */
+export function PathBreak({ text }) {
+  const parts = String(text ?? '').replace(/\\/g, '/').split('/')
+  return (
+    <span className="dotbreak">
+      {parts.map((part, i) => (
+        <React.Fragment key={i}>
+          {part}
+          {i < parts.length - 1 ? '/' : null}
+          {i < parts.length - 1 ? <wbr /> : null}
+        </React.Fragment>
+      ))}
+    </span>
+  )
+}
+
 /* Sheet: flat panel, square corners, 1.5px ink border. */
 export function Sheet({ children, className = '', ...rest }) {
   return (
