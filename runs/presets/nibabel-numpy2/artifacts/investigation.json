@@ -4002,7 +4002,7 @@
   ],
   "usage": {
     "probe_calls": 8,
-    "tokens": 95721,
+    "tokens": 0,
     "tool_calls": 23,
     "turns": 7
   }

@@ -128,16 +128,20 @@ def parse_traceback(stderr: str) -> list[Frame]:
     Probe outputs only ever match FRAME_RE; pytest --tb=short suite
     outputs only ever match PYTEST_FRAME_RE. Both list outermost
     first, so callers take the deepest in-tree frame the same way.
+    Paths normalize explicitly (recorded Windows output carries
+    backslashes; Path/os.sep only convert them on Windows).
     """
     frames = []
     for line in stderr.splitlines():
         m = FRAME_RE.match(line)
         if m:
-            frames.append(Frame(file=m.group(1), line=int(m.group(2)), func=m.group(3)))
+            frames.append(Frame(file=m.group(1).replace("\\", "/"),
+                                line=int(m.group(2)), func=m.group(3)))
             continue
         m = PYTEST_FRAME_RE.match(line)
         if m:
-            frames.append(Frame(file=m.group(1), line=int(m.group(2)), func=m.group(3)))
+            frames.append(Frame(file=m.group(1).replace("\\", "/"),
+                                line=int(m.group(2)), func=m.group(3)))
     return frames
 
 

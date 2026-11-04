@@ -1,15 +1,13 @@
 --- a/tests/test_login.py
 +++ b/tests/test_login.py
-@@ -740,7 +740,11 @@
+@@ -740,7 +740,9 @@
              result = c.get("/login-notch-remember")
              self.assertEqual(result.status_code, 200)
  
 -            cookie = c.get_cookie(name, domain=domain)
-+            cookie = c.get_cookie(name, domain=domain, origin_only=False)
-+            if cookie is None:
-+                cookie = c.get_cookie(
-+                    name, domain=domain.lstrip("."), origin_only=False
-+                )
++            cookie = c.get_cookie(name, domain=domain) or c.get_cookie(
++                name, domain=domain.lstrip(".")
++            )
  
              expires = cookie.expires
              if isinstance(expires, datetime):

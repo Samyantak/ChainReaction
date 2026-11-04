@@ -153,7 +153,10 @@ def file_to_module(path: str | Path, target: str | Path, package: str
 def _strip_target_prefix(tid: str, target: str | Path) -> str:
     # pytest anchors node ids at the discovered rootdir, which can sit
     # above the target (this repo's own pyproject is an ancestor) —
-    # relativize so ids resolve from the target dir.
+    # relativize so ids resolve from the target dir. Separators
+    # normalize explicitly: recorded Windows ids carry backslashes and
+    # Path/os.sep only convert them on Windows.
+    tid = tid.replace("\\", "/")
     prefix = str(target).replace("\\", "/").rstrip("/") + "/"
     return tid[len(prefix):] if tid.startswith(prefix) else tid
 
@@ -699,8 +702,10 @@ def file_to_rel(path_text: str | Path, target: str | Path, package: str
 
 
 def _strip_tid(tid: str, strip_prefix: str) -> str:
-    if strip_prefix and tid.startswith(strip_prefix):
-        return tid[len(strip_prefix):]
+    tid = tid.replace("\\", "/")
+    prefix = (strip_prefix or "").replace("\\", "/")
+    if prefix and tid.startswith(prefix):
+        return tid[len(prefix):]
     return tid
 
 

@@ -451,11 +451,15 @@ def in_tree_frames(frames, root: str | Path,
         return []
     out = []
     for frame in reversed(frames or []):
-        if not str(frame.file).endswith(".py"):
+        # Recorded Windows output carries backslashes; normalize
+        # explicitly before any Path handling (Path/os.sep only
+        # convert them on Windows, forking Linux prompts).
+        norm = str(frame.file).replace("\\", "/")
+        if not norm.endswith(".py"):
             continue
         # pytest headers are cwd-relative (the work copy); probes are
         # absolute. Relative frames resolve against the root first.
-        cand = Path(frame.file)
+        cand = Path(norm)
         if not cand.is_absolute():
             cand = root_abs / cand
         try:
@@ -465,7 +469,7 @@ def in_tree_frames(frames, root: str | Path,
         if rel is not None:
             out.append(f"{rel.as_posix()}:{frame.line}")
             continue
-        sub = site_packages_subpath(frame.file, package)
+        sub = site_packages_subpath(norm, package)
         if sub is not None:
             out.append(
                 f"{relative_posix(package_dir(root, package) / sub, root)}"
@@ -489,7 +493,8 @@ def stub_caller_frames(stderr: str, root: str | Path,
     match = re.search(r"caller=([^\s)]+\.py):(\d+)", stderr or "")
     if not match:
         return []
-    stub_frame = [Frame(match.group(1), int(match.group(2)), "?")]
+    stub_frame = [Frame(match.group(1).replace("\\", "/"),
+                        int(match.group(2)), "?")]
     return in_tree_frames(stub_frame, root, package)
 
 
@@ -522,7 +527,7 @@ def test_import_windows(workdir: str | Path, test_id: str, package: str,
     """
     import ast
 
-    rel = test_id.split("::")[0]
+    rel = test_id.split("::")[0].replace("\\", "/")
     try:
         tree = ast.parse((Path(workdir) / rel).read_text(
             encoding="utf-8"))
@@ -797,6 +802,9 @@ def build_round_prompt(*, round_no: int, max_rounds: int,
                        applied_summaries: list[str],
                        feedback: str = "") -> str:
     """Deterministic per-round model prompt (no timestamps, sorted)."""
+    if failure_site:
+        failure_site = failure_site.replace("\\", "/")
+    fix_order = [entry.replace("\\", "/") for entry in fix_order]
     lines = [
         f"Round {round_no} of {max_rounds}.",
         f"Fix order: {', '.join(fix_order) or '(empty)'}",
@@ -1054,9 +1062,36 @@ class _SuiteTimeout(Exception):
     """A suite run exceeded its budget (recorded, not a crash)."""
 
 
+def _normalize_pytest_paths(output: str) -> str:
+    """Forward-slash pytest paths in recorded output (OS-independent).
+
+    Only path-carrying lines are touched (frame headers, FAILED/ERROR
+    summary lines, collection headers, File traceback lines); code and
+    error text keeps its backslashes. Explicit replace: Path/os.sep
+    only convert backslashes on Windows, forking Linux prompts.
+    """
+    if not output or "\\" not in output:
+        return output or ""
+    out = []
+    for line in output.splitlines():
+        stripped = line.strip()
+        if (stripped.startswith("FAILED ") or stripped.startswith("ERROR ")
+                or stripped.startswith('File "')
+                or "ERROR collecting" in line
+                or ".py:" in line or ".py::" in line):
+            out.append(line.replace("\\", "/"))
+        else:
+            out.append(line)
+    text = "\n".join(out)
+    if output.endswith("\n") and not text.endswith("\n"):
+        text += "\n"
+    return text
+
+
 def _error_line(output: str) -> str:
     """Last error-ish line of a probe/test output ("" when none)."""
-    cands = [ln.strip() for ln in (output or "").splitlines()
+    cands = [ln.strip() for ln in
+             _normalize_pytest_paths(output or "").splitlines()
              if ln.strip()]
     for line in reversed(cands):
         if re.match(r"^\w*(Error|Exception|assert|E  )", line):
@@ -1066,7 +1101,8 @@ def _error_line(output: str) -> str:
 
 def _trace_excerpt(output: str, keep: int = 25) -> str:
     """Newest-last traceback lines, scrubbed by the caller for storage."""
-    lines = [ln for ln in (output or "").splitlines() if ln.strip()]
+    lines = [ln for ln in _normalize_pytest_paths(
+        output or "").splitlines() if ln.strip()]
     return "\n".join(lines[-keep:])
 
 
@@ -1341,6 +1377,7 @@ class _Loop:
         """Single-test run for a failure's traceback (deterministic id)."""
         from chainreaction.verifier import parse_traceback
 
+        test_id = test_id.replace("\\", "/")
         record, output = self.run_suite(
             [test_id], self.plan.after_env, 300, f"trace {test_id}")
         frames = parse_traceback(output)
@@ -1432,10 +1469,10 @@ class _Loop:
             site = None
             for frame in reversed(
                     parse_traceback(self.suite_output)):
-                if str(frame.file).replace("\\", "/").endswith(files[0]):
+                if frame.file.endswith(files[0]):
                     site = f"{files[0]}:{frame.line}"
                     break
-            resolved = site or f"{files[0]}:1"
+            resolved = (site or f"{files[0]}:1").replace("\\", "/")
             return {"kind": "collection", "site": resolved,
                     "error": error or f"collection error in {files[0]}",
                     "trace": error, "test": None, "frames": [resolved]}

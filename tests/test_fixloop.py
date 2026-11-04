@@ -260,6 +260,50 @@ def test_in_tree_frames_resolves_relative_to_root(tmp_path):
     assert in_tree_frames(frames, tmp_path, "pkg") == ["tests/test_x.py:12"]
 
 
+def test_windows_pytest_paths_normalize_to_posix(tmp_path):
+    """Windows pytest output yields forward-slash sites on any OS.
+
+    Regression: Path/os.sep only convert backslashes on Windows, so
+    Linux built different fix-loop prompts and missed the recording.
+    Failure sites, test ids and traceback paths normalize explicitly.
+    """
+    from chainreaction.fixloop import _trace_excerpt, in_tree_frames
+    from chainreaction.testmap import parse_failures
+    from chainreaction.verifier import parse_traceback
+
+    output = (
+        "F  [100%]\n"
+        "=== FAILURES ===\n"
+        "___ test_default ___\n"
+        "nibabel\\cmdline\\tests\\test_conform.py:28: in test_default\n"
+        "    main([str(infile), str(outfile)])\n"
+        "nibabel\\affines.py:368: in rescale_affine\n"
+        "    shape = np.array(shape, copy=False)\n"
+        "E   ValueError: Unable to avoid copy while creating an array.\n"
+        "FAILED nibabel\\cmdline\\tests\\test_conform.py::test_default"
+        " - ValueError: Unable to avoid copy.\n"
+        "1 failed in 0.32s\n"
+    )
+    frames = parse_traceback(output)
+    assert frames
+    assert all("\\" not in f.file for f in frames)
+    assert frames[-1].file == "nibabel/affines.py"
+    sites = in_tree_frames(frames, tmp_path, "nibabel")
+    assert sites[0] == "nibabel/affines.py:368"
+    assert all("\\" not in s for s in sites)
+    failed, _ = parse_failures(output, ".")
+    assert failed == {
+        "nibabel/cmdline/tests/test_conform.py::test_default"}
+    excerpt = _trace_excerpt(output)
+    assert "nibabel/affines.py:368" in excerpt
+    assert ("FAILED nibabel/cmdline/tests/test_conform.py::test_default"
+            in excerpt)
+    assert "nibabel\\affines" not in excerpt
+    # Code and error text keeps its backslashes (only paths normalize).
+    codey = "    x = \"a\\nb\"\nE   ValueError: bad\n"
+    assert _trace_excerpt(codey) == codey.strip("\n")
+
+
 def test_test_only_ok_rejects_unlocated_failures():
     loop = fixloop._Loop(SimpleNamespace(state={"graph": None,
                                                 "symbols": set()}),

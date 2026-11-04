@@ -686,7 +686,8 @@ def _tool_run_import_probe(env: ToolEnv, args: dict) -> dict:
 
 
 def _strip_prefix(env: ToolEnv, tid: str) -> str:
-    prefix = env.test_id_prefix
+    tid = tid.replace("\\", "/")
+    prefix = (env.test_id_prefix or "").replace("\\", "/")
     if prefix and tid.startswith(prefix):
         return tid[len(prefix):]
     return tid

@@ -167,6 +167,7 @@
         "tests/test_login.py::LoginTestCase::test_redirects_to_refresh_view",
         "tests/test_login.py::LoginTestCase::test_refresh_with_next_in_session",
         "tests/test_login.py::LoginTestCase::test_remember_me",
+        "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
         "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration",
         "tests/test_login.py::LoginTestCase::test_remember_me_is_unfresh",
         "tests/test_login.py::LoginTestCase::test_remember_me_with_invalid_custom_duration_returns_500_resp",
@@ -232,7 +233,6 @@
       ],
       "newly_broken": [],
       "still_failing": [
-        "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
         "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration_uses_custom_cookie",
         "tests/test_login.py::LoginTestCase::test_remember_me_refresh_every_request",
         "tests/test_login.py::LoginTestCase::test_remember_me_uses_custom_cookie_parameters"
@@ -280,7 +280,7 @@
           "ran": true,
           "tests": 97
         },
-        "duration_ms": 3239,
+        "duration_ms": 3133,
         "edits": [
           "src/flask_login/utils.py"
         ],
@@ -418,9 +418,9 @@
               "src/flask_login/test_client.py"
             ],
             "attempt": 0,
-            "diff_lines": 12,
-            "prompt_hash": "38210d91c3c1756b9ed0bb5653b2a63f25d5ad81aa4e3ec75bbd602d34ec6438",
-            "rationale": "Flask's test client accesses deprecated werkzeug.__version__. Pre-cache it via importlib.metadata.version(\"werkzeug\") per #2770 so Werkzeug's deprecated __getattr__ is not triggered.",
+            "diff_lines": 13,
+            "prompt_hash": "a8a1a71ba640064a709afc50692e01afcf8f7d35a0eb3ee84c464156cc35a914",
+            "rationale": "Cache werkzeug.__version__ via importlib.metadata.version(\"werkzeug\") per change item #2770 so Flask's FlaskClient.__init__ hits __dict__ instead of deprecated __getattr__. This avoids the DeprecationWarning raised as error in FlaskLoginClient super().__init__.",
             "validation": [
               "src/flask_login/test_client.py: test files need test_file=true and a test-only failure"
             ]
@@ -436,7 +436,7 @@
           "ran": true,
           "tests": 113
         },
-        "duration_ms": 56922,
+        "duration_ms": 44947,
         "edits": [
           "src/flask_login/test_client.py"
         ],
@@ -492,15 +492,15 @@
         "attempts": [
           {
             "addresses": [
-              "test_invalid_remember_cookie"
+              "Client.set_cookie"
             ],
             "applied": [
               "tests/test_login.py"
             ],
             "attempt": 0,
             "diff_lines": 11,
-            "prompt_hash": "e24abd11360ac0216e5f3139c0f9bc05463d371359342a94e2e42ef704e24b7f",
-            "rationale": "Werkzeug 3.x changed Client.set_cookie to set_cookie(key, value, *, domain=...), so the old positional (domain, key, value) call fails; update test to the new keyword form.",
+            "prompt_hash": "acdc20b3897367fbf5e23fe88eee4f57da49e45e34b4a7c68aecad58fcf888dc",
+            "rationale": "Werkzeug 3 changed Client.set_cookie(server_name, key, value) to Client.set_cookie(key, value, *, domain=...). Update test call to the new keyword form.",
             "validation": []
           }
         ],
@@ -519,7 +519,7 @@
           "ran": true,
           "tests": 113
         },
-        "duration_ms": 28069,
+        "duration_ms": 16764,
         "edits": [
           "tests/test_login.py"
         ],
@@ -571,15 +571,15 @@
         "attempts": [
           {
             "addresses": [
-              "test_remember_me_accepts_duration_as_int"
+              "cookie_jar"
             ],
             "applied": [
               "tests/test_login.py"
             ],
             "attempt": 0,
             "diff_lines": 19,
-            "prompt_hash": "05182addf70a06934b9de1b17e4575c541a0b178541275aac1a196f96a3f4d5e",
-            "rationale": "Werkzeug 3.x removed Client.cookie_jar in favor of Client.get_cookie(), whose Cookie.expires is a datetime. Use get_cookie with domain lookup and handle both datetime and timestamp expires.",
+            "prompt_hash": "8541df50f1d2ed9004755f7423b9c7da3750843fba5c76b2083e9aaed38a0783",
+            "rationale": "Werkzeug 3 removed Client.cookie_jar; documented replacement is Client.get_cookie(name, domain=...). Use it and normalize expires which changed from timestamp int to datetime.",
             "validation": []
           }
         ],
@@ -600,7 +600,7 @@
           "ran": true,
           "tests": 113
         },
-        "duration_ms": 53044,
+        "duration_ms": 53871,
         "edits": [
           "tests/test_login.py"
         ],
@@ -658,12 +658,10 @@
               "tests/test_login.py"
             ],
             "attempt": 0,
-            "diff_lines": 15,
-            "prompt_hash": "5d299dd46f3368f355e23b6f2dd3c55cfaaaf2a8c8597e55a654e9cb49010a67",
-            "rationale": "Werkzeug 3.x Client.get_cookie defaults to origin_only=True, so cookies set with an explicit REMEMBER_COOKIE_DOMAIN are filtered out and return None. Passing origin_only=False with leading-dot fallback restores the documented retrieval.",
-            "validation": [
-              "model_error: RuntimeError: empty response from model (finish_reason=length)"
-            ]
+            "diff_lines": 13,
+            "prompt_hash": "a665d5f2af217c2bca3e79e59861d377b09390097812eeb956a0a22d84648df0",
+            "rationale": "Werkzeug 3 removed cookie_jar in favor of get_cookie and normalizes Domain by stripping the leading dot, so lookup with '.localhost.local' misses 'localhost.local'. Fall back to the stripped domain to find the stored remember cookie.",
+            "validation": []
           }
         ],
         "before": {
@@ -683,7 +681,7 @@
           "ran": true,
           "tests": 113
         },
-        "duration_ms": 96217,
+        "duration_ms": 88773,
         "edits": [
           "tests/test_login.py"
         ],
@@ -698,13 +696,12 @@
         },
         "full": {
           "counts": {
-            "failed": 4,
-            "passed": 109
+            "failed": 3,
+            "passed": 110
           },
           "error_files": [],
           "escalated": false,
           "failed": [
-            "tests/test_login.py::LoginTestCase::test_remember_me_accepts_duration_as_int",
             "tests/test_login.py::LoginTestCase::test_remember_me_custom_duration_uses_custom_cookie",
             "tests/test_login.py::LoginTestCase::test_remember_me_refresh_every_request",
             "tests/test_login.py::LoginTestCase::test_remember_me_uses_custom_cookie_parameters"
@@ -721,11 +718,11 @@
           "site": null,
           "trace": ""
         },
-        "progress": false,
+        "progress": true,
         "targeted": {
           "counts": {
-            "failed": 4,
-            "passed": 109
+            "failed": 3,
+            "passed": 110
           },
           "method": "coverage (no covering tests; running full suite)",
           "ran_full": true
@@ -856,8 +853,8 @@
       }
     },
     "status": "partial",
-    "stop_reason": "no-progress-twice",
-    "total_cmd_ms": 11410,
+    "stop_reason": "max-rounds",
+    "total_cmd_ms": 11586,
     "touched": [
       "src/flask_login/test_client.py",
       "src/flask_login/utils.py",

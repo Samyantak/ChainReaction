@@ -1,14 +1,14 @@
 {
   "allow_untrusted": false,
   "base_url_host": "api.meta.ai",
-  "chainreaction_git_sha": "7b6656b296195b2a8c90dd18d487e04691558fe3",
+  "chainreaction_git_sha": "659646e194936c2b645a440f9b47c4714316b344",
   "changeset_source": "muse-spark",
   "commit_date": "",
-  "created_at": "2026-11-04T07:24:01.138Z",
+  "created_at": "2026-11-04T15:52:16.452Z",
   "current_stage": null,
   "decision": "upgrade numpy to 2.0",
   "error": null,
-  "finished_at": "2026-11-04T07:33:20.256Z",
+  "finished_at": "2026-11-04T15:59:03.294Z",
   "fix_rounds": null,
   "fix_source": "muse-spark",
   "fix_status": "partial",
@@ -22,7 +22,7 @@
   "replay_from": null,
   "repo_url": "https://github.com/nipy/nibabel",
   "resolved_commit": "67ea99725d7e40bb6738fc55f8360a609212e72c",
-  "run_id": "ae122dba5d7743f29170ea569cea8219",
+  "run_id": "28063d9c598c4d9281a792adc3140814",
   "status": "done",
   "workspace": ""
 }

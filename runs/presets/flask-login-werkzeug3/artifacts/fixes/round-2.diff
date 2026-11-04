@@ -1,12 +1,13 @@
 --- a/src/flask_login/test_client.py
 +++ b/src/flask_login/test_client.py
-@@ -1,4 +1,9 @@
+@@ -1,4 +1,10 @@
 +import importlib.metadata
 +
 +import werkzeug
  from flask.testing import FlaskClient
 +
-+werkzeug.__version__ = importlib.metadata.version("werkzeug")
++if "__version__" not in werkzeug.__dict__:
++    werkzeug.__version__ = importlib.metadata.version("werkzeug")
  
  
  class FlaskLoginClient(FlaskClient):

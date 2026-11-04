@@ -2225,7 +2225,7 @@
   ],
   "usage": {
     "probe_calls": 5,
-    "tokens": 49293,
+    "tokens": 0,
     "tool_calls": 13,
     "turns": 6
   }

@@ -12,11 +12,11 @@
       "used": true
     },
     {
-      "bytes": 170407,
+      "bytes": 170551,
       "clean": "text",
       "found_via": "search",
       "note": "",
-      "sha256": "11b51e70f6969dd1783d041ed23a253bca579ad957938bcebad0015e983b1123",
+      "sha256": "3d11d11c1bd0285151d0ebd2aaf8dbeab849008739bcedb8ad2e8b73ce1a7722",
       "url": "https://github.com/pallets/werkzeug/releases/tag/3.0.6",
       "used": true
     },
