@@ -33,7 +33,9 @@ export function CodeBlock({
   }, [rows.length, cited])
   return (
     <div className="sheet code-sheet">
-      <div className="code-file mono">{path}</div>
+      <div className="code-file mono" title={path}>
+        {path}
+      </div>
       <div className="code-lines code-scroll" ref={boxRef}>
         {rows.map((l) => {
           const isBreak = cited != null && l.no === cited
@@ -63,7 +65,9 @@ export function FileHead({ runId, path, lines = 40 }) {
   )
   return (
     <div className="sheet code-sheet">
-      <div className="code-file mono">{path}</div>
+      <div className="code-file mono" title={path}>
+        {path}
+      </div>
       <div className="code-lines">
         {(src?.lines ?? []).map((l) => (
           <div className="code-line" key={l.no}>

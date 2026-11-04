@@ -1,5 +1,24 @@
 import React from 'react'
 
+/* DotBreak: module ids break after dots, never mid-word. Pair with
+ * normal wrapping (no break-word/break-all) at the call site. The
+ * single span root keeps flex parents (domino tiles) wrapping the
+ * text as one item instead of laying each part out side by side. */
+export function DotBreak({ text }) {
+  const parts = String(text ?? '').split('.')
+  return (
+    <span className="dotbreak">
+      {parts.map((part, i) => (
+        <React.Fragment key={i}>
+          {part}
+          {i < parts.length - 1 ? '.' : null}
+          {i < parts.length - 1 ? <wbr /> : null}
+        </React.Fragment>
+      ))}
+    </span>
+  )
+}
+
 /* Sheet: flat panel, square corners, 1.5px ink border. */
 export function Sheet({ children, className = '', ...rest }) {
   return (

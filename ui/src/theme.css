@@ -128,7 +128,6 @@ a:visited { color: var(--sky-ink); }
   min-width: 0;
   padding: 6px 12px;
   border-right: var(--rule) solid var(--ink);
-  overflow-wrap: break-word;
 }
 .title-block .label { white-space: nowrap; }
 .title-block > .cell:last-child { border-right: none; }
@@ -336,7 +335,9 @@ a:visited { color: var(--sky-ink); }
   padding: 8px 16px;
   border-bottom: var(--rule) solid var(--ink);
   color: var(--sky-ink);
-  overflow-wrap: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .code-lines {
   padding: 12px 0;

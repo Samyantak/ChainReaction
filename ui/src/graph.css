@@ -31,7 +31,6 @@
 .domino-top {
   font-size: 11px;
   padding: 10px 8px;
-  word-break: break-word;
   min-height: 52px;
   display: flex;
   align-items: center;
@@ -68,6 +67,7 @@
 .legend {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
   align-items: center;
   border: var(--rule) solid var(--ink);
   padding: 6px 12px;
@@ -124,7 +124,7 @@ span.legend-item { cursor: default; }
   max-height: 640px;
   min-width: 0;
 }
-.panel-module { font-size: 15px; word-break: break-all; }
+.panel-module { font-size: 15px; }
 .panel-chain { margin: 12px 0; }
 .panel-chain h4, .panel-tests h4, .panel-change h4 {
   font-size: 12px;
@@ -133,7 +133,7 @@ span.legend-item { cursor: default; }
   color: var(--ink-muted);
   margin: 12px 0 6px;
 }
-.chain-hop { font-size: 12px; padding: 2px 0; word-break: break-all; }
+.chain-hop { font-size: 12px; padding: 2px 0; }
 .chain-site { color: var(--sky-ink); white-space: nowrap; }
 /* .panel-test lives in theme.css (shared with the verify view). */
 .panel-quote { font-style: italic; }

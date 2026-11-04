@@ -4,7 +4,7 @@ import dagre from 'cytoscape-dagre'
 import { getJSON, useApi, withOptional } from '../api'
 
 cytoscape.use(dagre)
-import { Status } from '../components'
+import { DotBreak, Status } from '../components'
 import { CodeBlock, FileHead } from '../CodeBlock'
 import { GRAPH_MAX_ZOOM, GRAPH_MIN_FIT_ZOOM, describeEdge, nodeVisible } from '../graphUtils'
 import '../graph.css'
@@ -49,7 +49,9 @@ function DominoTiles({ tiles, selected, onSelect, onDone, round, onReplay }) {
               selected === t.module ? 'selected' : '',
             ].join(' ')}
           >
-            <span className="domino-top mono">{t.module}</span>
+            <span className="domino-top mono">
+              <DotBreak text={t.module} />
+            </span>
             <span className="domino-divider" aria-hidden="true" />
             <span className="domino-bottom mono">
               {t.file ? `${base(t.file)}:${t.line}` : 'package root'}
@@ -297,7 +299,9 @@ function SidePanel({ runId, module, tiles, nodes, changeset }) {
   const tileIndex = tile ? tiles.indexOf(tile) : -1
   return (
     <div className="graph-panel">
-      <h3 className="mono panel-module">{module}</h3>
+      <h3 className="mono panel-module">
+        <DotBreak text={module} />
+      </h3>
       {node && (
         <p>
           <Status tone={node.status === 'HARD' ? 'flag' : 'warn'} text={node.status} />
@@ -309,7 +313,8 @@ function SidePanel({ runId, module, tiles, nodes, changeset }) {
           <h4>Chain to the root</h4>
           {tiles.slice(tileIndex).map((t) => (
             <div className="mono chain-hop" key={t.module}>
-              {t.module} <span className="chain-site">{t.file ? `${t.file}:${t.line}` : 'package root'}</span>
+              <DotBreak text={t.module} />{' '}
+              <span className="chain-site">{t.file ? `${t.file}:${t.line}` : 'package root'}</span>
             </div>
           ))}
         </div>
