@@ -19,29 +19,73 @@ Upgrades get postponed because nobody can say in advance what they will break. P
 
 ChainReaction is the step before that merge: what breaks, where, why, and a patch the tests agree with.
 
+### Why not just ask a chat assistant?
+
+You can clone a repo into Claude or ChatGPT and ask what an upgrade will break. You'll get a plausible guess, and it can be confidently wrong in two ways ChainReaction is built to catch:
+
+- **It can't see what isn't in the repo.** On flask-wtf, reading the code points at its `url_encode` import. Running it shows the real first break is in the installed Flask 2.2.2, a dependency the repo doesn't contain. ChainReaction ran both environments, found that, and marked its own prediction **DIFFER**.
+- **It reports what it noticed, not what's there.** Reading the NumPy 2.0 guide, Muse Spark alone caught 12 of the 65 removals. With deterministic extraction merged in and every item quote-checked, it caught all 65.
+
+ChainReaction uses the same kind of model, but every claim has to come from a tool or a test run: quotes are checked against the source, findings against the tool calls they cite, predictions against real before/after runs, and fixes against the tests. Every run is recorded and replays exactly, so the answer is the same the second time you look.
+
 ---
 
-## Try it in 3 commands (no key needed)
+## Quick start
 
-Python 3.11+ and Git. Node is not needed: the built UI is committed.
+Needs Python 3.11+ and Git. Node is not needed: the built UI is committed.
 
+### 1 · Replay the recorded runs (no key, no network)
+
+**macOS / Linux**
 ```bash
-pip install -e ".[dev]"            # in a fresh virtual environment
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
 python scripts/fetch_targets.py    # clones the analyzed repos at their pinned commits
 python -m chainreaction serve      # then open http://127.0.0.1:8000
 ```
 
-Pick a drawing on the landing page and press **Replay**. The run streams through all seven sheets exactly as it was recorded: Setup, Interpret, Investigate, Predict, Verify, Fix and Report.
-
-<details><summary>Windows (PowerShell)</summary>
-
+**Windows (PowerShell)**
 ```powershell
 python -m venv .venv; .venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
 python scripts/fetch_targets.py
 python -m chainreaction serve
 ```
-</details>
+
+Pick a drawing on the landing page and press **Replay**. The run streams through all seven sheets exactly as it was recorded: Setup, Interpret, Investigate, Predict, Verify, Fix and Report.
+
+### 2 · Live mode (your own Meta Model API key)
+
+Run this after step 1, in the same virtual environment. Live runs also need [`uv`](https://docs.astral.sh/uv/) to build the before/after environments.
+
+**macOS / Linux**
+```bash
+pip install uv
+export MODEL_API_KEY="<your key>"
+python scripts/make_target_envs.py    # once: pinned before/after envs for the presets
+python -m chainreaction serve
+```
+
+**Windows (PowerShell)**
+```powershell
+pip install uv
+$env:MODEL_API_KEY = "<your key>"
+python scripts/make_target_envs.py
+python -m chainreaction serve
+```
+
+The header then shows **Live mode available**, and each preset gets a **Run live** button. `.env.example` lists every variable; only `MODEL_API_KEY` is required, and only for live model calls. The key stays on the server: it never reaches the browser, and target code never sees it (test subprocesses get an allowlisted environment).
+
+### 3 · Analyze your own repo
+
+Open **New analysis**, enter a GitHub URL, an optional ref, and a decision (`upgrade <package> to <version>` or `upgrade <package> from <A> to <B>`). This path needs `MODEL_API_KEY` (only the presets have recordings to fall back on) and [`uv`](https://docs.astral.sh/uv/) for the environments; without a key the form is disabled.
+
+**Example on a repo it had never seen:** flask-wtf `v1.1.1` with `upgrade werkzeug from 2.2 to 3.0`. Interpret pulled 42 change items from the Werkzeug changelog (all quotes verified) and singled out `werkzeug.urls` as the only one flask-wtf uses. Predict drew a chain to `recaptcha/widgets.py:3` (`url_encode`). Verify then showed the real first break was elsewhere: the after environment kept Flask 2.2.2, which itself imports the removed `werkzeug.urls.url_quote`. ChainReaction reported its own prediction as **DIFFER**, and an investigator finding named the Flask conflict (flagged, because its citations didn't cover every site). Reading flask-wtf's code alone would not show this. That live run is not committed.
+
+**Supported:** public Python repos with a pytest suite; version changes of any PyPI package.
+**Not supported (and the UI says so):** non-Python repos, repos that need a system toolchain to build, monorepos, and generic vendor switches (SponsorFit is a curated preset). Behavior-only changes are flagged from the changelog, not predicted.
+
+> **⚠ Analyzing a repo runs its code and tests.** Unknown repos need an explicit confirmation (`allow_untrusted`). Use a container for any repo you haven't reviewed. The presets are reviewed and are the guaranteed path.
 
 ---
 
@@ -113,30 +157,7 @@ The tables report what the recordings show, including where the agent did not he
 
 The UI's **Every mark has a source** panel is generated from the recordings themselves (`/api/meta-usage`), so it lists only the capabilities the committed runs actually used.
 
-**Muse Code** built the backend and the first UI. Two sessions ran in parallel (backend on `main`, UI in a separate worktree), each milestone starting as a `/goal` with the spec's acceptance criteria. The UI polish pass (the Fix, Interpret, Investigate and Verify views, the graph layout and the motion) was written with Claude.
-
----
-
-## Live mode (your own key)
-
-```bash
-export MODEL_API_KEY="<key>"          # PowerShell: $env:MODEL_API_KEY = "<key>"
-python scripts/make_target_envs.py    # once: pinned before/after envs (needs uv)
-python -m chainreaction serve
-```
-
-`.env.example` lists every variable; only `MODEL_API_KEY` is required, and only for live model calls. The key stays on the server: it never reaches the browser, and target code never sees it (test subprocesses get an allowlisted environment).
-
-## Analyze your own repo
-
-Open **New analysis**, enter a GitHub URL, an optional ref, and a decision (`upgrade <package> to <version>` or `upgrade <package> from <A> to <B>`). This path needs `MODEL_API_KEY` (only the presets have recordings to fall back on) and [`uv`](https://docs.astral.sh/uv/) for the environments; without a key the form is disabled.
-
-**Example on a repo it had never seen:** flask-wtf `v1.1.1` with `upgrade werkzeug from 2.2 to 3.0`. Interpret pulled 42 change items from the Werkzeug changelog (all quotes verified) and singled out `werkzeug.urls` as the only one flask-wtf uses. Predict drew a chain to `recaptcha/widgets.py:3` (`url_encode`). Verify then showed the real first break was elsewhere: the after environment kept Flask 2.2.2, which itself imports the removed `werkzeug.urls.url_quote`. ChainReaction reported its own prediction as **DIFFER**, and an investigator finding named the Flask conflict (flagged, because its citations didn't cover every site). Reading flask-wtf's code alone would not show this. That live run is not committed.
-
-**Supported:** public Python repos with a pytest suite; version changes of any PyPI package.
-**Not supported (and the UI says so):** non-Python repos, repos that need a system toolchain to build, monorepos, and generic vendor switches (SponsorFit is a curated preset). Behavior-only changes are flagged from the changelog, not predicted.
-
-> **⚠ Analyzing a repo runs its code and tests.** Unknown repos need an explicit confirmation (`allow_untrusted`). Use a container for any repo you haven't reviewed. The presets are reviewed and are the guaranteed path.
+**Muse Code** built the backend and the first UI. Two sessions ran in parallel (backend on `main`, UI in a separate worktree), each milestone starting as a `/goal` with the spec's acceptance criteria.
 
 ---
 
