@@ -219,5 +219,5 @@ span.status.status-mute { white-space: normal; overflow-wrap: anywhere; }
 
 /* Phones: long dotted names in chips wrap instead of widening the page. */
 @media (max-width: 600px) {
-  .chip { white-space: normal; overflow-wrap: anywhere; max-width: 100%; box-sizing: border-box; }
+  main .chip { white-space: normal; overflow-wrap: anywhere; max-width: 100%; min-width: 0; box-sizing: border-box; }
 }
