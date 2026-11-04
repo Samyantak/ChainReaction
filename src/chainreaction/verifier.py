@@ -12,6 +12,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 FRAME_RE = re.compile(r'^\s*File "(.+)", line (\d+), in (\S+)\s*$')
+# pytest's native entry headers (--tb=short): bare
+# "tests/x.py:12: in fun" lines (the ____/==== runs sit on their own
+# line). Paths are relative to the pytest cwd; callers resolve them.
+PYTEST_FRAME_RE = re.compile(
+    r"^(?:[=_]+\s+)?(.+?\.py):(\d+): in (\S+)\s*$")
 
 
 @dataclass
@@ -118,9 +123,19 @@ def run_snippet_probe(python: str, cwd: str | Path, code: str,
 
 
 def parse_traceback(stderr: str) -> list[Frame]:
+    """Frames from Python tracebacks and pytest native headers.
+
+    Probe outputs only ever match FRAME_RE; pytest --tb=short suite
+    outputs only ever match PYTEST_FRAME_RE. Both list outermost
+    first, so callers take the deepest in-tree frame the same way.
+    """
     frames = []
     for line in stderr.splitlines():
         m = FRAME_RE.match(line)
+        if m:
+            frames.append(Frame(file=m.group(1), line=int(m.group(2)), func=m.group(3)))
+            continue
+        m = PYTEST_FRAME_RE.match(line)
         if m:
             frames.append(Frame(file=m.group(1), line=int(m.group(2)), func=m.group(3)))
     return frames

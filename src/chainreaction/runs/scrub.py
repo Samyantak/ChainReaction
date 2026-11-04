@@ -29,6 +29,9 @@ KEY_PLACEHOLDER = "<redacted-key>"
 WS_PLACEHOLDER = "<ws>"
 BEFORE_PLACEHOLDER = "<env:before>"
 AFTER_PLACEHOLDER = "<env:after>"
+# M5 fix loop work copies (fixwork/<run_id>/): one placeholder per
+# recording, like <ws> — live and replay map their own run ids.
+FIXWORK_PLACEHOLDER = "<fixwork>"
 
 # Environment names created by scripts/make_target_envs.py. Recognized
 # even when the envs were never built here (judges replay without them)
@@ -193,6 +196,14 @@ class Scrubber:
             if name.startswith(".staging-"):
                 continue  # transient clone dirs, never recording paths
             pairs.append((str(workspaces / name), WS_PLACEHOLDER))
+        fixwork = ROOT / "fixwork"
+        try:
+            fw_names = sorted(p.name for p in fixwork.iterdir()
+                              if p.is_dir())
+        except OSError:
+            fw_names = []
+        for name in fw_names:
+            pairs.append((str(fixwork / name), FIXWORK_PLACEHOLDER))
         pairs.append((str(ROOT), ROOT_PLACEHOLDER))
         try:
             home = os.path.expanduser("~")

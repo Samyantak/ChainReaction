@@ -75,15 +75,11 @@ def cache_dir() -> Path | None:
     return Path(os.environ.get(CACHE_ENV, DEFAULT_CACHE_DIR))
 
 
-def cache_key(system: str, user: str, response_format=None) -> str:
-    """Stable hash of a prompt (model + messages + schema)."""
-    blob = json.dumps({
-        "model": model_name(),
-        "system": system,
-        "user": user,
-        "response_format": response_format,
-    }, sort_keys=True)
-    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+def cache_key(system: str, user: str, response_format=None,
+              reasoning_effort=None) -> str:
+    """Stable hash of a prompt (model + messages + schema + effort)."""
+    return cache_key_for(model_name(), system, user, response_format,
+                         reasoning_effort)
 
 
 def _read_cache_entry(key: str) -> tuple[str | None, str | None]:
@@ -130,15 +126,18 @@ def has_key() -> bool:
 
 
 def cache_key_for(model: str, system: str, user: str,
-                  response_format=None) -> str:
-    """Stable hash of a prompt (model + messages + schema)."""
-    blob = json.dumps({
-        "model": model,
-        "system": system,
-        "user": user,
-        "response_format": response_format,
-    }, sort_keys=True)
-    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+                  response_format=None, reasoning_effort=None) -> str:
+    """Stable hash of a prompt (model + messages + schema + effort).
+
+    reasoning_effort joins the key only when set: existing recordings
+    hashed without it must keep matching.
+    """
+    blob = {"model": model, "system": system, "user": user,
+            "response_format": response_format}
+    if reasoning_effort is not None:
+        blob["reasoning_effort"] = reasoning_effort
+    return hashlib.sha256(
+        json.dumps(blob, sort_keys=True).encode("utf-8")).hexdigest()
 
 
 @dataclass
@@ -188,14 +187,15 @@ def _usage_dict(resp) -> dict | None:
 
 
 def chat_full(system: str, user: str, max_tokens: int = 8000,
-              response_format=None) -> ChatResult:
+              response_format=None, reasoning_effort=None) -> ChatResult:
     """One system+user call with usage + cache metadata (raises on failure).
 
     Same contract as chat(): repeat prompts are served from cache
     without needing MODEL_API_KEY.
     """
     model = model_name()
-    key = cache_key_for(model, system, user, response_format)
+    key = cache_key_for(model, system, user, response_format,
+                        reasoning_effort)
     hit, mtime = _read_cache_entry(key)
     if hit is not None:
         return ChatResult(hit, model, None, None, True, mtime)
@@ -207,6 +207,8 @@ def chat_full(system: str, user: str, max_tokens: int = 8000,
     }
     if response_format is not None:
         kwargs["response_format"] = response_format
+    if reasoning_effort is not None:
+        kwargs["reasoning_effort"] = reasoning_effort
     resp = client().chat.completions.create(**kwargs)
     content = resp.choices[0].message.content
     if not content:
@@ -303,7 +305,7 @@ def web_search(query: str) -> WebSearchResult:
 
 
 def chat(system: str, user: str, max_tokens: int = 8000,
-         response_format=None) -> str:
+         response_format=None, reasoning_effort=None) -> str:
     """One system+user call; returns the message text (raises on failure).
 
     Budgets run large because muse-spark reasons first: even a trivial
@@ -311,4 +313,5 @@ def chat(system: str, user: str, max_tokens: int = 8000,
     Replies are cached by prompt hash (memory + disk), so reruns are
     free and repeatable — and cache hits don't need MODEL_API_KEY.
     """
-    return chat_full(system, user, max_tokens, response_format).content
+    return chat_full(system, user, max_tokens, response_format,
+                     reasoning_effort).content

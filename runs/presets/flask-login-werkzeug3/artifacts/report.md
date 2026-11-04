@@ -88,6 +88,22 @@ ImportError: cannot import name 'url_decode' from 'werkzeug.urls' (<env:after>/s
 
 Actual: (import ok)
 
+## Fix loop
+
+Status: partial (max-rounds)
+
+Round 1: probe src/flask_login/utils.py:14 -> `src/flask_login/utils.py` (probe ok)
+Round 2: test src/flask_login/test_client.py:14 -> no edits (probe FAILED)
+Round 3: test src/flask_login/test_client.py:14 -> `src/flask_login/test_client.py` (probe ok)
+Round 4: test tests/test_login.py:1019 -> `tests/test_login.py` (probe ok)
+Round 5: test tests/test_login.py:743 -> `tests/test_login.py` (probe ok)
+
+Counts: 107 fixed, 4 still failing, 0 newly broken (baseline: 0 failures)
+
+Guards: clean
+
+Patch: `fixes/final.patch`
+
 ## Baselines
 
 - grep: 29 hits

@@ -145,4 +145,4 @@ E   ImportError: cannot import name 'url_decode' from 'werkzeug.urls' (<env:afte
 ======================================================================================= short test summary info =======================================================================================
 ERROR src/flask_login/test_client.py
 ERROR tests/test_login.py
-2 errors in 0.25s
+2 errors in 0.23s

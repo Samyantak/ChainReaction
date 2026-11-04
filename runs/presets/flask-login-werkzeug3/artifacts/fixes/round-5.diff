@@ -1,0 +1,21 @@
+--- a/tests/test_login.py
++++ b/tests/test_login.py
+@@ -740,9 +740,15 @@
+             result = c.get("/login-notch-remember")
+             self.assertEqual(result.status_code, 200)
+ 
+-            cookie = c.cookie_jar._cookies[domain]["/"][name]
+-
+-            expiration_date = datetime.utcfromtimestamp(cookie.expires)
++            cookie = c.get_cookie(name, domain=domain, path="/")
++            if cookie is None:
++                cookie = c.get_cookie(name)
++
++            expiration_date = cookie.expires
++            if not isinstance(expiration_date, datetime):
++                expiration_date = datetime.utcfromtimestamp(expiration_date)
++            elif expiration_date.tzinfo is not None:
++                expiration_date = expiration_date.replace(tzinfo=None)
+             expected_date = datetime.utcnow() + duration
+             difference = expected_date - expiration_date
+ 
