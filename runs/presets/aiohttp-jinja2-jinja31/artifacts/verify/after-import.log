@@ -1,6 +1,6 @@
 # probe: after-import
 # ok: False
-# numpy: MISSING
+# jinja2: 3.1.6
 # modules: aiohttp_jinja2 -> aiohttp_jinja2.helpers
 ## stderr
 Traceback (most recent call last):

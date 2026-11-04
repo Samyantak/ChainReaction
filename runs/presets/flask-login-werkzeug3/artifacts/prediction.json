@@ -45,10 +45,42 @@
     "werkzeug.unquote_header_value",
     "werkzeug.value"
   ],
-  "hard": [],
+  "hard": [
+    "flask_login",
+    "flask_login.__about__",
+    "flask_login.config",
+    "flask_login.login_manager",
+    "flask_login.mixins",
+    "flask_login.signals",
+    "flask_login.test_client",
+    "flask_login.utils"
+  ],
   "probe_entries": [],
-  "spine": [],
-  "spine_evidence": [],
+  "spine": [
+    "flask_login",
+    "flask_login.login_manager",
+    "flask_login.utils"
+  ],
+  "spine_evidence": [
+    [
+      "flask_login",
+      "flask_login.login_manager",
+      "src/flask_login/__init__.py",
+      11
+    ],
+    [
+      "flask_login.login_manager",
+      "flask_login.utils",
+      "src/flask_login/login_manager.py",
+      31
+    ],
+    [
+      "flask_login.utils",
+      "werkzeug.urls.url_decode",
+      "src/flask_login/utils.py",
+      14
+    ]
+  ],
   "used_symbols": [
     "werkzeug.urls"
   ]

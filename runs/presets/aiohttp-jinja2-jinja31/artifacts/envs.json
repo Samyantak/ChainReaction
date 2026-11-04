@@ -62,7 +62,7 @@
       "yarl": "1.6.3"
     },
     "note": null,
-    "provenance": "built",
+    "provenance": "reused",
     "python": "3.9",
     "spec_hash": "12bb774eb597edbd"
   },

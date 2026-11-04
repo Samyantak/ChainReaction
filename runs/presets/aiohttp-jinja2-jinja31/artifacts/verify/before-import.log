@@ -1,5 +1,5 @@
 # probe: before-import
 # ok: True
-# numpy: MISSING
+# jinja2: 2.11.2
 # modules: (none)
 ## stderr

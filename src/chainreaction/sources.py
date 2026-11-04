@@ -25,6 +25,7 @@ from chainreaction.runs.context import Cancelled, ReplayMiss
 
 MIN_USABLE_CHARS = 200
 MAX_SEARCH_FETCHES = 5
+MAX_RELEASE_PAGES = 10
 
 PYPI_JSON = "https://pypi.org/pypi/{package}/json"
 GITHUB_RELEASES_API = "https://api.github.com/repos/{org}/{repo}/releases"
@@ -500,38 +501,58 @@ def discover_sources(ctx, package: str, from_version: str | None,
     else:
         found.tried.append("pypi project links: no usable changelog link")
 
-    # Step 4: GitHub Releases API.
+    # Step 4: GitHub Releases API, paged. The API returns the newest
+    # 30 releases; a jump whose notes are older (numpy 1.26.4 -> 2.0.2
+    # wants 2.0.0) follows ?page=2.. while wanted releases are missing.
     repo = _github_repo(found.pypi)
     if repo:
         org, name = repo
         api_url = GITHUB_RELEASES_API.format(org=org, repo=name)
-        try:
-            api = ctx.fetch(api_url, timeout=60, clean="text")
-        except _FETCH_ERRORS as exc:
-            found.tried.append(
-                f"github releases: {api_url} ({exc.__class__.__name__})")
-            record(api_url, "github_releases", None, clean="text",
-                   note="network error")
-        else:
-            api_src = record(api_url, "github_releases", api, clean="text")
+        seen_tags = {e.get("tag") for e in found.github_releases}
+        page = 1
+        while True:
+            page_url = api_url if page == 1 else f"{api_url}?page={page}"
+            try:
+                api = ctx.fetch(page_url, timeout=60, clean="text")
+            except _FETCH_ERRORS as exc:
+                found.tried.append(f"github releases: {page_url} "
+                                   f"({exc.__class__.__name__})")
+                record(page_url, "github_releases", None, clean="text",
+                       note="network error")
+                break
+            api_src = record(page_url, "github_releases", api,
+                             clean="text")
             entries = (_parse_releases(str(api)) if api.status == 200
                        else [])
+            fresh = [e for e in entries if e.get("tag") not in seen_tags]
+            seen_tags.update(e.get("tag") for e in fresh)
+            found.github_releases.extend(fresh)
             noted = [e for e in entries if _noted(e)]
+            label = ("github releases" if page == 1
+                     else f"github releases: page {page}")
             if noted:
                 api_src.used = True
-                found.github_releases = entries
                 found.tried.append(
-                    f"github releases: {len(entries)} release(s), "
+                    f"{label}: {len(entries)} release(s), "
                     f"{len(noted)} with notes")
                 ctx.emit("log", {"message":
                                  "interpret: source found "
-                                 f"(github_releases): {api_url}"})
+                                 f"(github_releases): {page_url}"})
                 if not _missing_versions(found):
                     return found
             else:
                 api_src.note = f"unusable (status {api.status})"
-                found.tried.append(f"github releases: {api_url} "
+                found.tried.append(f"{label}: {page_url} "
                                    f"(status {api.status})")
+            if api.status != 200 or not entries:
+                break
+            page += 1
+            if page > MAX_RELEASE_PAGES:
+                found.tried.append(
+                    "github releases: page cap reached "
+                    f"({MAX_RELEASE_PAGES}); still missing "
+                    f"{', '.join(_missing_versions(found))}")
+                break
     else:
         found.tried.append("github releases: no GitHub repo in PyPI links")
 

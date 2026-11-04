@@ -841,20 +841,38 @@ def test_copy_recordings_prefers_gzip_twin(tmp_path):
     assert (dst / "searches.jsonl").is_file()
 
 
-def test_preset_replay_matches_committed(monkeypatch, tmp_path):
+def _all_preset_ids():
+    presets = ROOT / "runs" / "presets"
+    if not presets.is_dir():
+        return []
+    return sorted(p.name for p in presets.iterdir()
+                  if p.is_dir() and (p / store.MANIFEST).is_file())
+
+
+@pytest.mark.parametrize("preset_id", _all_preset_ids())
+def test_preset_replay_matches_committed(monkeypatch, tmp_path, preset_id):
     monkeypatch.delenv("CHAINREACTION_RUNS_DIR", raising=False)
-    preset, source = _real_preset()
-    target = ROOT / "targets" / "nibabel"
-    if not (target / ".git").is_dir():
-        pytest.skip("nibabel target not fetched")
+    preset = ROOT / "runs" / "presets" / preset_id
+    source = store.read_json(preset / store.MANIFEST)
+    ws_rel = source.get("workspace")
+    if ws_rel:
+        code_dir = ROOT / ws_rel
+    else:
+        try:
+            scen = scenarios.get(preset_id)
+        except KeyError:
+            pytest.skip(f"unknown preset {preset_id}")
+        code_dir = ROOT / scen.target
+    if not (code_dir / ".git").is_dir():
+        pytest.skip(f"{preset_id} checkout not fetched")
     try:
-        proc = subprocess.run(["git", "-C", str(target), "rev-parse",
+        proc = subprocess.run(["git", "-C", str(code_dir), "rev-parse",
                                "HEAD"], capture_output=True, text=True,
                               timeout=30)
     except OSError:
         pytest.skip("git unavailable")
     if proc.stdout.strip() != (source.get("resolved_commit") or ""):
-        pytest.skip("nibabel checkout differs from the recorded commit")
+        pytest.skip(f"{preset_id} checkout differs from the recorded commit")
     # Acceptance #2 shape: no key, model + guide endpoints unreachable.
     def _no_network(*a, **k):
         raise AssertionError("replay must not touch the network")
@@ -865,13 +883,13 @@ def test_preset_replay_matches_committed(monkeypatch, tmp_path):
     monkeypatch.setattr("chainreaction.interpret.fetch_page", _no_network)
     monkeypatch.setattr("chainreaction.runs.context.fetch_page", _no_network)
     monkeypatch.setenv("CHAINREACTION_RUNS_DIR", str(tmp_path / "runs"))
-    dest = store.preset_dir("nibabel-numpy2")
+    dest = store.preset_dir(preset_id)
     dest.parent.mkdir(parents=True, exist_ok=True)
     import shutil
 
     shutil.copytree(preset, dest)
     replay = worker.create_run(
-        worker.RunRequest(preset="nibabel-numpy2", mode="replay"))
+        worker.RunRequest(preset=preset_id, mode="replay"))
     worker.submit_run(replay)
     manifest = _wait_done(replay, timeout=900)
     assert manifest["status"] == "done", manifest.get("error")
@@ -879,17 +897,18 @@ def test_preset_replay_matches_committed(monkeypatch, tmp_path):
     replay_report = (store.run_dir(replay) / "artifacts"
                      / "report.json").read_bytes()
     assert live_report == replay_report
-    # Non-vacuous layers: the recorded break maps to the documented
-    # layer-1 chain (an empty `actual` with recall 1.0 is the tell).
-    report = json.loads(replay_report)
-    assert report["layers"][0]["actual"] == [
-        "nibabel",
-        "nibabel.analyze",
-        "nibabel.arrayproxy",
-        "nibabel.volumeutils",
-        "nibabel.casting",
-    ]
-    assert report["spine_match"] is True
+    if preset_id == "nibabel-numpy2":
+        # Non-vacuous layers: the recorded break maps to the documented
+        # layer-1 chain (an empty `actual` with recall 1.0 is the tell).
+        report = json.loads(replay_report)
+        assert report["layers"][0]["actual"] == [
+            "nibabel",
+            "nibabel.analyze",
+            "nibabel.arrayproxy",
+            "nibabel.volumeutils",
+            "nibabel.casting",
+        ]
+        assert report["spine_match"] is True
 
 
 # -- generic verify: after suite runs with the conftest --

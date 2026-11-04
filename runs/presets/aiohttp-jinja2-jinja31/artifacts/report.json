@@ -1,9 +1,8 @@
 {
-  "at_risk": [
-    "aiohttp_jinja2.helpers.static_url",
-    "aiohttp_jinja2.helpers.url_for"
-  ],
-  "before_numpy": "MISSING",
+  "after_version": "3.1.6",
+  "at_risk": [],
+  "before_numpy": null,
+  "before_version": "2.11.2",
   "change_items": [],
   "change_symbols": [
     "Context.resolve",
@@ -26,6 +25,7 @@
   ],
   "changed_symbols": [],
   "decision": "upgrade jinja2 to 3.1",
+  "decision_package": "jinja2",
   "deprecated_symbols": [],
   "file_behavior": [],
   "file_missing": [],
@@ -35,7 +35,11 @@
     "after-import: aiohttp_jinja2/helpers.py:23"
   ],
   "grep_hits": 5,
-  "hard": [],
+  "hard": [
+    "aiohttp_jinja2",
+    "aiohttp_jinja2.helpers",
+    "aiohttp_jinja2.typedefs"
+  ],
   "interpret_blind_hits": 0,
   "interpret_blind_recall": null,
   "interpret_m3": {
@@ -91,13 +95,10 @@
       ],
       "error_tail": "    from .helpers import GLOBAL_HELPERS\n  File \"<ws>/aiohttp_jinja2/helpers.py\", line 23, in <module>\n    @jinja2.contextfunction\nAttributeError: module 'jinja2' has no attribute 'contextfunction'",
       "failure_site": "aiohttp_jinja2/helpers.py:23",
-      "missing": [
-        "aiohttp_jinja2",
-        "aiohttp_jinja2.helpers"
-      ],
+      "missing": [],
       "name": "after-import",
       "ok": false,
-      "recall": 0.0
+      "recall": 1.0
     },
     {
       "actual": [],
@@ -109,16 +110,32 @@
       "recall": 1.0
     }
   ],
-  "narrative": "Upgrading to jinja2 3.1 in the aiohttp_jinja2 package would remove 17 symbols from jinja2, but only one of those is actually used in this repository. That single used removal is the only direct source of failure here. The analysis was done without a recorded NumPy version.\n\nNo module was confirmed to fail at import, but two modules are marked at risk, aiohttp_jinja2 and aiohttp_jinja2.helpers. The one chain examined came back clean and differs from the observed failure, so there is no verified chain of damage that matches what was actually seen.\n\nConfidence in the evidence is limited. The check that assumed imports fail missed both at-risk modules entirely, while the check that assumed imports still work captured the risk fully. Test results in this brief show 31 passes before and 4 errors after, with none counted as new failures from this upgrade choice.\n\nFix first at line 23 in aiohttp_jinja2/helpers.py. The modules named above are importers, not places to edit, so fixing that site should unblock its chain in one step without editing the importers themselves.\n",
-  "numpy_version": "MISSING",
+  "narrative": "Upgrading Jinja2 from 2.11.2 to 3.1.6 breaks the aiohttp_jinja2 package. The new version removes 17 features, but only one of them is actually used in this repository. Because of that use, 3 modules fail at import with no additional modules at risk.\n\nThe verified worst chain is aiohttp_jinja2 to aiohttp_jinja2.helpers, which matches the observed failure. The first module imports the second, and the second uses the removed Jinja2 helper at line 23 of its file.\n\nEvidence for this chain is complete. The import works under the old version and fails under the new version, with both checks showing full agreement. Testing also shows 31 passes before the change and 4 errors after, with no new failures from the upgrade decision.\n\nFix the use in aiohttp_jinja2/helpers.py at line 23 first. The modules in the chain are importers and should not be edited directly, so repairing that site unblocks its chain in one step.\n",
+  "numpy_version": null,
   "package": "aiohttp_jinja2",
   "pr_files": [],
   "pr_url": "",
   "probe_kind": "import",
   "ruff_hits": null,
-  "spine": [],
-  "spine_evidence": [],
-  "spine_match": false,
+  "spine": [
+    "aiohttp_jinja2",
+    "aiohttp_jinja2.helpers"
+  ],
+  "spine_evidence": [
+    [
+      "aiohttp_jinja2",
+      "aiohttp_jinja2.helpers",
+      "aiohttp_jinja2/__init__.py",
+      24
+    ],
+    [
+      "aiohttp_jinja2.helpers",
+      "jinja2.contextfunction",
+      "aiohttp_jinja2/helpers.py",
+      23
+    ]
+  ],
+  "spine_match": true,
   "target": "workspaces/aio-libs__aiohttp-jinja2@fd97cef408ec",
   "used_symbols": [
     "jinja2.contextfunction"

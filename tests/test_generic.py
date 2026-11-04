@@ -456,6 +456,9 @@ def _uv_fake(tmp_path, calls, before_freeze=BEFORE_FREEZE,
                     else before_freeze)
             return SimpleNamespace(returncode=0, stdout=text, stderr="",
                                    missing=None)
+        if len(cmd) > 2 and cmd[1] == "-c" and "compileall" in cmd[2]:
+            return SimpleNamespace(returncode=0, stdout="primed 1 ok\n",
+                                   stderr="", missing=None)
         return None
 
     return handle
@@ -2155,6 +2158,49 @@ def test_build_envs_float_skips_build_failure_without_relaxing(
     assert (ws / ".chainreaction-after-constraints.txt").read_text(
         encoding="utf-8") == "demopkg==0.1\npytest==7.4.0\n"
     assert not any("relaxed" in m for m in messages)
+
+
+def test_build_envs_primes_bytecode_after_install(tmp_path, monkeypatch):
+    import chainreaction.generic as generic_mod
+    from chainreaction.generic import Decision, ProjectInfo
+    from types import SimpleNamespace
+
+    ws = tmp_path / "workspaces" / "w"
+    ws.mkdir(parents=True)
+    (ws / "pyproject.toml").write_text(
+        '[project]\nname = "demopkg"\n', encoding="utf-8")
+    calls = []
+    uv = _uv_fake(tmp_path, calls)
+
+    def run_cmd(cmd, cwd=".", env_name=None, timeout=900, tool=None):
+        calls.append((tuple(cmd), env_name))
+        if cmd[0] == "git":
+            return SimpleNamespace(returncode=0, stdout="", stderr="",
+                                   missing=None)
+        hit = uv(cmd, env_name)
+        assert hit is not None, f"unexpected cmd: {cmd}"
+        return hit
+
+    ctx, _ = _generic_ctx({"preset": None, "mode": "live"}, run_cmd)
+    monkeypatch.setattr(generic_mod, "ROOT", tmp_path)
+    info = ProjectInfo(package="demopkg", python_version="3.11",
+                       test_command=["pytest", "-q"], has_suite=True)
+    generic_mod.build_envs(
+        ctx, key="w", ws_rel="workspaces/w", info=info,
+        decision=Decision("numpy", "2.0.2"), commit_date="2023-05-01",
+        sha=SHA)
+    primes = [(cmd, env) for cmd, env in calls
+              if len(cmd) > 2 and cmd[1] == "-c"
+              and "compileall" in cmd[2]]
+    assert sorted(env.split("/")[-1] for _, env in primes) == \
+        ["after", "before"]
+    for cmd, env in primes:
+        marker = f"<envpy:{env}>"
+        installs = [i for i, (c, _) in enumerate(calls)
+                    if c[:3] == ("uv", "pip", "install")
+                    and marker in c]
+        prime_at = calls.index((cmd, env))
+        assert installs and prime_at > installs[-1]
 
 
 def test_build_envs_float_stops_at_terminal_floors(tmp_path, monkeypatch):

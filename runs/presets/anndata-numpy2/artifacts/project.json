@@ -1,11 +1,13 @@
 {
   "commit_date": "2024-05-14",
+  "editable": true,
   "has_suite": true,
   "package": "anndata",
   "package_candidates": [],
   "pytest_addopts": "--import-mode=importlib --strict-markers --doctest-modules --pyargs",
   "pytest_required_plugins": "",
   "python_version": "3.12",
+  "pythonpath": "src",
   "ref": "1461fecd1712eefb1e5a5c0a75547b0e169a23d5",
   "repo_url": "https://github.com/scverse/anndata",
   "requires_python": ">=3.9",
@@ -18,5 +20,6 @@
     "test"
   ],
   "test_requirements": [],
+  "test_specs": [],
   "workspace": "workspaces/scverse__anndata@1461fecd1712"
 }

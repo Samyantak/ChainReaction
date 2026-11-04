@@ -1,6 +1,6 @@
 # ChainReaction report: upgrade jinja2 to 3.1
 
-Target: `workspaces/aio-libs__aiohttp-jinja2@fd97cef408ec` (pre-existing, analyzed by ChainReaction) | numpy: MISSING (before: MISSING)
+Target: `workspaces/aio-libs__aiohttp-jinja2@fd97cef408ec` (pre-existing, analyzed by ChainReaction) | jinja2: 2.11.2 -> 3.1.6
 
 ## Change set
 
@@ -28,11 +28,13 @@ Interpreter metrics: quote survival 1.00; blind recall n/a (0/0/12 table/list/pa
 
 ## Prediction
 
-HARD: 0 modules | AT_RISK: 2 nodes
+HARD: 3 modules | AT_RISK: 0 nodes
 
 Predicted layer-1 chain:
 
-Chain vs layer-1 actual: DIFFERS
+- `aiohttp_jinja2` -> `aiohttp_jinja2.helpers` (aiohttp_jinja2/__init__.py:24)
+- `aiohttp_jinja2.helpers` -> `jinja2.contextfunction` (aiohttp_jinja2/helpers.py:23)
+Chain vs layer-1 actual: MATCH
 
 ## Test suites
 
@@ -43,11 +45,10 @@ Chain vs layer-1 actual: DIFFERS
 
 ## Verification
 
-### after-import (recall 0.00)
+### after-import (recall 1.00)
 
 Actual: `aiohttp_jinja2` -> `aiohttp_jinja2.helpers`
 Site: `aiohttp_jinja2/helpers.py:23`
-Missed: `aiohttp_jinja2`, `aiohttp_jinja2.helpers`
 ```
     from .helpers import GLOBAL_HELPERS
   File "<ws>/aiohttp_jinja2/helpers.py", line 23, in <module>
@@ -65,13 +66,13 @@ Actual: (import ok)
 
 ## Narrative
 
-Upgrading to jinja2 3.1 in the aiohttp_jinja2 package would remove 17 symbols from jinja2, but only one of those is actually used in this repository. That single used removal is the only direct source of failure here. The analysis was done without a recorded NumPy version.
+Upgrading Jinja2 from 2.11.2 to 3.1.6 breaks the aiohttp_jinja2 package. The new version removes 17 features, but only one of them is actually used in this repository. Because of that use, 3 modules fail at import with no additional modules at risk.
 
-No module was confirmed to fail at import, but two modules are marked at risk, aiohttp_jinja2 and aiohttp_jinja2.helpers. The one chain examined came back clean and differs from the observed failure, so there is no verified chain of damage that matches what was actually seen.
+The verified worst chain is aiohttp_jinja2 to aiohttp_jinja2.helpers, which matches the observed failure. The first module imports the second, and the second uses the removed Jinja2 helper at line 23 of its file.
 
-Confidence in the evidence is limited. The check that assumed imports fail missed both at-risk modules entirely, while the check that assumed imports still work captured the risk fully. Test results in this brief show 31 passes before and 4 errors after, with none counted as new failures from this upgrade choice.
+Evidence for this chain is complete. The import works under the old version and fails under the new version, with both checks showing full agreement. Testing also shows 31 passes before the change and 4 errors after, with no new failures from the upgrade decision.
 
-Fix first at line 23 in aiohttp_jinja2/helpers.py. The modules named above are importers, not places to edit, so fixing that site should unblock its chain in one step without editing the importers themselves.
+Fix the use in aiohttp_jinja2/helpers.py at line 23 first. The modules in the chain are importers and should not be edited directly, so repairing that site unblocks its chain in one step.
 
 
 Claim check: ✓ clean

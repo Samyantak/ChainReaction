@@ -1,7 +1,7 @@
 # probe: after-import
 # ok: False
-# numpy: MISSING
-# modules: (none)
+# werkzeug: 3.0.6
+# modules: flask_login -> flask_login.login_manager -> flask_login.utils
 ## stderr
 Traceback (most recent call last):
   File "<string>", line 7, in <module>

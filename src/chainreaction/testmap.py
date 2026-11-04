@@ -124,10 +124,11 @@ def file_to_module(path: str | Path, target: str | Path, package: str
         try:
             rel = Path(os.path.relpath(text, str(target)))
         except ValueError:
-            return None
-        # A relpath that escapes the target is either out of package or
-        # a foreign absolute in disguise — try the tail match.
-        if str(rel).startswith(".."):
+            rel = None
+        # An unrelativizable path (cross-drive on Windows) or a relpath
+        # that escapes the target is either out of package or a foreign
+        # absolute in disguise — try the tail match.
+        if rel is None or str(rel).startswith(".."):
             tail = _foreign_package_parts(text, package)
             if tail is None:
                 return None
@@ -232,7 +233,8 @@ def parse_failure_messages(output: str, target: str | Path
     return out
 
 
-_COLLECT_RE = re.compile(r"^___ ERROR collecting (.+?) _+$")
+_COLLECT_RE = re.compile(r"^_+ ERROR collecting (.+?) _+$")
+_UNDERLINE_HDR_RE = re.compile(r"^_+ ")
 
 
 def parse_collection_errors(output: str, target: str | Path
@@ -262,7 +264,7 @@ def parse_collection_errors(output: str, target: str | Path
             continue
         if current is None:
             continue
-        if line.startswith("___ ") or line.startswith("=== "):
+        if _UNDERLINE_HDR_RE.match(line) or line.startswith("=== "):
             flush()
             current = None
             elines = []

@@ -1249,6 +1249,33 @@ def _freeze(ctx, env_name: str) -> dict:
     return freeze_dict(res.stdout)
 
 
+PRIME_CODE = (
+    "import compileall, site\n"
+    "dirs = [p for p in site.getsitepackages()]\n"
+    "ok = all(compileall.compile_dir(p, quiet=1) for p in dirs)\n"
+    "print(f\"primed {len(dirs)} {'ok' if ok else 'FAILED'}\")\n"
+)
+
+
+def _prime_bytecode(ctx, env_name: str) -> None:
+    """Byte-compile an env's site-packages right after building it.
+
+    First-import compilation under a repo's `filterwarnings = error`
+    turns third-party SyntaxWarnings (invalid escapes) into collection
+    errors; the suite outcome would then depend on .pyc state (fresh
+    envs fail where primed ones pass). Compiling eagerly with default
+    filters makes collection deterministic. Best-effort: a failure
+    here only risks the old race, never the env itself.
+    """
+    py = ctx.env_python(env_name)
+    res = ctx.run_cmd([py, "-c", PRIME_CODE], cwd=".",
+                      env_name=env_name, timeout=900)
+    ctx.emit("log", {"message":
+                     f"setup: bytecode prime {env_name}: "
+                     f"{res.stdout.strip() or 'no output'} "
+                     f"(rc={res.returncode})"})
+
+
 def _install_args(info: ProjectInfo, tooling: list | None = None) -> list:
     if info.test_extras:
         args = [f".[{','.join(info.test_extras)}]"]
@@ -1666,6 +1693,7 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
                 f"{decision.package} resolved to {installed} "
                 f"(>= {decision.to_version}); constrained to "
                 f"<{decision.to_version}")
+        _prime_bytecode(ctx, before_name)
         if ctx.mode == "live":
             _marker_path(ROOT / before_rel).parent.mkdir(
                 parents=True, exist_ok=True)
@@ -1779,6 +1807,7 @@ def build_envs(ctx, *, key: str, ws_rel: str, info: ProjectInfo,
             if ctx.mode == "live" and drop_cov:
                 _drop_after_coverage(ctx, ws_rel, after_name,
                                      decision.package)
+            _prime_bytecode(ctx, after_name)
             after_freeze = _freeze(ctx, after_name)
             if ctx.mode == "live":
                 _marker_path(ROOT / after_rel).write_text(

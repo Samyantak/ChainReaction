@@ -1,6 +1,6 @@
 # ChainReaction report: upgrade werkzeug from 2.2 to 3.0
 
-Target: `workspaces/maxcountryman__flask-login@31e20a3cc143` (pre-existing, analyzed by ChainReaction) | numpy: MISSING (before: MISSING)
+Target: `workspaces/maxcountryman__flask-login@31e20a3cc143` (pre-existing, analyzed by ChainReaction) | werkzeug: 2.2.3 -> 3.0.6
 
 ## Change set
 
@@ -52,18 +52,21 @@ Interpreter metrics: quote survival 1.00; blind recall n/a (0/0/26 table/list/pa
 
 ## Prediction
 
-HARD: 0 modules | AT_RISK: 3 nodes
+HARD: 8 modules | AT_RISK: 3 nodes
 
-Import chain is clean (import succeeds); worst damage is at call time:
+Predicted layer-1 chain:
 
-- `tests/test_login.py::LoginTestCase::test_needs_refresh_fires_flash_when_redirect_to_refresh_view` runs `flask_login.utils.login_url` which uses `werkzeug.urls.url_decode` (`src/flask_login/utils.py:126`)
+- `flask_login` -> `flask_login.login_manager` (src/flask_login/__init__.py:11)
+- `flask_login.login_manager` -> `flask_login.utils` (src/flask_login/login_manager.py:31)
+- `flask_login.utils` -> `werkzeug.urls.url_decode` (src/flask_login/utils.py:14)
+Chain vs layer-1 actual: MATCH
 
 ## Test suites
 
 - before: 113 passed
 - after: 2 errors
 - new failures (111): `tests/test_login.py::AnonymousUserTestCase::test_values`, `tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding`, `tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding_with_key`, `tests/test_login.py::CustomTestClientTestCase::test_fresh_login_arg_to_test_client`, `tests/test_login.py::CustomTestClientTestCase::test_no_args_to_test_client`, `tests/test_login.py::CustomTestClientTestCase::test_session_protection_modes`, `tests/test_login.py::CustomTestClientTestCase::test_user_arg_to_test_client`, `tests/test_login.py::InitializationTestCase::test_class_init`, `tests/test_login.py::InitializationTestCase::test_init_app`, `tests/test_login.py::InitializationTestCase::test_no_user_loader_raises`, `tests/test_login.py::LoginTestCase::test_authentication_is_fresh`, `tests/test_login.py::LoginTestCase::test_confirm_login`, `tests/test_login.py::LoginTestCase::test_decorators_are_disabled`, `tests/test_login.py::LoginTestCase::test_defaults_anonymous`, `tests/test_login.py::LoginTestCase::test_fresh_login_required_decorator`, `tests/test_login.py::LoginTestCase::test_incorrect_id_logs_out`, `tests/test_login.py::LoginTestCase::test_invalid_remember_cookie`, `tests/test_login.py::LoginTestCase::test_login_inactive_user`, `tests/test_login.py::LoginTestCase::test_login_inactive_user_forced`, `tests/test_login.py::LoginTestCase::test_login_invalid_user_with_request`, +91 more
-  - 111 x other
+  - 111 x ImportError: cannot import name 'url_decode' from 'werkzeug.urls' (<env:after>/site-packages/werkzeug/urls.py)
 - predicted failing (14): `tests/test_login.py::LoginTestCase::test_needs_refresh_fires_flash_when_redirect_to_refresh_view`, `tests/test_login.py::LoginTestCase::test_needs_refresh_flash_message_localized`, `tests/test_login.py::LoginTestCase::test_redirects_to_refresh_view`, `tests/test_login.py::LoginTestCase::test_set_login_view_without_blueprints`, `tests/test_login.py::LoginTestCase::test_unauthorized_flash_message_localized`, `tests/test_login.py::LoginTestCase::test_unauthorized_flashes_message_with_login_view`, `tests/test_login.py::LoginTestCase::test_unauthorized_redirects_to_login_view`, `tests/test_login.py::LoginTestCase::test_unauthorized_uses_blueprint_login_view`, `tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_ignores_host_from_x_forwarded_for_header`, `tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_config_when_available`, `tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_next_url`, `tests/test_login.py::StrictHostForRedirectsTestCase::test_unauthorized_uses_host_from_x_forwarded_for_header`, `tests/test_login.py::TestLoginUrlGeneration::test_login_url_generation`, `tests/test_login.py::TestLoginUrlGeneration::test_login_url_generation_with_view`
 - test precision/recall: 1.00/0.13
 - example failure: `tests/test_login.py::LoginTestCase::test_needs_refresh_fires_flash_when_redirect_to_refresh_view` runs `flask_login.utils.login_url` which uses `werkzeug.urls.url_decode` (`src/flask_login/utils.py:126`)
@@ -72,7 +75,8 @@ Import chain is clean (import succeeds); worst damage is at call time:
 
 ### after-import (recall 1.00)
 
-Actual: (import ok)
+Actual: `flask_login` -> `flask_login.login_manager` -> `flask_login.utils`
+Site: `src/flask_login/utils.py:14`
 ```
     from .utils import _create_identifier
   File "<env:after>/site-packages/flask_login/utils.py", line 14, in <module>
@@ -90,12 +94,12 @@ Actual: (import ok)
 
 ## Narrative
 
-Upgrading werkzeug from 2.2 to 3.0 breaks the flask_login package. Seventeen symbols changed in the new release, but only one of them is actually used by this repository, the address helper werkzeug.urls. Sixteen other uses are deprecated but still work, and two behavior changes were noted. No modules fail at import, though three more are at risk.
+Upgrading werkzeug from 2.2 to 3.0 for flask_login breaks imports under werkzeug 3.0.6, where under 2.2.3 they worked. The removal of werkzeug.urls including url_decode causes imports to fail in 8 modules, with 3 more at risk. Testing in this brief shifts from 113 passing to 2 errors with 111 new failures tied to this change.
 
-The verified worst chain of damage is clean at import time, which matches the observed failure. Nothing breaks until the code actually runs. For example, a login test for refresh handling calls login_url in flask_login.utils, which in turn uses url decoding from werkzeug.urls around line 126 in src/flask_login/utils.py.
+The most damaging confirmed sequence is flask_login to flask_login.login_manager to flask_login.utils, and it matches the observed failure. flask_login pulls in flask_login.login_manager at src/flask_login/__init__.py line 11, which pulls in flask_login.utils at src/flask_login/login_manager.py line 31, which needs url_decode from werkzeug.urls at src/flask_login/utils.py line 14.
 
-The evidence for cause is strong but prediction was narrow. Before the upgrade all 113 tests passed, and after the upgrade there were 2 errors with 111 new failures caused by the decision. Checks confirmed the affected import path works before and fails after with full agreement. A forecast that flagged 14 tests was right every time it flagged, but it captured only a small share of the total failures.
+Confidence in this brief is very high because every check lines up. Imports work under the old version and fail under the new version, and all 111 failures show the same missing import problem. Forecasts of failing tests in this brief were correct every time they were made, though they caught only a small share of the total.
 
-Fix the removed helper use first. Update the call in flask_login.utils around line 126 to stop using the removed symbol from werkzeug.urls, then re-run the login tests and review the three at-risk modules for the same helper and for the two flagged behavior changes.
+Fix first the use in src/flask_login/utils.py line 14. Do not edit the importing modules themselves, since fixing that one spot unblocks the whole sequence at once. For example, the test for refresh redirect fails when flask_login.utils login handling reaches that same use at src/flask_login/utils.py line 126.
 
 Claim check: ✓ clean

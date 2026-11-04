@@ -1,5 +1,5 @@
 # probe: before-import
 # ok: True
-# numpy: MISSING
+# werkzeug: 2.2.3
 # modules: (none)
 ## stderr

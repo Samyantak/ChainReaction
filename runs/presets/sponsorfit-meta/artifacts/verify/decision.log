@@ -1,6 +1,6 @@
 # probe: decision
 # ok: False
-# numpy: None
+# numpy: unknown
 # modules: sponsorfit.llm
 ## stderr
 Traceback (most recent call last):

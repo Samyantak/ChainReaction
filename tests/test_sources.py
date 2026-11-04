@@ -300,6 +300,40 @@ def test_discover_github_releases(tmp_runs):
                for s in found.sources)
 
 
+def test_discover_github_releases_paginates_until_covered(tmp_runs):
+    """Old releases beyond API page 1 still get notes (numpy 2.0.0).
+
+    The Releases API returns the newest 30; a jump like 1.26.4 -> 2.0.2
+    wants notes the first page never contains. Discovery follows
+    ?page=2.. while wanted releases are missing, then stops.
+    """
+    page1 = [{"tag_name": "v3.2.0",
+              "html_url": "https://github.com/org/pkg/r2",
+              "body": f"## 3.2.0\n\n- newer change. {PAD}"}]
+    page2 = [{"tag_name": "v3.1.0",
+              "html_url": "https://github.com/org/pkg/r1",
+              "body": f"## 3.1.0\n\n- wanted change. {PAD}"}]
+    fetcher = _FetchMap({
+        PYPI_URL: (200, _pypi_body(
+            releases={"3.0.0": [], "3.1.0": [], "3.2.0": []})),
+        API_URL: (200, json.dumps(page1).encode()),
+        API_URL + "?page=2": (200, json.dumps(page2).encode()),
+    })
+    ctx = _live_ctx("u1", live_fetch=fetcher,
+                    live_search=lambda q: _search_result([]))
+    found = sources_mod.discover_sources(ctx, "pkg", "3.0.0", "3.1.0")
+    assert [e["tag"] for e in found.github_releases] == ["v3.2.0", "v3.1.0"]
+    assert sources_mod._missing_versions(found) == []
+    assert API_URL + "?page=3" not in fetcher.calls
+    notes = sources_mod.collect_release_notes(ctx, found)
+    assert [(n.version, n.source_url) for n in notes] == [
+        ("3.1.0", "https://github.com/org/pkg/r1")]
+    assert "wanted change" in notes[0].text
+    pages = [s for s in found.sources if s.found_via == "github_releases"]
+    assert [s.url for s in pages] == [API_URL, API_URL + "?page=2"]
+    assert all(s.used for s in pages)
+
+
 def test_discover_repo_file(tmp_runs):
     ctx = _ctx({PYPI_URL: (200, _pypi_body()),
                 API_URL: (404, b""),

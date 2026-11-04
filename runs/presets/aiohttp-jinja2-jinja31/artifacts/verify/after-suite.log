@@ -36,4 +36,4 @@ ERROR tests/test_context_processors.py
 ERROR tests/test_jinja_filters.py
 ERROR tests/test_jinja_globals.py
 ERROR tests/test_simple_renderer.py
-4 error in 0.31 seconds
+4 error in 0.16 seconds

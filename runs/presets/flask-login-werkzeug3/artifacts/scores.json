@@ -129,7 +129,7 @@
         "tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding",
         "tests/test_login.py::CookieEncodingTestCase::test_cookie_encoding_with_key"
       ],
-      "message": "other"
+      "message": "ImportError: cannot import name 'url_decode' from 'werkzeug.urls' (<env:after>/site-packages/werkzeug/urls.py)"
     }
   ],
   "predicted_failing": [

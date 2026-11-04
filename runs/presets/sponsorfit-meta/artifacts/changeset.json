@@ -1,6 +1,7 @@
 {
   "changeset_source": "muse-spark",
   "decision": "switch to Meta Model API",
+  "dropped": [],
   "dropped_symbols": [],
   "interpret_blind_hits": 0,
   "interpret_blind_recall": null,
@@ -12,49 +13,76 @@
       "code_file": "src/sponsorfit/llm.py",
       "code_line": 14,
       "code_quote": "Provider = Literal[\"anthropic\", \"openai\", \"ollama\"]",
+      "confidence": "medium",
       "detail": {
         "actual": "Literal[\"anthropic\",\"openai\",\"ollama\"]",
         "expected": "\"meta\" in Provider",
-        "note": "Meta Model API needs a distinct provider; call() raises ValueError unknown provider for anything outside the Literal"
+        "note": "MeteredLLMClient.call raises ValueError on unknown provider; no meta branch exists"
       },
+      "extraction": "model",
+      "introduced_in": null,
       "kind": "rejected_value",
+      "link": "src/sponsorfit/llm.py:14",
       "quote": "",
-      "replacement": "meta",
+      "quote_offset": 425,
+      "replacement": null,
+      "signature": null,
       "source": "code",
+      "source_url": "",
+      "supporting": null,
       "symbol": "sponsorfit.llm.Provider",
-      "verified": true
+      "verified": true,
+      "verified_mode": "exact"
     },
     {
       "code_file": "src/sponsorfit/llm.py",
       "code_line": 160,
       "code_quote": "self._openai_client = openai.OpenAI()",
+      "confidence": "medium",
       "detail": {
         "actual": "openai.OpenAI() with no base_url argument",
-        "expected": "OpenAI client constructed with base_url https://api.meta.ai/v1",
-        "note": "Meta is OpenAI-compatible only via base_url override; client never passes base_url"
+        "expected": "base_url=\"https://api.meta.ai/v1\"",
+        "note": "_call_openai uses default OpenAI endpoint; Meta requires custom base_url"
       },
+      "extraction": "model",
+      "introduced_in": null,
       "kind": "missing_param",
+      "link": "src/sponsorfit/llm.py:160",
       "quote": "base_url=\"https://api.meta.ai/v1\"",
-      "replacement": "https://api.meta.ai/v1",
+      "quote_offset": 5403,
+      "replacement": null,
+      "signature": null,
       "source": "code",
+      "source_url": "",
+      "supporting": null,
       "symbol": "sponsorfit.llm.MeteredLLMClient._call_openai",
-      "verified": true
+      "verified": true,
+      "verified_mode": "exact"
     },
     {
       "code_file": "src/sponsorfit/pricing.py",
       "code_line": 23,
       "code_quote": "rates = PRICING[provider][model]  # KeyError on unknown model — fail loud, never log $0",
+      "confidence": "medium",
       "detail": {
-        "actual": "PRICING keys are anthropic/openai only (claude-*, gpt-4o*)",
-        "expected": "PRICING contains muse-spark-1.3 rates",
-        "note": "compute_cost_usd fails loud on unknown model; preview free still needs explicit entry"
+        "actual": "PRICING keys [\"anthropic\",\"openai\"] only",
+        "expected": "PRICING[\"meta\"][\"muse-spark-1.3\"] rates",
+        "note": "compute_cost_usd KeyErrors on unknown model; preview is free but table lacks entry"
       },
+      "extraction": "model",
+      "introduced_in": null,
       "kind": "missing_key",
+      "link": "src/sponsorfit/pricing.py:23",
       "quote": "muse-spark-1.3",
-      "replacement": "muse-spark-1.3",
+      "quote_offset": 896,
+      "replacement": null,
+      "signature": null,
       "source": "code",
+      "source_url": "",
+      "supporting": null,
       "symbol": "sponsorfit.pricing.PRICING",
-      "verified": true
+      "verified": true,
+      "verified_mode": "exact"
     }
   ],
   "source_url": "https://raw.githubusercontent.com/meta-models/meta-model-cookbook/main/README.md"

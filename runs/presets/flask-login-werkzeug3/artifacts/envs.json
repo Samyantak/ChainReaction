@@ -23,9 +23,9 @@
       "werkzeug": "3.0.6"
     },
     "note": null,
-    "provenance": "reused",
+    "provenance": "built",
     "python": "3.11",
-    "spec_hash": "27caec6f8aa93e0c"
+    "spec_hash": "e5a69fb64d2c67b3"
   },
   "before": {
     "freeze": {

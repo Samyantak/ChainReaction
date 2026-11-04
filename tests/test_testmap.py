@@ -117,6 +117,17 @@ def test_predicted_failing_covers_importers():
     ]
 
 
+def test_file_to_module_matches_cross_drive_by_tail():
+    """relpath ValueError (Windows cross-drive) falls back to tail match.
+
+    A recording parsed with the CWD on another drive than the measured
+    paths must still resolve: silently dropping every module would
+    empty the test map on that machine only.
+    """
+    assert file_to_module("C:/x/src/pkg/a.py", "E:/repo", "pkg") == "pkg.a"
+    assert file_to_module("C:/x/other/a.py", "E:/repo", "pkg") is None
+
+
 def test_file_to_module_unwraps_src_layout(tmp_path):
     assert file_to_module("t/src/pkg/x.py", "t", "pkg") == "pkg.x"
     assert file_to_module("t/src/pkg/__init__.py", "t", "pkg") == "pkg"
@@ -212,26 +223,31 @@ def test_failure_groups_fold_truncations_and_file_errors():
 def test_file_errors_parse_collection_detail_signatures():
     from chainreaction.testmap import failure_groups, parse_file_errors
 
+    # Real pytest pads headers to terminal width; a FAILURES detail
+    # section after ERRORS must not bleed into collection signatures.
     out = (
-        "=== ERRORS ===\n"
-        "___ ERROR collecting tests/a.py ___\n"
+        "==== ERRORS ====\n"
+        "____ ERROR collecting tests/a.py ____\n"
         "ImportError while importing test module 'tests/a.py'.\n"
         "tests/a.py:1: in <module>\n"
         "    import pkg\n"
         "E   ImportError: cannot import name 'url_decode'"
         " from 'werkzeug.urls'\n"
-        "___ ERROR collecting tests/b.py ___\n"
+        "____ ERROR collecting tests/b.py ____\n"
         "ImportError while importing test module 'tests/b.py'.\n"
         "E   ImportError: cannot import name 'url_decode'"
         " from 'werkzeug.urls'\n"
-        "___ ERROR collecting tests/c.py ___\n"
+        "____ ERROR collecting tests/c.py ____\n"
         "E   AttributeError: module 'jinja2' has no attribute"
         " 'contextfunction'\n"
         "E   (and a wrapped second line)\n"
-        "=== short test summary info ===\n"
+        "____ test_other ____\n"
+        "E   AssertionError: unrelated failure\n"
+        "==== short test summary info ====\n"
         "ERROR tests/a.py\n"
         "ERROR tests/b.py\n"
         "ERROR tests/c.py\n"
+        "FAILED test_other - AssertionError: unrelated failure\n"
         "3 errors in 0.1s\n"
     )
     assert parse_file_errors(out, "t") == {

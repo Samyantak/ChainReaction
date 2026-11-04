@@ -1,8 +1,5 @@
 {
-  "at_risk": [
-    "aiohttp_jinja2.helpers.static_url",
-    "aiohttp_jinja2.helpers.url_for"
-  ],
+  "at_risk": [],
   "change_symbols": [
     "Context.resolve",
     "jinja2.Context.resolve",
@@ -24,10 +21,30 @@
   ],
   "changed_symbols": [],
   "deprecated_symbols": [],
-  "hard": [],
+  "hard": [
+    "aiohttp_jinja2",
+    "aiohttp_jinja2.helpers",
+    "aiohttp_jinja2.typedefs"
+  ],
   "probe_entries": [],
-  "spine": [],
-  "spine_evidence": [],
+  "spine": [
+    "aiohttp_jinja2",
+    "aiohttp_jinja2.helpers"
+  ],
+  "spine_evidence": [
+    [
+      "aiohttp_jinja2",
+      "aiohttp_jinja2.helpers",
+      "aiohttp_jinja2/__init__.py",
+      24
+    ],
+    [
+      "aiohttp_jinja2.helpers",
+      "jinja2.contextfunction",
+      "aiohttp_jinja2/helpers.py",
+      23
+    ]
+  ],
   "used_symbols": [
     "jinja2.contextfunction"
   ]

@@ -36,4 +36,4 @@ ERROR src/anndata/_warnings.py::anndata._warnings.ImplicitModificationWarning
 ERROR src/anndata/experimental/merge.py::anndata.experimental.merge.concat_on_disk
 ERROR src/anndata/experimental/multi_files/_anncollection.py::anndata.experimental.multi_files._anncollection.AnnCollection
 ERROR src/anndata/utils.py::anndata.utils.make_index_unique
-1 failed, 4243 passed, 607 skipped, 144 xfailed, 1726 warnings, 16 errors in 490.48s (0:08:10)
+1 failed, 4243 passed, 607 skipped, 144 xfailed, 1723 warnings, 16 errors in 512.46s (0:08:32)

@@ -4,9 +4,9 @@ Target: `targets/sponsorfit` (pre-existing, analyzed by ChainReaction)
 
 ## Change set
 
-- `sponsorfit.llm.Provider` (rejected_value: "meta" in Provider -> Literal["anthropic","openai","ollama"]; Meta Model API needs a distinct provider; call() raises ValueError unknown provider for anything outside the Literal; `src/sponsorfit/llm.py:14`)
-- `sponsorfit.llm.MeteredLLMClient._call_openai` (missing_param: OpenAI client constructed with base_url https://api.meta.ai/v1 -> openai.OpenAI() with no base_url argument; Meta is OpenAI-compatible only via base_url override; client never passes base_url; `src/sponsorfit/llm.py:160`)
-- `sponsorfit.pricing.PRICING` (missing_key: PRICING contains muse-spark-1.3 rates -> PRICING keys are anthropic/openai only (claude-*, gpt-4o*); compute_cost_usd fails loud on unknown model; preview free still needs explicit entry; `src/sponsorfit/pricing.py:23`)
+- `sponsorfit.llm.Provider` (rejected_value: "meta" in Provider -> Literal["anthropic","openai","ollama"]; MeteredLLMClient.call raises ValueError on unknown provider; no meta branch exists; `src/sponsorfit/llm.py:14`)
+- `sponsorfit.llm.MeteredLLMClient._call_openai` (missing_param: base_url="https://api.meta.ai/v1" -> openai.OpenAI() with no base_url argument; _call_openai uses default OpenAI endpoint; Meta requires custom base_url; `src/sponsorfit/llm.py:160`)
+- `sponsorfit.pricing.PRICING` (missing_key: PRICING["meta"]["muse-spark-1.3"] rates -> PRICING keys ["anthropic","openai"] only; compute_cost_usd KeyErrors on unknown model; preview is free but table lacks entry; `src/sponsorfit/pricing.py:23`)
 
 ## Prediction
 
@@ -36,13 +36,13 @@ ValueError: unknown provider: meta
 
 ## Narrative
 
-The plan to switch to the Meta Model API breaks the sponsorfit package in three places. Nothing is removed, but the code still assumes the old setup.
+The push to switch the sponsorfit package to the Meta Model API breaks in three setup places, with no functions removed. In sponsorfit.llm the provider definition only accepts anthropic, openai and ollama and does not accept meta. Also in sponsorfit.llm the OpenAI client is created with no address argument instead of pointing at https://api.meta.ai/v1. In sponsorfit.pricing the pricing table only has entries for anthropic and openai and lacks rates for muse-spark-1.3 under meta.
 
-In sponsorfit.llm the provider definition only permits anthropic, openai and ollama, so meta is not accepted. Also in sponsorfit.llm the client for OpenAI calls is created without an address, while it now must point at https://api.meta.ai/v1. In sponsorfit.pricing the pricing table covers only anthropic and openai families such as claude and gpt-4o types, with no rates for muse-spark-1.3.
+Two modules fail and five more are at risk. The single verified worst chain of damage centers on sponsorfit.llm and matches the observed failure, with the metered call path reaching the provider definition inside that same module.
 
-Two modules fail with five more at risk. The single verified worst chain centers on sponsorfit.llm and matches the observed failure, since the call through MeteredLLMClient in sponsorfit.llm reaches the provider definition at src/sponsorfit/llm.py:14. Evidence is strong because a direct probe fails.
+Confidence in that chain is high because a direct probe of the switch fails and covers what was expected.
 
-Fix first the provider definition in sponsorfit.llm at src/sponsorfit/llm.py:14, then the OpenAI call helper in sponsorfit.llm at src/sponsorfit/llm.py:160, then the pricing table in sponsorfit.pricing at src/sponsorfit/pricing.py:23, and finally the decision site at src/sponsorfit/llm.py:78. Work in that order and re-probe after each step, as each fix reveals the next layer.
+Fix in order and re-probe after each step, because each fix reveals the next layer. Start with the provider definition in sponsorfit.llm at src/sponsorfit/llm.py:14 to allow meta, then the client construction in sponsorfit.llm at src/sponsorfit/llm.py:160 to point at the Meta address, then the pricing table in sponsorfit.pricing at src/sponsorfit/pricing.py:23, and finally the switch logic at src/sponsorfit/llm.py:78.
 
 
 Claim check: ✓ clean
