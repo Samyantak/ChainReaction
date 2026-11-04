@@ -199,6 +199,36 @@ function Measures({ calls, findings, triage, status, usage }) {
   )
 }
 
+function Triage({ triage }) {
+  const [all, setAll] = useState(false)
+  const relevant = triage.filter((t) => t.relevant)
+  const rest = triage.filter((t) => !t.relevant)
+  const shownRest = all ? rest : rest.slice(0, 3)
+  const row = (t) => (
+    <li key={t.symbol} className={t.relevant ? '' : 'triage-out'}>
+      <Status tone={t.relevant ? 'ok' : 'mute'} text={t.relevant ? 'relevant' : 'not relevant'} />
+      <span className="mono triage-symbol">{t.symbol}</span>
+      {t.reason && <span className="muted triage-reason">{t.reason}</span>}
+    </li>
+  )
+  return (
+    <Sheet className="card triage-card">
+      <h3>
+        Triage <span className="mono muted">{relevant.length} relevant · {rest.length} ruled out</span>
+      </h3>
+      <ul className="triage-list">
+        {relevant.map(row)}
+        {shownRest.map(row)}
+      </ul>
+      {rest.length > 3 && (
+        <button type="button" className="btn btn-secondary btn-small triage-more" onClick={() => setAll((a) => !a)}>
+          {all ? 'Show fewer' : `Show ${rest.length - 3} more ruled out`}
+        </button>
+      )}
+    </Sheet>
+  )
+}
+
 function InvestigationBody({ data, demo }) {
   const calls = useMemo(() => normalizeCalls(data), [data])
   const findings = data.findings || []
@@ -240,20 +270,7 @@ function InvestigationBody({ data, demo }) {
           {findings.map((f) => (
             <FindingCard key={f.id} finding={f} callIds={callIds} onEvidence={jump} onHover={setLit} />
           ))}
-          {triage.length > 0 && (
-            <Sheet className="card triage-card">
-              <h3>Triage</h3>
-              <ul className="triage-list">
-                {[...triage].sort((a, b) => Number(!!b.relevant) - Number(!!a.relevant)).map((t) => (
-                  <li key={t.symbol} className={t.relevant ? '' : 'triage-out'}>
-                    <Status tone={t.relevant ? 'ok' : 'mute'} text={t.relevant ? 'relevant' : 'not relevant'} />
-                    <span className="mono triage-symbol">{t.symbol}</span>
-                    {t.reason && <span className="muted triage-reason">{t.reason}</span>}
-                  </li>
-                ))}
-              </ul>
-            </Sheet>
-          )}
+          {triage.length > 0 && <Triage triage={triage} />}
         </section>
         <section>
           <h3>Tool trace ({calls.length})</h3>
