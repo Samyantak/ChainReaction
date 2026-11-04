@@ -1,44 +1,128 @@
-/* Investigate view: tool-call log, findings, triage. */
+/* Investigate view: measures, findings with evidence chips, tool trace. */
 
-.investigate-view h3 { margin: 20px 0 8px; }
-.invest-summary { font-size: 15px; }
+.investigate-view h3 { margin: 0 0 10px; }
 .demo-note { font-size: 13px; color: var(--ink-muted); }
+.muted { color: var(--ink-muted); }
+.invest-summary { font-size: 17px; line-height: 1.5; max-width: 760px; margin: 0 0 14px; }
 
-.call-list { display: flex; flex-direction: column; }
-.call-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 12px;
+.invest-measures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 24px;
+  margin: 6px 0 24px;
+}
+.invest-measures .measure { display: flex; flex-direction: column; gap: 4px; }
+.invest-measures .dim-rule { width: 100%; height: 8px; color: var(--sky-ink); }
+.invest-measures .measure-value { font-size: 36px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; }
+.invest-measures .tone-ok { color: var(--ok); }
+.invest-measures .tone-flag { color: var(--red-ink); }
+.invest-measures .measure-label { font-size: 14px; font-weight: 600; }
+.invest-measures .measure-note { font-size: 11px; color: var(--ink-muted); }
+
+.invest-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 26px;
+  align-items: start;
+}
+@media (max-width: 960px) { .invest-grid { grid-template-columns: 1fr; } }
+
+/* findings */
+.finding { padding: 14px 16px; margin-bottom: 14px; }
+.finding-flagged { border-color: var(--red); box-shadow: 5px 5px 0 var(--red); }
+.finding-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.finding-id { font-weight: 600; color: var(--sky-ink); }
+.finding-claim { font-size: 15px; line-height: 1.5; margin: 8px 0; }
+.finding-reason { color: var(--red-ink); font-size: 13px; margin: 0 0 8px; }
+.finding-sites { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.finding-tests { font-size: 11px; color: var(--ink-muted); overflow-wrap: anywhere; margin-bottom: 6px; }
+.finding-evidence { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 11px; }
+.evidence-chip {
+  all: unset;
+  cursor: pointer;
+  padding: 2px 8px;
+  border: var(--rule) solid var(--sky-ink);
+  color: var(--sky-ink);
+  font-size: 11px;
+}
+.evidence-chip:hover { background: var(--sky); color: var(--ink); }
+.evidence-chip:focus-visible { outline: 3px solid var(--sky-ink); outline-offset: 2px; }
+.evidence-missing { border-color: var(--red-ink); color: var(--red-ink); cursor: not-allowed; }
+
+.triage-card { padding: 14px 16px; margin-top: 4px; }
+.triage-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.triage-list li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 13px; }
+.triage-out .triage-symbol { text-decoration: line-through; text-decoration-color: var(--ink-muted); }
+.triage-symbol { font-size: 12px; }
+.triage-reason { font-size: 12px; }
+
+/* trace */
+.trace-note { font-size: 12px; margin: -4px 0 10px; }
+.call-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 14px;
+  border-left: 2px dashed var(--grid-major);
+  display: grid;
+  gap: 8px;
+}
+.call {
+  position: relative;
   background: var(--sheet);
   border: var(--rule) solid var(--ink);
-  border-top: none;
-  font: inherit;
-  color: inherit;
+  transition: box-shadow 200ms ease-out, transform 200ms ease-out;
+}
+.call::before {
+  content: '';
+  position: absolute;
+  left: -21px;
+  top: 14px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ok);
+  border: 2px solid var(--sheet);
+}
+.call-fail::before { background: var(--red); }
+.call-lit { box-shadow: 5px 5px 0 var(--sky-ink); transform: translate(-2px, -2px); background: color-mix(in srgb, var(--sky) 45%, var(--sheet)); }
+.call-head {
+  all: unset;
+  box-sizing: border-box;
   cursor: pointer;
-  text-align: left;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  width: 100%;
+  padding: 8px 12px;
 }
-.call-list .call-row:first-child { border-top: var(--rule) solid var(--ink); }
-.call-row.selected { background: var(--sky); }
-.call-id { color: var(--sky-ink); }
-.call-name { font-weight: 600; }
-.call-args { color: var(--ink-muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
-.call-dur { font-size: 12px; color: var(--ink-muted); }
-
-.finding-card { margin-bottom: 12px; }
-.finding-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.finding-id { color: var(--sky-ink); }
-.finding-claim { font-size: 15px; margin: 8px 0; }
-.finding-reason { color: var(--red-ink); }
-.finding-meta { font-size: 12px; color: var(--ink-muted); }
-.finding-site { white-space: nowrap; }
-.finding-evidence { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
-.evidence-chip {
+.call-head:focus-visible { outline: 3px solid var(--sky-ink); outline-offset: -3px; }
+.call-n { font-size: 11px; color: var(--ink-muted); min-width: 18px; }
+.tool-icon { width: 16px; height: 16px; flex: 0 0 16px; }
+.tool-probe { color: var(--red-ink); }
+.tool-trace { color: var(--sky-ink); }
+.tool-search { color: var(--sky-ink); }
+.tool-read { color: var(--ink-muted); }
+.tool-submit { color: var(--ok); }
+.call-name { font-size: 12px; font-weight: 600; }
+.call-args { font-size: 11px; color: var(--ink-muted); overflow-wrap: anywhere; }
+.call-dur { font-size: 11px; color: var(--ink-muted); }
+.call-summary { padding: 0 12px 8px 46px; font-size: 13px; }
+.call-body { border-top: 1px dashed var(--grid-major); padding: 8px 12px 10px; }
+.call-idline { font-size: 11px; color: var(--ink-muted); margin-bottom: 6px; }
+.call-json {
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  font-family: "Martian Mono", ui-monospace, monospace;
   font-size: 11px;
-  border: 1px solid var(--ink);
-  padding: 1px 6px;
+  line-height: 1.55;
   background: var(--paper);
+  padding: 8px 10px;
 }
-
-.triage-row { font-size: 13px; padding: 2px 0; }
+.status-run { color: var(--sky-ink); font-weight: 600; animation: blink 1.2s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) {
+  .status-run { animation: none; }
+  .call { transition: none; }
+}
