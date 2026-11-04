@@ -246,7 +246,8 @@ a:visited { color: var(--sky-ink); }
   font-weight: 500;
 }
 .app-header nav a:hover { text-decoration: underline; }
-.app-header .spacer { margin-left: auto; }
+/* Flex spacer used by headers, run rows, and feature nav alike. */
+.spacer { margin-left: auto; }
 .app-header .key-pill {
   font-family: "Martian Mono", ui-monospace, monospace;
   font-size: 11px;
