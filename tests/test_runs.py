@@ -645,6 +645,25 @@ def test_write_json_retries_transient_replace_lock(tmp_runs,
     assert not path.with_name(path.name + ".tmp").exists()
 
 
+def test_read_json_retries_transient_read_lock(tmp_runs, monkeypatch):
+    import pathlib
+
+    path = tmp_runs / "m" / "manifest.json"
+    store.write_json(path, {"status": "done"})
+    calls = []
+    real_read_text = pathlib.Path.read_text
+
+    def flaky(self, *args, **kwargs):
+        calls.append(self)
+        if len(calls) < 2:
+            raise PermissionError("[WinError 5] Access is denied")
+        return real_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "read_text", flaky)
+    assert store.read_json(path) == {"status": "done"}
+    assert len(calls) == 2
+
+
 def test_startup_sweep_fails_stale_runs(tmp_runs):
     _live_manifest("stale", status="running", current_stage="x")
     store.append_jsonl(store.run_dir("stale") / store.EVENTS,

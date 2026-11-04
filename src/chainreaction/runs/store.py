@@ -120,12 +120,28 @@ def read_text_record(path: Path) -> str:
     return resolved.read_text(encoding="utf-8")
 
 
-def read_json(path: Path):
-    resolved = resolve_record(path)
+def _read_json_once(resolved: Path):
     if resolved.suffix == ".gz":
         return json.loads(
             gzip.decompress(resolved.read_bytes()).decode("utf-8"))
     return json.loads(resolved.read_text(encoding="utf-8"))
+
+
+def read_json(path: Path):
+    """Read JSON, retrying transient Windows sharing violations.
+
+    The worker replaces manifests atomically while readers (the SSE
+    stream, replay polls) have them open; on Windows the open
+    transiently raises PermissionError, so the read retries 10 x 50 ms
+    before giving up.
+    """
+    resolved = resolve_record(path)
+    for _ in range(10):
+        try:
+            return _read_json_once(resolved)
+        except PermissionError:
+            time.sleep(0.05)
+    return _read_json_once(resolved)  # last attempt raises
 
 
 def append_jsonl(path: Path, obj) -> None:
