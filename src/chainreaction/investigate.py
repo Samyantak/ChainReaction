@@ -622,6 +622,7 @@ def _frame_display(env: ToolEnv, file: str) -> str:
         sub = site_packages_subpath(file, env.package)
         if sub:
             return f"{env.package}/{sub}"
+        return Path(str(file).replace("\\", "/")).name
     try:
         rel = Path(file)
         ws = env.workspace.resolve()
