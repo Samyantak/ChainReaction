@@ -86,7 +86,7 @@
 .round-tile:focus-visible { outline: 3px solid var(--sky-ink); outline-offset: 4px; }
 .round-tile.tile-selected { background: var(--sky); outline: 2px dashed var(--ink); outline-offset: 5px; }
 .tile-top { font-size: 10px; letter-spacing: 0.08em; color: var(--ink-muted); }
-.tile-site { font-size: 12px; font-weight: 500; overflow-wrap: normal; min-width: 0; }
+.tile-site { font-size: 12px; font-weight: 500; overflow-wrap: anywhere; min-width: 0; }
 .tile-rule { height: 2px; background: currentColor; opacity: 0.6; margin-top: auto; }
 .tile-out { font-size: 12px; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) {

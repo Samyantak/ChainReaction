@@ -138,8 +138,9 @@ a:visited { color: var(--sky-ink); }
   font-size: 12px;
 }
 .title-block > .cell {
-  flex: 1 1 0;
+  flex: 1 1 150px;
   min-width: 0;
+  overflow-wrap: anywhere;
   padding: 6px 12px;
   border-right: var(--rule) solid var(--ink);
 }

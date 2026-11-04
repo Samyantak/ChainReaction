@@ -104,6 +104,27 @@
 
 @media (max-width: 900px) {
   .run-body { grid-template-columns: 1fr; }
-  .rail { border-right: none; border-bottom: var(--rule) solid var(--ink); }
-  .rail-item { padding: 8px 16px; }
+  /* Phone/tablet: the seven sheets become a horizontal strip so the
+   * view starts on the first screen instead of below a tall list. */
+  .rail {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: var(--rule) solid var(--ink);
+    scroll-snap-type: x proximity;
+  }
+  .rail::before { display: none; }
+  .rail-item {
+    flex: 0 0 auto;
+    min-width: 128px;
+    padding: 8px 12px;
+    border-bottom: none;
+    border-right: var(--rule) solid var(--ink);
+    scroll-snap-align: start;
+  }
+  .rail-item:last-child { border-right: none; }
+  .rail-state { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+  .run-page { padding: 12px 12px 40px; }
+  .run-view { padding: 14px 12px; }
+  .title-block > .cell { flex-basis: 45%; border-bottom: var(--rule) solid var(--ink); }
 }

@@ -90,8 +90,15 @@ function RailItem({ runId, stage, index, state, now }) {
   const icon = { pending: '○', running: '…', done: '✓', failed: '✗', skipped: '–', cancelled: '!' }[
     state.state
   ]
+  const ref = useRef(null)
+  useEffect(() => {
+    // Keep the active sheet visible when the rail is a horizontal strip.
+    if (active && ref.current && ref.current.parentElement?.scrollWidth > ref.current.parentElement?.clientWidth) {
+      ref.current.scrollIntoView({ block: 'nearest', inline: 'center' })
+    }
+  }, [active])
   return (
-    <a className={`rail-item${active ? ' active' : ''}`} href={`#/runs/${runId}/${view}`}>
+    <a ref={ref} className={`rail-item${active ? ' active' : ''}`} href={`#/runs/${runId}/${view}`} aria-current={active ? 'page' : undefined}>
       <span className={`stage-dot state-${state.state}`} aria-hidden="true" />
       <span className="rail-text">
         <span className="mono rail-sheet">SHEET {index + 1} / 7</span>
