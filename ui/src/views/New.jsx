@@ -218,7 +218,8 @@ function CustomForm({ liveAvailable, busyId, setBusyId, error, setError }) {
           disabled={busy}
         />
       </label>
-      <Button kind="primary" disabled={busy || !valid || !liveAvailable}>
+      {/* type="submit": Button defaults to type="button", which never submits the form. */}
+      <Button kind="primary" type="submit" disabled={busy || !valid || !liveAvailable}>
         {busy ? 'Starting…' : 'Run live analysis'}
       </Button>
       {showModal && (
