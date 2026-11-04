@@ -20,12 +20,9 @@ sys.path.insert(0, str(ROOT / "src"))
 from chainreaction.runs import store, worker  # noqa: E402
 
 # Presets that cannot replay byte-identical right now, with owner + reason.
-# Remove entries as soon as the re-record lands; never add one silently.
-KNOWN_BAD = {
-    # Session A is re-recording SponsorFit on main; the committed
-    # recording predates the current vendor pipeline.
-    "sponsorfit-meta": "Session A re-recording",
-}
+# SponsorFit's entry was removed once the step-2 re-record landed; never
+# add an entry silently — name the owner and the re-record that clears it.
+KNOWN_BAD = {}
 
 
 def _wait(run_id: str, timeout: int) -> dict:
