@@ -129,7 +129,9 @@ python -m chainreaction serve
 
 ## Analyze your own repo
 
-Open **New analysis**, enter a GitHub URL, an optional ref, and a decision (`upgrade <package> to <version>` or `upgrade <package> from <A> to <B>`).
+Open **New analysis**, enter a GitHub URL, an optional ref, and a decision (`upgrade <package> to <version>` or `upgrade <package> from <A> to <B>`). This path needs `MODEL_API_KEY` (only the presets have recordings to fall back on) and [`uv`](https://docs.astral.sh/uv/) for the environments; without a key the form is disabled.
+
+**Example on a repo it had never seen:** flask-wtf `v1.1.1` with `upgrade werkzeug from 2.2 to 3.0`. Interpret pulled 42 change items from the Werkzeug changelog (all quotes verified) and singled out `werkzeug.urls` as the only one flask-wtf uses. Predict drew a chain to `recaptcha/widgets.py:3` (`url_encode`). Verify then showed the real first break was elsewhere: the after environment kept Flask 2.2.2, which itself imports the removed `werkzeug.urls.url_quote`. ChainReaction reported its own prediction as **DIFFER**, and an investigator finding named the Flask conflict (flagged, because its citations didn't cover every site). Reading flask-wtf's code alone would not show this. That live run is not committed.
 
 **Supported:** public Python repos with a pytest suite; version changes of any PyPI package.
 **Not supported (and the UI says so):** non-Python repos, repos that need a system toolchain to build, monorepos, and generic vendor switches (SponsorFit is a curated preset). Behavior-only changes are flagged from the changelog, not predicted.
@@ -189,6 +191,9 @@ CI runs the tests, the offline replay of every preset, the UI tests, a check tha
 - Packages that need a system toolchain may fail environment setup; that is reported as a finding, not a crash.
 - Vendor switches are a curated preset (SponsorFit), not yet a general path.
 - Model output is nondeterministic; recordings make each run reproducible, but a fresh live run can differ.
+- The after environment moves only the decided package. When another dependency is incompatible with the new version but doesn't declare it (Flask 2.2.2 with Werkzeug 3), that dependency becomes the first break; Verify reports it as DIFFER rather than upgrading it for you.
+- The honesty checks catch skips, deleted tests, silenced exceptions and dependency edits, but not a fix that patches a third-party module at runtime (seen once on flask-wtf, which still ended PARTIAL).
+- The claim checker is conservative: it can flag a number in the narrative that a sheet does show.
 
 ## Built during the hackathon
 
