@@ -53,7 +53,7 @@ All numbers come from the committed recordings in `runs/presets/`. Replay any of
 | Preset | Decision | Predicted chain vs real traceback | Test-level P / R | Change set | Fix loop | grep / ruff hits |
 |---|---|---|---|---|---|---|
 | **nibabel** @ `67ea997` | upgrade numpy to 2.0 | ✓ **MATCH**, 5 hops to `casting.py:717` · 226 HARD | — (import-probe preset) | 12/65 removals by Muse Spark alone → **65/65** with table extraction | PARTIAL: import fixed in round 2, 35 test failures left, 0 newly broken | 315 / 52 |
-| **flask-login** @ `31e20a3` | upgrade werkzeug 2.2 → 3.0 | ✓ **MATCH**, 3 hops to `utils.py:14` · 8 HARD | **1.00** / 0.13 (111 new failures) | 42 items from 16 releases | PARTIAL: 5 rounds, 4 failures left, 0 newly broken | 29 / — |
+| **flask-login** @ `31e20a3` | upgrade werkzeug 2.2 → 3.0 | ✓ **MATCH**, 3 hops to `utils.py:14` · 8 HARD | **1.00** / 0.13 (111 new failures) | 42 items from 16 releases | PARTIAL: 5 rounds, 3 failures left, 0 newly broken | 29 / — |
 | **aiohttp-jinja2** @ `fd97cef` | upgrade jinja2 to 3.1 | ✓ **MATCH**, 2 hops to `helpers.py:23` · 3 HARD | — (suite has no new failures) | 17 items from 12 releases | **GREEN** in 2 rounds (`@jinja2.contextfunction` → `@jinja2.pass_context`) | 5 / — |
 | **anndata** @ `1461fec` | upgrade numpy to 2.0 | no import chain (runtime breaks only) · 17 AT RISK | **1.00 / 0.97** (592 of 612 new failures predicted) | 150 items from NumPy release notes | PARTIAL: 2 rounds (capped), 603 left, 6 newly broken | 87 / 5 |
 | **SponsorFit** @ `af24b10` | switch to Meta Model API | ✓ **MATCH**, decision probe at `llm.py:14` | — | code-aware: 3/3 breaks anchored to `file:line` | **GREEN** in 2 rounds | 7 / — |
