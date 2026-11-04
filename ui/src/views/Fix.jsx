@@ -122,13 +122,30 @@ function FixBody({ runId, fix, demo }) {
   const guards = fix.guards || []
   const patchHref = fix.patch ? `/api/runs/${runId}/artifacts/${fix.patch}` : null
   const statusTone = fix.status === 'green' ? 'ok' : fix.status === 'partial' ? 'warn' : 'flag'
+  // Demo mode has no patch bytes on the server; the fixture embeds the
+  // round diffs so Download still produces the example patch offline.
+  const demoPatch = demo
+    ? (fix.rounds || []).map((r) => r.diff_text).filter(Boolean).join('\n')
+    : null
 
   const copyApply = () => {
-    const url = `${window.location.origin}${patchHref}`
-    navigator.clipboard?.writeText(`curl -fsSL -o fix.patch ${JSON.stringify(url)} && git apply fix.patch`).then(
+    const command = demo
+      ? 'git apply example.patch'
+      : `curl -fsSL -o fix.patch ${JSON.stringify(`${window.location.origin}${patchHref}`)} && git apply fix.patch`
+    navigator.clipboard?.writeText(command).then(
       () => setCopied(true),
       () => setCopied(false),
     )
+  }
+
+  const downloadDemo = () => {
+    const blob = new Blob([demoPatch], { type: 'text/x-patch' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'example.patch'
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
   return (
@@ -187,13 +204,19 @@ function FixBody({ runId, fix, demo }) {
         </>
       )}
 
-      {!demo && patchHref && (
+      {(demoPatch || (!demo && patchHref)) && (
         <div className="fix-actions">
-          <a className="btn btn-secondary" href={patchHref} download>
-            Download patch
-          </a>
+          {demo ? (
+            <button className="btn btn-secondary" type="button" onClick={downloadDemo}>
+              Download patch
+            </button>
+          ) : (
+            <a className="btn btn-secondary" href={patchHref} download>
+              Download patch
+            </a>
+          )}
           <button className="btn btn-secondary" type="button" onClick={copyApply}>
-            {copied ? 'Copied' : 'Copy git apply command'}
+            {copied ? 'Copied' : 'Copy as git apply command'}
           </button>
         </div>
       )}
