@@ -1,5 +1,6 @@
 import React from 'react'
 import { useApi, useOptionalJson } from '../api'
+import { fixModel } from '../fixUtils'
 import { Button, DimensionRule, FileIcon, RedUnderline, Sheet, Status, TitleBlock } from '../components'
 import '../report.css'
 
@@ -41,7 +42,7 @@ function fmtPR(value) {
   return value == null ? '—' : Number(value).toFixed(2)
 }
 
-function Scoreboard({ report, scores, runId }) {
+function Scoreboard({ report, scores, runId, fix }) {
   const hasPr = (report.pr_files || []).length > 0
   const baseline = useOptionalJson(hasPr ? `/api/runs/${runId}/baseline-files` : null)
   const measures = []
@@ -116,6 +117,16 @@ function Scoreboard({ report, scores, runId }) {
       value: parts.join(' · ') || '—',
       label: 'baseline hits',
       source: 'baselines',
+    })
+  }
+  const fm = fixModel(fix)
+  if (fm && fm.rounds.length) {
+    measures.push({
+      key: 'fix',
+      value: fm.verdict.label,
+      label: 'fix loop verdict',
+      sub: `${fm.rounds.length} rounds${fm.importFixedAt ? ` · import fixed in round ${fm.importFixedAt}` : ''} · ${fm.stillFailing} left · ${fm.newlyBroken} newly broken`,
+      source: 'fix.json',
     })
   }
   if (measures.length === 0) return null
@@ -198,6 +209,7 @@ export default function ReportView({ runId }) {
   const { data: snapshot, error: snapError } = useApi(`/api/runs/${runId}`)
   const report = snapshot?.report
   const scores = useOptionalJson(`/api/runs/${runId}/artifacts/scores.json`)
+  const fix = useOptionalJson(`/api/runs/${runId}/artifacts/fix.json`)
   const { data: claimsData } = useApi(report ? `/api/runs/${runId}/claims` : null)
   const { data: counts } = useApi(report ? `/api/runs/${runId}/provenance` : null)
 
@@ -230,7 +242,7 @@ export default function ReportView({ runId }) {
     <div className="run-view report-view">
       <h2>Report</h2>
       <Narrative report={report} claims={claimsData?.claims} />
-      <Scoreboard report={report} scores={scores} runId={runId} />
+      <Scoreboard report={report} scores={scores} runId={runId} fix={fix} />
       <Provenance manifest={snapshot.manifest} counts={counts} />
       <section>
         <h3>Export</h3>
