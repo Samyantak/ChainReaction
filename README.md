@@ -8,6 +8,19 @@ Every run is recorded, so all five presets below **replay offline with no key an
 
 ---
 
+## Why it matters
+
+Upgrades get postponed because nobody can say in advance what they will break. Published studies show the fear is justified:
+
+- **Teams fall behind.** 81.5% of the 4,600+ GitHub projects studied kept outdated dependencies, and developers called updating extra effort and responsibility ([Kula et al., *Empirical Software Engineering*, 2018](https://arxiv.org/abs/1709.04621)).
+- **"Safe" releases break too.** 20.1% of non-major releases in Maven Central are breaking ([Ochoa et al., *Empirical Software Engineering*, 2022](https://arxiv.org/abs/2110.07889)). In npm, about 12% of dependent packages and 14% of their releases were hit by a breaking change from a non-major update, and 44% of those breaking changes arrived in minor or patch releases ([Venturini et al., *ACM TOSEM*, 2023](https://arxiv.org/abs/2301.04563)).
+- **Python is no exception.** Across six popular Python frameworks, 53.6% of 5,538 client projects use APIs that had breaking changes ([Zhang et al., SANER 2020](https://zhaoxu-zhang.github.io/files/saner2020-preprint.pdf)). That count is static, so it can't say which projects actually fail. ChainReaction answers that by running the tests.
+- **Bots open the PR; tests decide.** Over 70% of Dependabot PRs are merged. Developers merge when tests pass and update by hand otherwise, and only 3.4% of PRs carry a compatibility score ([He et al., *IEEE TSE*, 2023](https://arxiv.org/abs/2206.07230)).
+
+ChainReaction is the step before that merge: what breaks, where, why, and a patch the tests agree with.
+
+---
+
 ## Try it in 3 commands (no key needed)
 
 Python 3.11+ and Git. Node is not needed: the built UI is committed.
