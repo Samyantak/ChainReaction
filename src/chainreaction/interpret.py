@@ -710,7 +710,7 @@ class FetchedText(str):
 SYMBOL_ALIASES = {"np": "numpy", "pd": "pandas",
                   "ndarray": "numpy.ndarray"}
 
-_SYMBOL_RE = re.compile(r"^[A-Za-z_]\w*(?:\.\w+)*$")
+_SYMBOL_RE = re.compile(r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$")
 
 
 def normalize_symbol(raw: str, package: str = "") -> str:
@@ -724,6 +724,8 @@ def normalize_symbol(raw: str, package: str = "") -> str:
     text = text.rstrip(".,:;").strip()
     if not text:
         return ""
+    if text.lower().endswith(".h"):
+        return ""  # C headers (noprefix.h) are not member symbols
     parts = text.split(".")
     if parts[0] in SYMBOL_ALIASES:
         rest = ".".join(parts[1:])
@@ -877,6 +879,8 @@ _REMOVED_RES = (
 _DEPRECATED_RES = (re.compile(r"\bdeprecat\w*\b", re.I),)
 _USE_RE = re.compile(r"\b(?:re)?use\s+", re.I)
 _FROM_RE = re.compile(r"\b(?:remov\w*|delet\w*)\s+from\b", re.I)
+_REPLACEMENT_RE = re.compile(r"\breplacements?\b", re.I)
+_REPLACE_WITH_RE = re.compile(r"\breplace\b[^.;]*?\swith\b", re.I)
 _REPLACED_WITH_RE = re.compile(r"\breplac\w*\s+(.+?)\s+with\s+(.+)", re.I)
 # A literal followed by one of these names a call-site word, never a
 # member symbol ("the `timeout` parameter was removed" is a signature
@@ -949,20 +953,37 @@ def _literals(flat: str, package: str = "") -> list[str]:
 
 
 def _sentence_end(flat: str, pos: int) -> int:
-    end = re.search(r"[.;]", flat[pos:])
-    return pos + end.start() if end else len(flat)
+    """First . or ; outside code literals (dots in `a.b` don't end)."""
+    i, total = pos, len(flat)
+    while i < total:
+        char = flat[i]
+        if char == "`":
+            tick = "``" if flat.startswith("``", i) else "`"
+            end = flat.find(tick, i + len(tick))
+            i = total if end < 0 else end + len(tick)
+            continue
+        if char == "." or char == ";":
+            return i
+        i += 1
+    return total
 
 
 def _except_spans(flat: str) -> list:
     """Ranges whose literals are not breakage: except-clauses ("X
-    except Y"), replacements ("use Z"), and survivors ("removed from
-    W")."""
+    except Y"), replacements ("use Z", "replacement is Z",
+    "Replace A with B"), and survivors ("removed from W")."""
     spans = []
     for match in _EXCEPT_RE.finditer(flat):
         spans.append((match.start(), _sentence_end(flat, match.end())))
     for match in _USE_RE.finditer(flat):
         spans.append((match.end(), _sentence_end(flat, match.end())))
     for match in _FROM_RE.finditer(flat):
+        spans.append((match.end(), _sentence_end(flat, match.end())))
+    for match in _REPLACEMENT_RE.finditer(flat):
+        spans.append((match.start(), _sentence_end(flat, match.end())))
+    for match in _REPLACE_WITH_RE.finditer(flat):
+        # Only past "with" is new-ward: "Replace `old` with `new`"
+        # keeps the old name emitting.
         spans.append((match.end(), _sentence_end(flat, match.end())))
     return spans
 

@@ -424,6 +424,17 @@ def test_normalize_symbol_shapes():
     assert normalize_symbol("not a symbol", "pkg") == ""
     assert split_symbols("old_a, old_b", "pkg") == ["pkg.old_a", "pkg.old_b"]
     assert split_symbols("np.mat, mat", "numpy") == ["numpy.mat"]
+    # Step 2: every dotted part must be identifier-led (no numpy.0),
+    # headers are not symbols, call/bracket args strip.
+    assert normalize_symbol("0", "numpy") == ""
+    assert normalize_symbol("0j", "numpy") == ""
+    assert normalize_symbol("numpy.0", "numpy") == ""
+    assert normalize_symbol("noprefix.h", "numpy") == ""
+    assert normalize_symbol("np.asarray(arg, dtype=dtype)", "numpy") == \
+        "numpy.asarray"
+    assert normalize_symbol("np.cast[dtype](arg)", "numpy") == "numpy.cast"
+    assert normalize_symbol("numpy.result_type", "numpy") == \
+        "numpy.result_type"
 
 
 def test_extract_table_rows_generic_package():
@@ -565,6 +576,84 @@ def test_extract_deterministic_rows_merge_priority():
     assert by_symbol["gone.mod"]["extraction"] == "list"
     assert by_symbol["pkg.tired"]["extraction"] == "list"
     assert all(r["quote"] in RST_NOTES for r in rows)
+
+
+# Exact NumPy 2.0.0 bullets (decoded GitHub release bodies): the
+# removed symbol is named first, the replacement after "replacement
+# is" / "use ... instead" / "Replace ... with" must never emit.
+NUMPY_200_NOTES = """\
+### Expired deprecations
+
+-   `np.cast` has been removed. The literal replacement for
+    `np.cast[dtype](arg)` is `np.asarray(arg, dtype=dtype)`.
+-   `np.source` has been removed. The preferred replacement is
+    `inspect.getsource`.
+-   `np.find_common_type` has been removed. Use `numpy.promote_types` or
+    `numpy.result_type` instead. To achieve semantics for the
+    `scalar_types` argument, use `numpy.result_type` and pass `0`,
+    `0.0`, or `0j` as a Python scalar instead.
+-   The `noprefix.h` header has been removed. Replace missing symbols
+    with their prefixed counterparts (usually an added `NPY_` or
+    `npy_`).
+
+### Deprecations
+
+-   `numpy.find_common_type` is now deprecated and its use
+    should be replaced with either `numpy.result_type` or
+    `numpy.promote_types`. Most users leave the second
+    `scalar_types` argument to `find_common_type` as `[]` in which case
+    `np.result_type` and `np.promote_types` are both faster and more
+    robust. When not using `scalar_types` the main difference is that
+    the replacement intentionally converts non-native byte-order to
+    native byte order. Further, `find_common_type` returns `object`
+    dtype rather than failing promotion.
+
+    When the `scalar_types` argument is not `[]` things are more
+    complicated. In most cases, using `np.result_type` and passing the
+    Python values `0`, `0.0`, or `0j` has the same result as using
+    `int`, `float`, or `complex` in `scalar_types`.
+
+    When `scalar_types` is constructed, `np.result_type` is the correct
+    replacement and it may be passed scalar values like
+    `np.float32(0.0)`.
+"""
+
+
+def _numpy200_present_absent(rows):
+    present = {(r["symbol"], r["kind"]) for r in rows}
+    assert ("numpy.cast", "removed") in present
+    assert ("numpy.source", "removed") in present
+    assert ("numpy.find_common_type", "removed") in present
+    assert ("numpy.find_common_type", "deprecated") in present
+    absent = {r["symbol"] for r in rows}
+    # The replacement is never the symbol (numpy.asarray seeded 36
+    # false HARD modules); non-identifiers and headers never emit.
+    for junk in ("numpy.asarray", "inspect.getsource", "numpy.0",
+                 "numpy.0j", "numpy.0.0", "noprefix.h", "numpy.NPY_",
+                 "numpy.npy_", "numpy.float32"):
+        assert junk not in absent, junk
+    # Tolerated: bare recommendations in later sentences
+    # (numpy.result_type/promote_types) and valid identifiers the
+    # rules keep (numpy.object/scalar_types). All emit as deprecated,
+    # which seeds nothing, and no target module uses them.
+
+
+def test_extract_list_rows_numpy200_replacement_never_emitted():
+    from chainreaction.interpret import extract_list_rows
+
+    rows = extract_list_rows(NUMPY_200_NOTES, "numpy")
+    _numpy200_present_absent(rows)
+    assert all(r["extraction"] == "list" for r in rows)
+    assert all(r["quote"] in NUMPY_200_NOTES for r in rows)
+
+
+def test_extract_pattern_rows_numpy200_replacement_never_emitted():
+    from chainreaction.interpret import extract_pattern_rows
+
+    rows = extract_pattern_rows(NUMPY_200_NOTES, "numpy")
+    _numpy200_present_absent(rows)
+    assert all(r["extraction"] == "pattern" for r in rows)
+    assert all(r["quote"] in NUMPY_200_NOTES for r in rows)
 
 
 # -- M3 §4/§5: expanded items, verification modes, multi-release flow --
