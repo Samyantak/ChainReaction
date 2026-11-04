@@ -25,3 +25,25 @@ export function useTheme() {
   }, [theme])
   return [theme, setTheme]
 }
+
+/* Presenter mode (M6 §14): larger type + auto-advancing sheets for the
+ * video. Persisted like the theme; sets data-presenter on <html>. */
+
+export function usePresenter() {
+  const [presenter, setPresenter] = useState(() => {
+    try {
+      return localStorage.getItem('cr-presenter') === 'on'
+    } catch {
+      return false
+    }
+  })
+  useEffect(() => {
+    document.documentElement.dataset.presenter = presenter ? 'on' : 'off'
+    try {
+      localStorage.setItem('cr-presenter', presenter ? 'on' : 'off')
+    } catch {
+      /* ignore */
+    }
+  }, [presenter])
+  return [presenter, setPresenter]
+}

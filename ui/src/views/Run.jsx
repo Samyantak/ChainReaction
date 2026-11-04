@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { RUN_VIEWS } from '../router'
 import { Chip, Sheet, Status, TitleBlock } from '../components'
 import { STAGES, STAGE_VIEW, VIEW_STAGE, stageStates } from '../stages'
@@ -171,10 +171,14 @@ function ViewPanel({ runId, view, stage, state, events }) {
   )
 }
 
-export default function Run({ id, view }) {
+export default function Run({ id, view, presenter }) {
   const { snapshot, snapError, events, stream, cancel } = useRun(id)
   const [now, setNow] = useState(() => Date.now())
   const stage = VIEW_STAGE[view] ?? 'setup'
+  const advancedRef = useRef(null)
+  const queueRef = useRef([])
+  const dwellUntilRef = useRef(0)
+  const [advanceTick, setAdvanceTick] = useState(0)
 
   useEffect(() => {
     if (!snapshot || ['done', 'failed', 'cancelled'].includes(snapshot.status)) return undefined
@@ -198,6 +202,45 @@ export default function Run({ id, view }) {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [id, view])
+
+  // Presenter mode: advance to the next sheet as each stage finishes.
+  // Only fresh stage_ends move the view — opening a finished run stays put.
+  // Each sheet dwells 2s so fast replays still tour readably.
+  useEffect(() => {
+    advancedRef.current = null
+    queueRef.current = []
+    dwellUntilRef.current = 0
+  }, [id])
+  useEffect(() => {
+    if (!presenter) return undefined
+    if (advancedRef.current === null) {
+      advancedRef.current = events.length ? events[events.length - 1].seq : 0
+      return undefined
+    }
+    const fresh = events.filter((e) => e.seq > advancedRef.current && e.type === 'stage_end')
+    if (fresh.length > 0) {
+      advancedRef.current = fresh[fresh.length - 1].seq
+      queueRef.current.push(...fresh)
+    }
+    if (queueRef.current.length === 0) return undefined
+    const wait = dwellUntilRef.current - Date.now()
+    if (wait > 0) {
+      const timer = setTimeout(() => setAdvanceTick((t) => t + 1), wait + 50)
+      return () => clearTimeout(timer)
+    }
+    const next = queueRef.current.shift()
+    const ended = STAGE_VIEW[next.data?.stage]
+    const at = RUN_VIEWS.indexOf(ended)
+    if (at >= 0 && at + 1 < RUN_VIEWS.length) {
+      window.location.hash = `#/runs/${id}/${RUN_VIEWS[at + 1]}`
+    }
+    dwellUntilRef.current = Date.now() + 2000
+    if (queueRef.current.length > 0) {
+      const timer = setTimeout(() => setAdvanceTick((t) => t + 1), 2050)
+      return () => clearTimeout(timer)
+    }
+    return undefined
+  }, [events, presenter, id, advanceTick])
 
   if (snapError) {
     return (

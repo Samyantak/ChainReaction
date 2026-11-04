@@ -1,7 +1,7 @@
 import React from 'react'
 import { useRoute } from './router'
 import { useStatus } from './api'
-import { useTheme } from './theme'
+import { usePresenter, useTheme } from './theme'
 import { Sheet } from './components'
 import Landing from './views/Landing'
 import Run from './views/Run'
@@ -22,7 +22,7 @@ function KeyPill() {
   )
 }
 
-function AppHeader({ theme, onToggleTheme }) {
+function AppHeader({ theme, onToggleTheme, presenter, onTogglePresenter }) {
   return (
     <header className="app-header">
       <a className="wordmark" href="#/">
@@ -35,6 +35,15 @@ function AppHeader({ theme, onToggleTheme }) {
       </nav>
       <span className="spacer" />
       <KeyPill />
+      <button
+        className={`theme-toggle${presenter ? ' on' : ''}`}
+        type="button"
+        onClick={onTogglePresenter}
+        aria-pressed={presenter}
+        title="Presenter mode: larger type, sheets advance as stages finish"
+      >
+        Present
+      </button>
       <button className="theme-toggle" type="button" onClick={onToggleTheme}>
         {theme === 'dark' ? 'Light' : 'Dark'}
       </button>
@@ -64,6 +73,8 @@ export default function App() {
   const route = useRoute()
   const [theme, setTheme] = useTheme()
   const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+  const [presenter, setPresenter] = usePresenter()
+  const togglePresenter = () => setPresenter((p) => !p)
 
   if (route.name === 'landing') {
     return <Landing />
@@ -78,7 +89,7 @@ export default function App() {
       view = <NewView />
       break
     case 'run':
-      view = <Run id={route.params.id} view={route.params.view} />
+      view = <Run id={route.params.id} view={route.params.view} presenter={presenter} />
       break
     case 'history':
       view = <HistoryView />
@@ -89,7 +100,12 @@ export default function App() {
 
   return (
     <>
-      <AppHeader theme={theme} onToggleTheme={toggleTheme} />
+      <AppHeader
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        presenter={presenter}
+        onTogglePresenter={togglePresenter}
+      />
       <main>{view}</main>
     </>
   )

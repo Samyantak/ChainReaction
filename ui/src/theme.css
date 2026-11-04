@@ -275,6 +275,17 @@ a:visited { color: var(--sky-ink); }
   cursor: pointer;
   border-radius: 0;
 }
+.app-header .theme-toggle.on {
+  background: var(--ink);
+  color: var(--sheet);
+}
+
+/* Presenter mode (M6 §14): larger type for the video. */
+:root[data-presenter="on"] body { font-size: 18px; }
+:root[data-presenter="on"] .page h2, :root[data-presenter="on"] .run-view h2 { font-size: 30px; }
+:root[data-presenter="on"] .run-view h3 { font-size: 21px; }
+:root[data-presenter="on"] .code-lines { font-size: 15px; }
+:root[data-presenter="on"] .log-box { font-size: 14px; }
 
 .sheet-no { font-size: 11px; color: var(--ink-muted); }
 .panel-test { font-size: 11px; padding: 1px 0; word-break: break-all; }
