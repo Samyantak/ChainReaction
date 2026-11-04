@@ -6,6 +6,7 @@ import { getJSON, useApi, withOptional } from '../api'
 cytoscape.use(dagre)
 import { Status } from '../components'
 import { CodeBlock, FileHead } from '../CodeBlock'
+import { GRAPH_MAX_ZOOM, GRAPH_MIN_FIT_ZOOM, describeEdge } from '../graphUtils'
 import '../graph.css'
 
 const base = (file) => (file ? file.split('/').pop() : '')
@@ -92,6 +93,9 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
     const short = (id) => id.split('.').slice(-2).join('.')
     const cy = cytoscape({
       container: ref.current,
+      // Small graphs (2-3 nodes) would otherwise fit at 3x with giant
+      // overlapping labels; the cap keeps every label readable.
+      maxZoom: GRAPH_MAX_ZOOM,
       elements: [
         ...nodes.map((n) => ({
           data: {
@@ -198,16 +202,20 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
     const fitVisible = () => {
       const shown = cy.elements(':visible')
       if (shown.length > 0) cy.fit(shown, 30)
-      if (cy.zoom() < 0.75) {
+      if (cy.zoom() > GRAPH_MAX_ZOOM) {
+        cy.zoom(GRAPH_MAX_ZOOM)
+        if (shown.length > 0) cy.center(shown)
+      }
+      if (cy.zoom() < GRAPH_MIN_FIT_ZOOM) {
         const chain = cy.nodes('.chain:visible')
         if (chain.length > 0) {
           cy.fit(chain, 30)
-          if (cy.zoom() < 0.75) {
-            cy.zoom(0.75)
+          if (cy.zoom() < GRAPH_MIN_FIT_ZOOM) {
+            cy.zoom(GRAPH_MIN_FIT_ZOOM)
             cy.center(chain)
           }
         } else {
-          cy.zoom(0.75)
+          cy.zoom(GRAPH_MIN_FIT_ZOOM)
           cy.center()
         }
       }
@@ -240,6 +248,22 @@ function CytoGraph({ nodes, edges, clusters, spine, filters, query, selected, on
       node.style('display', statusOk && textOk ? 'element' : 'none')
       if (node.id() === selected) node.select()
       else node.unselect()
+    })
+    // Chain edges always show; the rest appear only around the selected
+    // node, so dense graphs read as chain-first instead of clutter.
+    // Edges to filtered-out endpoints stay hidden (no dangling lines).
+    const endsVisible = (edge) =>
+      edge.source().style('display') !== 'none' && edge.target().style('display') !== 'none'
+    cy.edges().forEach((edge) => {
+      const [display, lit] = describeEdge({
+        isChain: edge.hasClass('chain-edge'),
+        endsVisible: endsVisible(edge),
+        selected,
+        sourceId: edge.source().id(),
+        targetId: edge.target().id(),
+      })
+      edge.style('display', display)
+      if (lit) edge.style('opacity', 0.9)
     })
   }, [filters, query, selected, dataKey])
 
