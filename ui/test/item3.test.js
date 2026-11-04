@@ -108,3 +108,22 @@ test('guard rows turn red per violation category', () => {
   assert.deepEqual(rows.map((r) => r.ok), [false, true, true, false])
   assert.deepEqual(guardRows({ ok: true, violations: [] }).every((r) => r.ok), true)
 })
+
+test('quote links repair double-hash fragments and build from the source URL', async () => {
+  const { quoteLink, recallParts, filterItems } = await import('../src/interpretUtils.js')
+  assert.equal(
+    quoteLink({ link: 'https://x.dev/changes/#v3#:~:text=Deprecate' }),
+    'https://x.dev/changes/#v3:~:text=Deprecate',
+  )
+  assert.equal(
+    quoteLink({ quote: 'np.sctypes was removed' }, 'https://numpy.org/guide.html'),
+    'https://numpy.org/guide.html#:~:text=np.sctypes%20was%20removed',
+  )
+  assert.equal(quoteLink({ link: 'src/sponsorfit/llm.py:14' }), null)
+  assert.deepEqual(recallParts({ interpret_table_size: 65, interpret_blind_hits: 12, interpret_missed: [] }), {
+    table: 65, blind: 12, added: 53, missed: 0,
+  })
+  const items = [{ symbol: 'a', kind: 'removed' }, { symbol: 'b', kind: 'deprecated' }, { symbol: 'c', kind: 'removed' }]
+  assert.deepEqual(filterItems(items, { used: new Set(['c']) }).map((i) => i.symbol), ['c', 'a', 'b'])
+  assert.deepEqual(filterItems(items, { kind: 'removed', q: 'a' }).map((i) => i.symbol), ['a'])
+})
