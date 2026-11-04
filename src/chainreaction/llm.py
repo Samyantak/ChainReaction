@@ -213,9 +213,14 @@ def chat_full(system: str, user: str, max_tokens: int = 8000,
         reason = resp.choices[0].finish_reason
         raise RuntimeError(
             f"empty response from model (finish_reason={reason})")
-    _write_cache(key, content)
+    finish_reason = resp.choices[0].finish_reason
+    if finish_reason != "length":
+        # A truncated reply must never poison the prompt's entry: the
+        # cache key excludes max_tokens, so the length retry would
+        # re-serve the truncated text instead of going live again.
+        _write_cache(key, content)
     return ChatResult(content, model, _usage_dict(resp),
-                      resp.choices[0].finish_reason, False, None)
+                      finish_reason, False, None)
 
 
 def _message_texts(output) -> tuple[str, list, int]:

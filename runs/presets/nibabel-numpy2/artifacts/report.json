@@ -1,4 +1,5 @@
 {
+  "after_version": null,
   "at_risk": [
     "nibabel.arraywriters.ArrayWriter.to_fileobj",
     "nibabel.arraywriters.SlopeArrayWriter.__init__",
@@ -105,17 +106,12 @@
     "nibabel.tests.test_image_api.DataInterfaceMixin._check_array_caching",
     "nibabel.tests.test_image_api.DataInterfaceMixin._check_array_interface",
     "nibabel.tests.test_image_api.DataInterfaceMixin.validate_data_interface",
-    "nibabel.tests.test_image_api.GenericImageAPI.validate_get_data_deprecated",
-    "nibabel.tests.test_image_load_save.test_guessed_image_type",
-    "nibabel.tests.test_loadsave.test_read_img_data",
-    "nibabel.tests.test_loadsave.test_read_img_data_nifti",
+    "nibabel.tests.test_image_api.GenericImageAPI",
     "nibabel.tests.test_nifti1.TestNifti1General.test_float_int_min_max",
     "nibabel.tests.test_nifti1.TestNifti1PairHeader",
     "nibabel.tests.test_nifti1.TestNifti1PairHeader.test_big_scaling",
     "nibabel.tests.test_nifti1.TestNifti1SingleHeader.test_float128",
-    "nibabel.tests.test_onetime.test_setattr_on_read",
     "nibabel.tests.test_openers.test_compressed_ext_case",
-    "nibabel.tests.test_orientations.test_flip_axis_deprecation",
     "nibabel.tests.test_pointset.TestGrids.test_from_mask",
     "nibabel.tests.test_proxy_api.TestNifti1ProxyAPI",
     "nibabel.tests.test_proxy_api._TestProxyAPI.validate_array_interface_with_dtype",
@@ -128,7 +124,7 @@
     "nibabel.tests.test_scaling.test_a2f_nan2zero",
     "nibabel.tests.test_scaling.test_array_file_scales",
     "nibabel.tests.test_scaling.test_scaling_in_abstract",
-    "nibabel.tests.test_spatialimages.TestSpatialImage.test_get_data",
+    "nibabel.tests.test_spatialimages.TestSpatialImage",
     "nibabel.tests.test_spm99analyze.ImageScalingMixin.test_no_scaling",
     "nibabel.tests.test_spm99analyze.TestSpm99AnalyzeHeader.test_big_scaling",
     "nibabel.tests.test_testing.test_assert_allclose_safely",
@@ -157,6 +153,7 @@
     "nibabel.volumeutils.array_to_file"
   ],
   "before_numpy": "1.26.4",
+  "before_version": null,
   "change_items": [],
   "change_symbols": [
     "numpy.DataSource",
@@ -229,6 +226,7 @@
     "numpy.promote_types"
   ],
   "decision": "upgrade numpy to 2.0",
+  "decision_package": "",
   "deprecated_symbols": [
     "numpy.in1d",
     "numpy.row_stack",
@@ -479,11 +477,11 @@
     "nibabel.wrapstruct",
     "nibabel.xmlutils"
   ],
-  "interpret_blind_hits": 9,
-  "interpret_blind_recall": 0.14516129032258066,
+  "interpret_blind_hits": 12,
+  "interpret_blind_recall": 0.18461538461538463,
   "interpret_missed": [],
   "interpret_recall": 1.0,
-  "interpret_table_size": 62,
+  "interpret_table_size": 65,
   "layers": [
     {
       "actual": [
@@ -527,7 +525,7 @@
       "recall": 1.0
     }
   ],
-  "narrative": "Moving nibabel to NumPy 2.0 breaks imports at scale. Tested under NumPy 2.0.2, up from 1.26.4, 226 modules fail at import and 155 more are at risk. Of 63 removed NumPy symbols overall, only 5 are used in this package, so only those can cause failures here. Three other used symbols still work but are deprecated, and three behavior changes are flagged separately.\n\nThe verified worst path matches the observed failure and runs from nibabel through nibabel.analyze and nibabel.arrayproxy and nibabel.volumeutils to nibabel.casting. nibabel imports nibabel.analyze at nibabel/__init__.py:41, nibabel.analyze imports nibabel.arrayproxy at nibabel/analyze.py:88, nibabel.arrayproxy imports nibabel.volumeutils at nibabel/arrayproxy.py:39, and nibabel.volumeutils imports nibabel.casting at nibabel/volumeutils.py:23. nibabel.casting then runs nibabel.casting.ok_floats at import at nibabel/casting.py:723, which uses the removed numpy.sctypes at nibabel/casting.py:717.\n\nEvidence is strong. The import fails under NumPy 2.0.2 and works under 1.26.4, including after peeling back outer layers. Compared against the real fix, every flagged file was correct and all 5 breaking files were found, with 5 of 8 changed files overall and no missed files among the breaking changes.\n\nFix nibabel/casting.py:717 first, then nibabel/quaternions.py:32. The modules in the chain above are importers, not edit sites, so do not edit them to work around the failure. Fixing each edit site in order unblocks its chain in one step. The three files with behavior changes, nibabel/conftest.py, nibabel/freesurfer/io.py and nibabel/spatialimages.py, should be reviewed separately.",
+  "narrative": "Upgrading nibabel for NumPy 2.0 breaks imports under NumPy 2.0.2 compared with 1.26.4. The new version removes 63 symbols, but only five are used in this code and can cause failures here: numpy.compat, numpy.longcomplex, numpy.maximum_sctype, numpy.ndarray.newbyteorder and numpy.sctypes. Three other symbols still work though deprecated, and separate behavior differences are flagged. In total 226 modules fail at import and 150 more are at risk.\n\nThe single verified worst chain that matches the observed failure goes through nibabel to nibabel.analyze to nibabel.arrayproxy to nibabel.volumeutils to nibabel.casting. nibabel imports nibabel.analyze in nibabel/__init__.py at line 41, nibabel.analyze imports nibabel.arrayproxy in nibabel/analyze.py at line 88, nibabel.arrayproxy imports nibabel.volumeutils in nibabel/arrayproxy.py at line 39, and nibabel.volumeutils imports nibabel.casting in nibabel/volumeutils.py at line 23. That last module then runs nibabel.casting.ok_floats at import in nibabel/casting.py at line 723, which uses numpy.sctypes in nibabel/casting.py at line 717.\n\nEvidence is strong for this brief. Import was shown to fail under NumPy 2.0.2 and to work under 1.26.4, with full coverage in each check. Comparison with https://github.com/nipy/nibabel/pull/1250 found every predicted file was correct and found 5 of 8 files overall, including 5 of 5 of the breaking changes, with no missed files in the main count. Three other files with behavior differences in nibabel/conftest.py, nibabel/freesurfer/io.py and nibabel/spatialimages.py were flagged separately.\n\nFix first the use in nibabel/casting.py at line 717, then address nibabel/quaternions.py at line 32. The modules in the chain above are importers, not edit sites, so fixing each site in order unblocks its chain in one step without editing the importers.",
   "numpy_version": "2.0.2",
   "package": "nibabel",
   "pr_files": [

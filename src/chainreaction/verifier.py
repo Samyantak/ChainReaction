@@ -84,7 +84,9 @@ def run_import_probe(
     numpy_version = None
     for line in proc.stdout.splitlines():
         if line.startswith("NUMPY="):
-            numpy_version = line.removeprefix("NUMPY=")
+            numpy_version = line.removeprefix("NUMPY=") or None
+    if numpy_version == "MISSING":
+        numpy_version = None
     frames = parse_traceback(proc.stderr)
     modules = frames_to_modules(frames, Path(cwd), package)
     return ProbeResult(
@@ -124,26 +126,67 @@ def parse_traceback(stderr: str) -> list[Frame]:
     return frames
 
 
+def site_packages_subpath(file: str, package: str) -> str | None:
+    """Posix subpath under site-packages/<package>/ for installed-copy frames.
+
+    Non-editable installs point tracebacks at the env's copy, in real
+    form (E:/.../after/Lib/site-packages/flask_login/x.py) or scrubbed
+    (<env:after>/site-packages/flask_login/x.py). Both map back the
+    same way so live and replay agree with or without local envs.
+    None for anything else under site-packages (foreign packages).
+    """
+    if not package:
+        return None
+    text = str(file).replace("\\", "/")
+    marker = f"site-packages/{package}/"
+    idx = text.find(marker)
+    if idx >= 0 and (idx == 0 or text[idx - 1] == "/"):
+        rest = text[idx + len(marker):]
+        return rest or None
+    marker = f"site-packages/{package}.py"
+    idx = text.find(marker)
+    if (idx >= 0 and (idx == 0 or text[idx - 1] == "/")
+            and idx + len(marker) == len(text)):
+        return f"{package}.py"
+    return None
+
+
 def frames_to_modules(frames: list[Frame], root: str | Path,
                       package: str = "") -> list[str]:
-    """Map frames under root to dotted modules, deduped (call order kept)."""
+    """Map frames under root to dotted modules, deduped (call order kept).
+
+    Frames in the env's installed copy of the target package
+    (site-packages/<package>/) map back to repo modules the same way.
+    """
     root = Path(root).resolve()
     modules: list[str] = []
+
+    def push(mod: str) -> None:
+        if mod and (not modules or modules[-1] != mod):
+            modules.append(mod)
+
     for f in frames:
         try:
             rel = Path(f.file).resolve().relative_to(root)
         except (ValueError, OSError):
+            rel = None
+        if rel is None:
+            sub = site_packages_subpath(f.file, package)
+            if sub is not None and sub.endswith(".py"):
+                parts = sub[:-len(".py")].split("/")
+                if parts[-1] == "__init__":
+                    parts = parts[:-1]
+                push(package if not parts
+                     else f"{package}." + ".".join(parts))
             continue
         if rel.suffix != ".py":
             continue
         parts = list(rel.with_suffix("").parts)
         if package and package in parts:
-            parts = parts[parts.index(package):]  # src/ layout: start at package
+            parts = parts[parts.index(package):]  # src/: start at package
         if parts[-1] == "__init__":
             parts = parts[:-1]
-        mod = ".".join(parts)
-        if not modules or modules[-1] != mod:
-            modules.append(mod)
+        push(".".join(parts))
     return modules
 
 

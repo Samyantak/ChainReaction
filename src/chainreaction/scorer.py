@@ -25,11 +25,21 @@ class SetScore:
     actual: set[str] = field(default_factory=set)
 
 
-def chain_match(predicted: list[str], actual: list[str]) -> ChainScore:
+def chain_match(predicted: list[str], actual: list[str],
+                failed: bool = False) -> ChainScore:
+    """Predicted vs parsed-actual chain; empty/empty never MATCHes a failure.
+
+    failed=True when the probe itself failed: equal-but-empty then
+    means nothing parsed (or nothing was predicted), not agreement.
+    """
+    predicted, actual = list(predicted), list(actual)
+    match = predicted == actual
+    if failed and not predicted and not actual:
+        match = False
     return ChainScore(
-        match=list(predicted) == list(actual),
-        predicted=list(predicted),
-        actual=list(actual),
+        match=match,
+        predicted=predicted,
+        actual=actual,
         missing=[m for m in predicted if m not in actual],
         extra=[m for m in actual if m not in predicted],
     )

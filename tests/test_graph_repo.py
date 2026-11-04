@@ -78,6 +78,54 @@ def test_subpackage_init_relative_import(tmp_path):
     assert ("demo.sub", "demo.sub.mod") in g.edges
 
 
+def test_import_time_positions_attribute_to_enclosing_scope(tmp_path):
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "mod.py").write_text(
+        "import jinja2\n"
+        "import numpy as np\n"
+        "import ext\n"
+        "from werkzeug.urls import url_decode\n"
+        "\n"
+        "VAL = np.NaN\n"
+        "\n"
+        "@jinja2.contextfunction\n"
+        "def helper():\n"
+        "    return 1\n"
+        "\n"
+        "class Thing(ext.Parent):\n"
+        "    pass\n"
+        "\n"
+        "def with_default(x=np.NaN):\n"
+        "    return x\n"
+        "\n"
+        "def inner():\n"
+        "    from werkzeug.urls import url_encode\n"
+        "    return url_encode\n",
+        encoding="utf-8",
+    )
+    g = build_graph_from_repo(tmp_path, "demo")
+
+    def ext_uses(source):
+        return {v for u, v, d in g.edges(data=True)
+                if u == source and d.get("kind") == "USES_EXTERNAL"}
+
+    # Module-level from-imports, decorators, bases, defaults, and
+    # assignments name external symbols at import time.
+    assert ext_uses("demo.mod") == {
+        "werkzeug.urls.url_decode", "numpy.NaN",
+        "jinja2.contextfunction", "ext.Parent",
+    }
+    # The plain package import edge is untouched.
+    assert g.edges["demo.mod", "werkzeug"]["kind"] == "IMPORTS"
+    # The decorated def itself carries no external use.
+    assert ("demo.mod.helper", "jinja2.contextfunction") not in g.edges
+    # Function-body from-imports stay scoped to the def (AT_RISK).
+    assert ext_uses("demo.mod.inner") == {"werkzeug.urls.url_encode"}
+    assert ("demo.mod", "werkzeug.urls.url_encode") not in g.edges
+
+
 def test_repeated_import_keeps_first_line_and_import_time(tmp_path):
     pkg = tmp_path / "demo"
     pkg.mkdir()

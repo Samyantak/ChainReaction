@@ -132,6 +132,40 @@ def test_chat_caches_by_prompt_hash(monkeypatch, tmp_path):
     assert len(cached) == 2  # one entry per distinct prompt hash
 
 
+def test_chat_full_skips_cache_for_truncated_replies(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    from chainreaction import llm
+
+    monkeypatch.setenv("LLM_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setenv("MODEL_API_KEY", "test-key")
+    calls = []
+    scripts = iter([('{"truncated": tru', "length"),
+                    ('{"ok": true}', "stop")])
+
+    class _Client:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kw):
+                    content, reason = next(scripts)
+                    calls.append(kw)
+                    choice = SimpleNamespace(
+                        message=SimpleNamespace(content=content),
+                        finish_reason=reason)
+                    return SimpleNamespace(choices=[choice], usage=None)
+
+    monkeypatch.setattr(llm, "client", lambda: _Client())
+    truncated = llm.chat_full("sys", "trunc-me")
+    assert truncated.content == '{"truncated": tru'
+    assert truncated.cached is False
+    # The truncated reply was never cached: the retry goes live again.
+    complete = llm.chat_full("sys", "trunc-me")
+    assert complete.content == '{"ok": true}'
+    assert complete.cached is False
+    assert len(calls) == 2
+
+
 def test_propose_fix_builds_patch(monkeypatch, tmp_path):
     (tmp_path / "mod.py").write_text("a = 1\nb = 2\nc = 3\n",
                                      encoding="utf-8")

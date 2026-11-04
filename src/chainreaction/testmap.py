@@ -8,6 +8,7 @@ failing tests.
 
 import json
 import os
+import re
 import subprocess
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -231,8 +232,56 @@ def parse_failure_messages(output: str, target: str | Path
     return out
 
 
+_COLLECT_RE = re.compile(r"^___ ERROR collecting (.+?) _+$")
+
+
+def parse_collection_errors(output: str, target: str | Path
+                            ) -> dict[str, str]:
+    """ERROR file -> signature from the ERRORS detail section.
+
+    --tb=short prints one `___ ERROR collecting <file> ___` section
+    per uncollectable file with `E   ...` signature lines; the -rfE
+    summary lists these files bare, so without this they group as
+    "other". Multi-line E blocks join with spaces; a repeated section
+    keeps the first signature.
+    """
+    out: dict[str, str] = {}
+    current: str | None = None
+    elines: list[str] = []
+
+    def flush() -> None:
+        if current and elines and current not in out:
+            out[current] = " ".join(elines)
+
+    for line in (output or "").splitlines():
+        match = _COLLECT_RE.match(line)
+        if match:
+            flush()
+            current = _strip_target_prefix(match.group(1).strip(), target)
+            elines = []
+            continue
+        if current is None:
+            continue
+        if line.startswith("___ ") or line.startswith("=== "):
+            flush()
+            current = None
+            elines = []
+            continue
+        if line.startswith("E "):
+            text = line[2:].strip()
+            if text:
+                elines.append(text)
+    flush()
+    return out
+
+
 def parse_file_errors(output: str, target: str | Path) -> dict[str, str]:
-    """ERROR file -> collection message for file-level ERROR lines."""
+    """ERROR file -> collection message for file-level ERROR lines.
+
+    Summary-line messages win when present; otherwise the signature
+    comes from the ERRORS detail section (else "").
+    """
+    detail = parse_collection_errors(output, target)
     out: dict[str, str] = {}
     for line in (output or "").splitlines():
         if not line.startswith("ERROR ") or "::" in line:
@@ -240,7 +289,7 @@ def parse_file_errors(output: str, target: str | Path) -> dict[str, str]:
         path, sep, msg = line[6:].partition(" - ")
         path = _strip_target_prefix(path.strip(), target)
         if path:
-            out[path] = msg.strip() if sep else ""
+            out[path] = msg.strip() if sep else detail.get(path, "")
     return out
 
 

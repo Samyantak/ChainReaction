@@ -670,6 +670,21 @@ def _run_plain_before(before_run, before_py: str, target_abs: str,
     return parse_suite(plain.stdout, ws_rel, None), plain.stdout
 
 
+def _decision_versions(ctx) -> tuple:
+    """(decision_package, before_version, after_version) from the envs record.
+
+    Freeze pins, not probe prints: exact even when the decision package
+    is absent from one env (None) or numpy is not installed at all.
+    """
+    envs = ctx.state.get("envs") or {}
+    decision = (envs.get("decision") or {}).get("package", "")
+    before = ((envs.get("before") or {}).get("freeze") or {}).get(
+        decision.lower())
+    after_env = envs.get("after") or {}
+    after = (after_env.get("freeze") or {}).get(decision.lower())
+    return decision, before, after
+
+
 def _stage_verify_generic(ctx) -> None:
     from chainreaction import testmap as testmap_mod
     from chainreaction.generic import (
@@ -789,11 +804,13 @@ def _stage_verify_generic(ctx) -> None:
         before_py, target_abs, info.package, run=before_run)))
     for _, probe in probes:
         probe.stderr = ctx.scrubber.text(probe.stderr)
+    pkg, before_ver, after_ver = _decision_versions(ctx)
     for name, probe in probes:
+        ver = before_ver if name == "before-import" else after_ver
         ctx.save_artifact(
             f"verify/{_artifact_slug(name)}.log",
             f"# probe: {name}\n# ok: {probe.ok}\n"
-            f"# numpy: {probe.numpy_version}\n"
+            f"# {pkg or 'numpy'}: {ver or 'unknown'}\n"
             f"# modules: {' -> '.join(probe.modules) or '(none)'}\n"
             f"## stderr\n{probe.stderr}")
     for role, result in (("before", before), ("after", after)):
@@ -898,7 +915,7 @@ def stage_verify(ctx) -> None:
         ctx.save_artifact(
             f"verify/{_artifact_slug(name)}.log",
             f"# probe: {name}\n# ok: {probe.ok}\n"
-            f"# numpy: {probe.numpy_version}\n"
+            f"# numpy: {probe.numpy_version or 'unknown'}\n"
             f"# modules: {' -> '.join(probe.modules) or '(none)'}\n"
             f"## stderr\n{probe.stderr}")
     ctx.state["probes"] = probes
@@ -931,10 +948,13 @@ def _stage_report_generic(ctx) -> None:
         ruff_count = len(ruff) if ruff is not None else None
     else:
         ruff_count = None
-    report = build_report(scen, changeset, symbols, g, impacts, layers,
-                          probes[0][1].numpy_version, before_numpy,
-                          grep_count, ruff_count,
-                          ctx.state.get("interpret_stats"))
+    decision_package, before_version, after_version = \
+        _decision_versions(ctx)
+    report = build_report(
+        scen, changeset, symbols, g, impacts, layers,
+        probes[0][1].numpy_version, before_numpy, grep_count, ruff_count,
+        ctx.state.get("interpret_stats"), decision_package=decision_package,
+        before_version=before_version, after_version=after_version)
     scores = ctx.state.get("scores") or {}
     extra = {
         "scores": scores,

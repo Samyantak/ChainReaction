@@ -19,6 +19,13 @@ def test_chain_match_exact_and_details():
     assert s.match is False and s.missing == ["b"] and s.extra == []
 
 
+def test_chain_match_empty_is_never_match_when_failed():
+    assert chain_match([], []).match is True
+    assert chain_match([], [], failed=True).match is False
+    assert chain_match(["a"], ["a"], failed=True).match is True
+    assert chain_match(["a"], [], failed=True).match is False
+
+
 def test_precision_recall():
     s = precision_recall({"a", "b", "c"}, {"b", "c", "d"})
     assert s.precision == pytest.approx(2 / 3)

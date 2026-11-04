@@ -82,11 +82,11 @@ Behavior-change flags (excluded from scores):
 - `numpy.intp`
 - `numpy.promote_types`
 
-Removal-table recall: Muse Spark alone 9/62 → with deterministic table extraction 62/62 (complete)
+Removal-table recall: Muse Spark alone 12/65 → with deterministic table extraction 65/65 (complete)
 
 ## Prediction
 
-HARD: 226 modules | AT_RISK: 155 nodes
+HARD: 226 modules | AT_RISK: 150 nodes
 
 Predicted layer-1 chain:
 
@@ -140,12 +140,12 @@ Actual: (import ok)
 
 ## Narrative
 
-Moving nibabel to NumPy 2.0 breaks imports at scale. Tested under NumPy 2.0.2, up from 1.26.4, 226 modules fail at import and 155 more are at risk. Of 63 removed NumPy symbols overall, only 5 are used in this package, so only those can cause failures here. Three other used symbols still work but are deprecated, and three behavior changes are flagged separately.
+Upgrading nibabel for NumPy 2.0 breaks imports under NumPy 2.0.2 compared with 1.26.4. The new version removes 63 symbols, but only five are used in this code and can cause failures here: numpy.compat, numpy.longcomplex, numpy.maximum_sctype, numpy.ndarray.newbyteorder and numpy.sctypes. Three other symbols still work though deprecated, and separate behavior differences are flagged. In total 226 modules fail at import and 150 more are at risk.
 
-The verified worst path matches the observed failure and runs from nibabel through nibabel.analyze and nibabel.arrayproxy and nibabel.volumeutils to nibabel.casting. nibabel imports nibabel.analyze at nibabel/__init__.py:41, nibabel.analyze imports nibabel.arrayproxy at nibabel/analyze.py:88, nibabel.arrayproxy imports nibabel.volumeutils at nibabel/arrayproxy.py:39, and nibabel.volumeutils imports nibabel.casting at nibabel/volumeutils.py:23. nibabel.casting then runs nibabel.casting.ok_floats at import at nibabel/casting.py:723, which uses the removed numpy.sctypes at nibabel/casting.py:717.
+The single verified worst chain that matches the observed failure goes through nibabel to nibabel.analyze to nibabel.arrayproxy to nibabel.volumeutils to nibabel.casting. nibabel imports nibabel.analyze in nibabel/__init__.py at line 41, nibabel.analyze imports nibabel.arrayproxy in nibabel/analyze.py at line 88, nibabel.arrayproxy imports nibabel.volumeutils in nibabel/arrayproxy.py at line 39, and nibabel.volumeutils imports nibabel.casting in nibabel/volumeutils.py at line 23. That last module then runs nibabel.casting.ok_floats at import in nibabel/casting.py at line 723, which uses numpy.sctypes in nibabel/casting.py at line 717.
 
-Evidence is strong. The import fails under NumPy 2.0.2 and works under 1.26.4, including after peeling back outer layers. Compared against the real fix, every flagged file was correct and all 5 breaking files were found, with 5 of 8 changed files overall and no missed files among the breaking changes.
+Evidence is strong for this brief. Import was shown to fail under NumPy 2.0.2 and to work under 1.26.4, with full coverage in each check. Comparison with https://github.com/nipy/nibabel/pull/1250 found every predicted file was correct and found 5 of 8 files overall, including 5 of 5 of the breaking changes, with no missed files in the main count. Three other files with behavior differences in nibabel/conftest.py, nibabel/freesurfer/io.py and nibabel/spatialimages.py were flagged separately.
 
-Fix nibabel/casting.py:717 first, then nibabel/quaternions.py:32. The modules in the chain above are importers, not edit sites, so do not edit them to work around the failure. Fixing each edit site in order unblocks its chain in one step. The three files with behavior changes, nibabel/conftest.py, nibabel/freesurfer/io.py and nibabel/spatialimages.py, should be reviewed separately.
+Fix first the use in nibabel/casting.py at line 717, then address nibabel/quaternions.py at line 32. The modules in the chain above are importers, not edit sites, so fixing each site in order unblocks its chain in one step without editing the importers.
 
 Claim check: ✓ clean

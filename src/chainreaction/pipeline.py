@@ -53,6 +53,7 @@ from chainreaction.scorer import (
 from chainreaction.verifier import (
     run_import_probe,
     run_snippet_probe,
+    site_packages_subpath,
     target_python,
 )
 
@@ -134,13 +135,15 @@ def spine_for_scenario(g, impacts, symbols: set, scen, config,
                                                  sig_seeds)]
 
 
-def _failure_site(frames, root: str | Path) -> str | None:
-    """Deepest traceback frame under the target root, as "path:line".
+def _failure_site(frames, root: str | Path, package: str = ""
+                ) -> str | None:
+    """Deepest target frame of a traceback, as repo-relative "path:line".
 
     The probe's cwd is the target root, so frames under it relativize
-    cleanly (nibabel/casting.py:717); env frames (numpy/__init__.py)
-    and <string> never match and are skipped. None when the probe
-    passed or no frame sits under the root.
+    cleanly (nibabel/casting.py:717); frames in the env's installed
+    copy (site-packages/<package>/) map back through the package dir.
+    Foreign env frames and <string> never match and are skipped. None
+    when the probe passed or no frame maps back.
     """
     try:
         root_abs = Path(root).resolve()
@@ -152,8 +155,12 @@ def _failure_site(frames, root: str | Path) -> str | None:
         try:
             rel = Path(frame.file).resolve().relative_to(root_abs)
         except (ValueError, OSError):
-            continue
-        return f"{rel.as_posix()}:{frame.line}"
+            rel = None
+        if rel is not None:
+            return f"{rel.as_posix()}:{frame.line}"
+        sub = site_packages_subpath(frame.file, package)
+        if sub is not None:
+            return f"{relative_posix(package_dir(root, package) / sub, root)}:{frame.line}"
     return None
 
 
@@ -167,7 +174,8 @@ def build_layers(scen, probes, flagged: set):
             name, probe.modules, missing, recall,
             "\n".join(probe.stderr.splitlines()[-4:]) if probe.stderr else "",
             probe.ok,
-            _failure_site(getattr(probe, "frames", None), scen.target),
+            _failure_site(getattr(probe, "frames", None), scen.target,
+                          scen.package),
         ))
     before_numpy = probes[-1][1].numpy_version if scen.before_env else None
     return layers, before_numpy
@@ -175,7 +183,10 @@ def build_layers(scen, probes, flagged: set):
 
 def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
                  layers: list, numpy_version, before_numpy,
-                 grep_count: int, ruff_count, interpret_stats=None):
+                 grep_count: int, ruff_count, interpret_stats=None,
+                 decision_package: str = "",
+                 before_version: str | None = None,
+                 after_version: str | None = None):
     """Assemble the deterministic Report from prediction + verification."""
     interpret_stats = interpret_stats or {}
     hard = {n for n, i in impacts.items() if i.status == "HARD"}
@@ -201,7 +212,10 @@ def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
         ] + layer_fixes
     else:
         fix_order = layer_fixes
-    score = chain_match(predicted, layers[0].actual)
+    score = chain_match(predicted, layers[0].actual,
+                        failed=not layers[0].ok)
+    if (decision_package or "").lower() == "numpy":
+        numpy_version, before_numpy = after_version, before_version
     file_score = (precision_recall(direct_use_files(g, symbols, scen.target),
                                    set(scen.pr_files))
                   if scen.pr_files else None)
@@ -212,6 +226,9 @@ def build_report(scen, changeset: ChangeSet, symbols: set, g, impacts: dict,
         probe_kind="decision" if scen.probe_code else "import",
         numpy_version=numpy_version,
         before_numpy=before_numpy,
+        decision_package=decision_package or "",
+        before_version=before_version,
+        after_version=after_version,
         change_symbols=sorted(symbols),
         used_symbols=sorted(used_breaking_symbols(g, symbols)),
         deprecated_symbols=sorted(deprecated_symbols(changeset)),

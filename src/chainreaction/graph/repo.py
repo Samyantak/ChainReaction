@@ -153,6 +153,9 @@ class _FileVisitor(ast.NodeVisitor):
                 if not self.g.has_node(target):
                     self.g.add_node(target, kind="external",
                                     file=self.filename, line=node.lineno)
+                # Importing an external dotted name uses it: `import
+                # a.b` fails at this line when b is removed.
+                self._edge(dotted, "USES_EXTERNAL", node.lineno)
             else:
                 if alias.asname:
                     self.aliases[local] = target
@@ -193,6 +196,11 @@ class _FileVisitor(ast.NodeVisitor):
                 local = a.asname or a.name
                 if local != "*":
                     self.aliases[local] = f"{base}.{a.name}"
+                # `from x import removed` names the member: it fails
+                # at this line when the member is gone (`*` cannot).
+                if a.name != "*":
+                    self._edge(f"{base}.{a.name}", "USES_EXTERNAL",
+                               node.lineno)
         else:  # pragma: no cover - 'from' with empty module is a syntax error
             self.generic_visit(node)
             return
@@ -242,10 +250,40 @@ class _FileVisitor(ast.NodeVisitor):
             if annots:
                 self.annotations[qual] = annots
         self.g.add_node(qual, kind=kind, file=self.filename, line=node.lineno)
+        # Import-time positions first, in the ENCLOSING scope:
+        # decorators, bases, and defaults execute when the enclosing
+        # scope runs (at import for module-level defs), so an external
+        # use there fails HARD instead of going AT_RISK on the def.
+        for dec in node.decorator_list:
+            self.visit(dec)
+        if kind == "class":
+            for base in node.bases:
+                self.visit(base)
+            for kw in node.keywords:
+                self.visit(kw.value)
+        else:
+            for default in list(node.args.defaults) + [
+                    d for d in node.args.kw_defaults if d is not None]:
+                self.visit(default)
         self.scope.append(qual)
         self._dtype_stack.append(set())
         prev, self.in_function = self.in_function, True
-        self.generic_visit(node)
+        # Body plus annotations/returns (everything generic_visit
+        # covered except the import-time positions handled above).
+        for stmt in node.body:
+            self.visit(stmt)
+        if kind == "function":
+            args = node.args
+            for a in (list(args.posonlyargs) + list(args.args)
+                      + list(args.kwonlyargs)
+                      + ([args.vararg] if args.vararg else [])
+                      + ([args.kwarg] if args.kwarg else [])):
+                if a.annotation is not None:
+                    self.visit(a.annotation)
+            if node.returns is not None:
+                self.visit(node.returns)
+        for tp in getattr(node, "type_params", []) or []:
+            self.visit(tp)
         self.in_function = prev
         self.scope.pop()
         self._dtype_stack.pop()

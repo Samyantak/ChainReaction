@@ -57,7 +57,7 @@ def main() -> int:
     res = run_import_probe(target_python("numpy2"), TARGET, PACKAGE,
                            preamble=PEEL_PREAMBLE if peel else "")
     print(f"after: ok={res.ok} numpy={res.numpy_version}")
-    if res.numpy_version is None or res.numpy_version == "MISSING":
+    if res.numpy_version is None:
         print("numpy is not installed for this interpreter; "
               "run: pip install \"numpy>=2\"")
         return 2
@@ -75,7 +75,7 @@ def main() -> int:
     print("predicted chain:")
     for m in predicted:
         print(f"  {m}")
-    score = chain_match(predicted, res.modules)
+    score = chain_match(predicted, res.modules, failed=not res.ok)
     print(f"spine match={score.match} missing={score.missing} extra={score.extra}")
     pr = precision_recall(
         {n for n in hard if g.nodes[n].get("kind") == "module"},

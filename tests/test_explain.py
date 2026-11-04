@@ -347,6 +347,29 @@ def _tiny_report(stats=None):
                         layers, "2.0.2", None, 0, None, stats)
 
 
+def test_failure_site_maps_installed_copy_frames(tmp_path):
+    from chainreaction.pipeline import _failure_site
+    from chainreaction.verifier import parse_traceback
+
+    pkgdir = tmp_path / "src" / "flask_login"
+    pkgdir.mkdir(parents=True)
+    (pkgdir / "utils.py").write_text("x = 1\n", encoding="utf-8")
+    scrubbed = parse_traceback(
+        '  File "<env:after>/site-packages/flask_login/utils.py",'
+        " line 14, in <module>\n")
+    assert _failure_site(scrubbed, tmp_path, "flask_login") == \
+        "src/flask_login/utils.py:14"
+    real = parse_traceback(
+        '  File "E:/co/envs/k/after/Lib/site-packages/flask_login/utils.py",'
+        " line 14, in <module>\n")
+    assert _failure_site(real, tmp_path, "flask_login") == \
+        "src/flask_login/utils.py:14"
+    foreign = parse_traceback(
+        '  File "<env:after>/site-packages/werkzeug/urls.py",'
+        " line 1, in <module>\n")
+    assert _failure_site(foreign, tmp_path, "flask_login") is None
+
+
 def test_build_report_separates_warnings_and_flags():
     report = _tiny_report()
     assert report.change_symbols == ["numpy.sctypes"]
@@ -354,6 +377,50 @@ def test_build_report_separates_warnings_and_flags():
     assert report.changed_symbols == ["numpy.asarray"]
     assert report.interpret_recall is None
     assert "excluded from scores" in render_markdown(report)
+
+
+def test_failed_empty_actual_renders_unparsed():
+    failed = _pr_report(
+        layers=[LayerResult("after-import", [], ["m"], 0.0, "tail",
+                            False)])
+    assert "Actual: (unparsed)" in render_markdown(failed)
+    passed = _pr_report(
+        layers=[LayerResult("before-import", [], [], 1.0, "", True)])
+    assert "Actual: (import ok)" in render_markdown(passed)
+
+
+def test_build_report_carries_generic_versions():
+    import networkx as nx
+    from types import SimpleNamespace
+
+    from chainreaction.interpret import ChangeSet
+    from chainreaction.pipeline import build_report
+
+    scen = SimpleNamespace(decision="d", target="t", package="pkg",
+                           probe_code="", pr_files=[], pr_behavior=[],
+                           pr_url="")
+    cs = ChangeSet("d", "u", [])
+    layers = [LayerResult("l1", [], [], 1.0, "", True)]
+    report = build_report(scen, cs, set(), nx.DiGraph(), {}, layers,
+                          None, None, 0, None, None,
+                          decision_package="werkzeug",
+                          before_version="2.2.3", after_version="3.0.6")
+    assert report.decision_package == "werkzeug"
+    assert report.before_version == "2.2.3"
+    assert report.after_version == "3.0.6"
+    assert report.numpy_version is None
+    md = render_markdown(report)
+    assert "| werkzeug: 2.2.3 -> 3.0.6" in md
+    assert "MISSING" not in md
+    assert "werkzeug 3.0.6 (previously 2.2.3)" in \
+        explain.narrative_brief(report)
+    # NumPy decisions keep the legacy alias.
+    numpy_report = build_report(
+        scen, cs, set(), nx.DiGraph(), {}, layers,
+        None, None, 0, None, None, decision_package="numpy",
+        before_version="1.26.4", after_version="2.0.2")
+    assert numpy_report.numpy_version == "2.0.2"
+    assert numpy_report.before_numpy == "1.26.4"
 
 
 def test_build_report_carries_interpret_stats():

@@ -50,6 +50,35 @@ def _pkg(tmp_path: Path) -> Path:
     return tmp_path
 
 
+def test_module_level_import_time_uses_seed_hard(tmp_path):
+    pkg = tmp_path / "demo"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("from . import mod\n", encoding="utf-8")
+    (pkg / "mod.py").write_text(
+        "import jinja2\n"
+        "from werkzeug.urls import url_decode\n"
+        "\n"
+        "@jinja2.contextfunction\n"
+        "def helper():\n"
+        "    return 1\n"
+        "\n"
+        "def inner():\n"
+        "    from jinja2 import contextfilter\n"
+        "    return contextfilter\n",
+        encoding="utf-8",
+    )
+    g = build_graph_from_repo(tmp_path, "demo")
+    impacts = propagate(g, {"werkzeug.urls.url_decode",
+                            "jinja2.contextfunction",
+                            "jinja2.contextfilter"})
+    # Top-level from-imports and module-level decorators execute at
+    # import: the module fails HARD and importers cascade.
+    assert impacts["demo.mod"].status == "HARD"
+    assert impacts["demo"].status == "HARD"
+    # Function-body from-imports stay AT_RISK.
+    assert impacts["demo.mod.inner"].status == "AT_RISK"
+
+
 def test_hard_cascade_through_importers(tmp_path):
     g = build_graph_from_repo(_pkg(tmp_path), "demo")
     impacts = propagate(g, {"numpy.sctypes"})

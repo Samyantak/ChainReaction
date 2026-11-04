@@ -42,6 +42,12 @@ class Report:
     spine_evidence: list[tuple[str, str, str, int]] = field(default_factory=list)
     spine_match: bool = False  # chain_match(spine, layers[0].actual)
     before_numpy: str | None = None
+    # Generic decision versions (decision_package before_version ->
+    # after_version); numpy_version/before_numpy stay as legacy aliases
+    # for NumPy decisions.
+    decision_package: str = ""
+    before_version: str | None = None
+    after_version: str | None = None
     pr_url: str = ""
     pr_files: list[str] = field(default_factory=list)
     file_precision: float | None = None
@@ -184,7 +190,8 @@ def _report_numbers(report: Report, extra: dict | None = None) -> set[str]:
         code_line = getattr(item, "code_line", 0)
         if getattr(item, "source", "") == "code" and code_line:
             nums.add(str(int(code_line)))
-    for version in (report.numpy_version, report.before_numpy):
+    for version in (report.numpy_version, report.before_numpy,
+                    report.before_version, report.after_version):
         if version:
             nums.add(version)
             parts = version.split(".")  # "numpy 2.0" short for "2.0.2"
@@ -617,10 +624,15 @@ def render_markdown(report: Report, extra: dict | None = None) -> str:
     target_line = (f"Target: `{report.target}` "
                    "(pre-existing, analyzed by ChainReaction)")
     if not decision:
-        numpy_label = report.numpy_version or "unknown"
-        target_line += (f" | numpy: {numpy_label}"
-                        + (f" (before: {report.before_numpy})"
-                           if report.before_numpy else ""))
+        if report.decision_package:
+            target_line += (f" | {report.decision_package}: "
+                            f"{report.before_version or '?'} -> "
+                            f"{report.after_version or '?'}")
+        else:
+            numpy_label = report.numpy_version or "unknown"
+            target_line += (f" | numpy: {numpy_label}"
+                            + (f" (before: {report.before_numpy})"
+                               if report.before_numpy else ""))
     lines = [
         f"# ChainReaction report: {report.decision}",
         "",
@@ -700,10 +712,16 @@ def render_markdown(report: Report, extra: dict | None = None) -> str:
     lines += ["## Verification", ""]
     for layer in report.layers:
         clean = "(probe ok)" if decision else "(import ok)"
+        if layer.actual:
+            actual_text = " -> ".join(f"`{m}`" for m in layer.actual)
+        elif not layer.ok:
+            actual_text = "(unparsed)"
+        else:
+            actual_text = clean
         lines += [
             f"### {layer.name} (recall {layer.recall:.2f})",
             "",
-            f"Actual: {' -> '.join(f'`{m}`' for m in layer.actual) or clean}",
+            f"Actual: {actual_text}",
         ]
         if layer.failure_site:
             lines.append(f"Site: `{layer.failure_site}`")
@@ -800,12 +818,18 @@ def _test_brief_lines(report: Report, extra: dict | None) -> list[str]:
 
 def narrative_brief(report: Report, extra: dict | None = None) -> str:
     """Human-readable facts for the narrator (no raw JSON keys)."""
-    versions = (f"tested under NumPy {report.numpy_version}"
-                + (f" (previously {report.before_numpy})"
-                   if report.before_numpy else "")
-                if report.numpy_version
-                else ("previously under NumPy " + report.before_numpy
-                      if report.before_numpy else ""))
+    if report.decision_package:
+        versions = (f"tested under {report.decision_package} "
+                    f"{report.after_version or '?'}"
+                    + (f" (previously {report.before_version})"
+                       if report.before_version else ""))
+    else:
+        versions = (f"tested under NumPy {report.numpy_version}"
+                    + (f" (previously {report.before_numpy})"
+                       if report.before_numpy else "")
+                    if report.numpy_version
+                    else ("previously under NumPy " + report.before_numpy
+                          if report.before_numpy else ""))
     target_bit = f"Target: {report.target} (package {report.package})"
     if versions:
         target_bit += f", {versions}"

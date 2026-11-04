@@ -209,6 +209,49 @@ def test_failure_groups_fold_truncations_and_file_errors():
     assert len(groups2) == 2
 
 
+def test_file_errors_parse_collection_detail_signatures():
+    from chainreaction.testmap import failure_groups, parse_file_errors
+
+    out = (
+        "=== ERRORS ===\n"
+        "___ ERROR collecting tests/a.py ___\n"
+        "ImportError while importing test module 'tests/a.py'.\n"
+        "tests/a.py:1: in <module>\n"
+        "    import pkg\n"
+        "E   ImportError: cannot import name 'url_decode'"
+        " from 'werkzeug.urls'\n"
+        "___ ERROR collecting tests/b.py ___\n"
+        "ImportError while importing test module 'tests/b.py'.\n"
+        "E   ImportError: cannot import name 'url_decode'"
+        " from 'werkzeug.urls'\n"
+        "___ ERROR collecting tests/c.py ___\n"
+        "E   AttributeError: module 'jinja2' has no attribute"
+        " 'contextfunction'\n"
+        "E   (and a wrapped second line)\n"
+        "=== short test summary info ===\n"
+        "ERROR tests/a.py\n"
+        "ERROR tests/b.py\n"
+        "ERROR tests/c.py\n"
+        "3 errors in 0.1s\n"
+    )
+    assert parse_file_errors(out, "t") == {
+        "tests/a.py": "ImportError: cannot import name 'url_decode'"
+                      " from 'werkzeug.urls'",
+        "tests/b.py": "ImportError: cannot import name 'url_decode'"
+                      " from 'werkzeug.urls'",
+        "tests/c.py": "AttributeError: module 'jinja2' has no attribute"
+                      " 'contextfunction' (and a wrapped second line)",
+    }
+    groups = failure_groups({"tests/a.py::t1", "tests/b.py::t2",
+                             "tests/c.py::t3"}, out, "t")
+    assert [(g["count"], g["message"]) for g in groups] == [
+        (2, "ImportError: cannot import name 'url_decode'"
+            " from 'werkzeug.urls'"),
+        (1, "AttributeError: module 'jinja2' has no attribute"
+            " 'contextfunction' (and a wrapped second line)"),
+    ]
+
+
 def test_focused_dump_survives_scrub_roundtrip():
     """Scrubbed <ws> dump text stays valid JSON through untext+parse.
 

@@ -58,6 +58,43 @@ def test_frames_to_modules_dedupes_and_skips_foreign(tmp_path):
     ]
 
 
+def test_frames_to_modules_maps_installed_copy_to_repo(tmp_path):
+    real = (
+        "Traceback (most recent call last):\n"
+        '  File "<string>", line 1, in <module>\n'
+        '  File "E:/co/envs/k/after/Lib/site-packages/flask_login/__init__.py",'
+        " line 11, in <module>\n"
+        '  File "E:/co/envs/k/after/Lib/site-packages/flask_login/login_manager.py",'
+        " line 31, in <module>\n"
+        '  File "E:/co/envs/k/after/Lib/site-packages/flask_login/utils.py",'
+        " line 14, in <module>\n"
+        "ImportError: cannot import name 'url_decode'\n"
+    )
+    scrubbed = real.replace("E:/co/envs/k/after", "<env:after>")
+    want = ["flask_login", "flask_login.login_manager", "flask_login.utils"]
+    assert frames_to_modules(parse_traceback(real), tmp_path,
+                             "flask_login") == want
+    assert frames_to_modules(parse_traceback(scrubbed), tmp_path,
+                             "flask_login") == want
+    # Other packages under site-packages are still skipped.
+    other = parse_traceback(
+        '  File "<env:after>/site-packages/werkzeug/urls.py",'
+        " line 1, in <module>\n")
+    assert frames_to_modules(other, tmp_path, "flask_login") == []
+
+
+def test_import_probe_maps_missing_numpy_to_none(tmp_path):
+    from types import SimpleNamespace
+
+    def fake_run(*args, **kwargs):
+        return SimpleNamespace(returncode=0, stdout="NUMPY=MISSING\n",
+                               stderr="")
+
+    res = run_import_probe("py", tmp_path, "json", run=fake_run)
+    assert res.ok is True
+    assert res.numpy_version is None
+
+
 def test_live_probe_success_on_stdlib(tmp_path):
     res = run_import_probe(sys.executable, tmp_path, "json")
     assert res.ok is True
