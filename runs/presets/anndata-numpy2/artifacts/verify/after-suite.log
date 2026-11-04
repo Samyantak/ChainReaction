@@ -1,5 +1,5 @@
 # suite: after
-# counts: 19 errors, 602 failed, 3634 passed, 607 skipped, 144 xfailed
+# counts: 19 errors, 602 failed, 3634 passed, 607 skipped
 # failed ids (613):
 - tests/test_concatenate.py::test_batch_key[0]
 - tests/test_concatenate.py::test_concat_size_0_dim[0-inner-None-no_obs]
@@ -649,4 +649,4 @@ ERROR src/anndata/experimental/multi_files/_anncollection.py::anndata.experiment
 ERROR src/anndata/utils.py::anndata.utils.make_index_unique
 ERROR tests/test_readwrite.py::test_read_write_maintain_obsmvarm_dtypes - AttributeError: `np.string_` was removed in the NumPy 2.0 release. Use `np.bytes_` instead.. Did you mean: 'strings'?
 ERROR tests/test_readwrite.py::test_maintain_layers - AttributeError: `np.string_` was removed in the NumPy 2.0 release. Use `np.bytes_` instead.. Did you mean: 'strings'?
-602 failed, 3634 passed, 607 skipped, 144 xfailed, 1006 warnings, 19 errors in 278.92s (0:04:38)
+602 failed, 3634 passed, 607 skipped, 144 xfailed, 1004 warnings, 19 errors in 254.85s (0:04:14)

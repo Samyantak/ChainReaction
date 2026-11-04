@@ -1,5 +1,5 @@
 # suite: before
-# counts: 16 errors, 1 failed, 4243 passed, 607 skipped, 144 xfailed
+# counts: 16 errors, 1 failed, 4243 passed, 607 skipped
 # failed ids (1):
 - tests/test_concatenate_disk.py::test_output_dir_exists
 # error files (3):
@@ -7,10 +7,10 @@
 - benchmarks/benchmarks/utils.py
 - src/anndata/tests/helpers.py
 ## tail
-tests/test_views.py::test_modify_view_component[scipy_csc_array-obsm]
-tests/test_views.py::test_modify_view_component[scipy_csc_array-varm]
-  <env:before>/site-packages/scipy/sparse/_index.py:108: SparseEfficiencyWarning: Changing the sparsity structure of a csc_matrix is expensive. lil_matrix is more efficient.
     self._set_intXint(row, col, x.flat[0])
+tests/test_views.py::test_view_of_view[sparse_dask_array-array_subset-list_int_subset]
+  <env:before>/site-packages/anndata/_core/index.py:155: PerformanceWarning: Slicing with an out-of-order index is generating 11 times more chunks
+    return a[subset_idx[0], :][:, subset_idx[1]]
 tests/test_x.py: 10 warnings
   <env:before>/site-packages/scipy/sparse/_index.py:142: SparseEfficiencyWarning: Changing the sparsity structure of a csr_matrix is expensive. lil_matrix is more efficient.
     self._set_arrayXarray_sparse(i, j, x)
@@ -36,4 +36,4 @@ ERROR src/anndata/_warnings.py::anndata._warnings.ImplicitModificationWarning
 ERROR src/anndata/experimental/merge.py::anndata.experimental.merge.concat_on_disk
 ERROR src/anndata/experimental/multi_files/_anncollection.py::anndata.experimental.multi_files._anncollection.AnnCollection
 ERROR src/anndata/utils.py::anndata.utils.make_index_unique
-1 failed, 4243 passed, 607 skipped, 144 xfailed, 1723 warnings, 16 errors in 512.46s (0:08:32)
+1 failed, 4243 passed, 607 skipped, 144 xfailed, 1734 warnings, 16 errors in 498.85s (0:08:18)

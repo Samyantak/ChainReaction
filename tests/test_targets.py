@@ -24,6 +24,7 @@ def _load(name):
 
 fetch_targets = _load("fetch_targets")
 record_preset = _load("record_preset")
+record_generic = _load("record_generic")
 
 
 def test_scenarios_carry_repo_pins():
@@ -207,3 +208,11 @@ def test_record_preset_parses_fresh_flag():
     assert record_preset.parse_args(["prog", "x", "--fresh"]) == ("x", True)
     with pytest.raises(SystemExit):
         record_preset.parse_args(["prog"])
+
+
+def test_record_generic_parses_fix_rounds():
+    base = ["--repo", "https://github.com/acme/demo",
+            "--decision", "upgrade numpy to 2.0"]
+    assert record_generic.parse_args(base).fix_rounds is None
+    args = record_generic.parse_args(base + ["--fix-rounds", "2"])
+    assert args.fix_rounds == 2

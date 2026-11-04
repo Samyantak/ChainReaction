@@ -21,11 +21,11 @@
       "used": false
     },
     {
-      "bytes": 193454,
+      "bytes": 193411,
       "clean": "text",
       "found_via": "search",
       "note": "",
-      "sha256": "8d65a1ba7fa7976b001db9dfa2fa881cf6bd199cde24343c54bc07a8f3144b68",
+      "sha256": "cb0520caf9cc1ca706716d03832b9033b1d2b40c8dcd4bc13065b5c01fc6b2bf",
       "url": "https://github.com/numpy/numpy/releases/tag/v2.0.2",
       "used": true
     },
@@ -43,7 +43,7 @@
       "clean": "text",
       "found_via": "github_releases",
       "note": "",
-      "sha256": "9fd3e242e072d742de501600bdd31d36324ab908ee64d41ccf06f0f30fdb5efd",
+      "sha256": "7dfc022837d0b790e8e1768c6985a33da719a853aeeb37a3373720f519243ba6",
       "url": "https://api.github.com/repos/numpy/numpy/releases",
       "used": true
     },
@@ -52,7 +52,7 @@
       "clean": "text",
       "found_via": "github_releases",
       "note": "",
-      "sha256": "163d1611c2de64f8d7629fd7c45d841dbc951f2c86fd5a3eb1bd95ef3ae29317",
+      "sha256": "985a9524d954d5cb69d4b72f56c651d3de23cd03ff54df31b5d9912e6a881cb3",
       "url": "https://api.github.com/repos/numpy/numpy/releases?page=2",
       "used": true
     }
