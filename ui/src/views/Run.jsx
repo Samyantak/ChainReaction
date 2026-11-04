@@ -276,6 +276,20 @@ export default function Run({ id, view, presenter }) {
     )
   }
   const states = stageStates(STAGES, events, snapshot, stream === 'closed')
+  // Artifact-backed sheets fetch once on mount. Opened mid-run (a landing
+  // domino deep-links to the graph), they would 404 and never recover, so
+  // they show the stage's live log until it ends, then remount and load.
+  // Each waits for the stage whose artifact it reads: Verify reads
+  // report.json, and the graph needs report.json too when the manifest has
+  // no package yet (curated presets).
+  const runActive = snapshot.status === 'running' || snapshot.status === 'queued'
+  const needs = {
+    interpret: 'interpret',
+    graph: snapshot.manifest?.package ? 'predict' : 'report',
+    verify: 'report',
+    report: 'report',
+  }[view]
+  const waiting = runActive && needs != null && !['done', 'skipped'].includes(states[needs]?.state)
   return (
     <div className="run-page">
       <RunHeader snapshot={snapshot} view={view} />
@@ -286,8 +300,10 @@ export default function Run({ id, view, presenter }) {
       )}
       <div className="run-body">
         <StageRail runId={id} states={states} now={now} />
-        <div className="view-enter" key={view}>
-        {view === 'graph' ? (
+        <div className="view-enter" key={`${view}:${waiting ? 'wait' : 'ready'}`}>
+        {waiting ? (
+          <ViewPanel runId={id} view={view} stage={stage} state={states[stage]} events={events} />
+        ) : view === 'graph' ? (
           <GraphView runId={id} />
         ) : view === 'verify' ? (
           <VerifyView runId={id} />

@@ -105,6 +105,12 @@ function CytoGraph({ nodes, edges, spine, chainOrder, breakId, filters, query, s
       cy.zoom(z)
       cy.center(chain.length && z === GRAPH_MIN_FIT_ZOOM ? chain : shown)
     }
+    // No chain and still taller than the canvas at the zoom floor (anndata's
+    // 17 AT RISK nodes): align to the top so the first node is not cut off.
+    if (cy.nodes('.chain:visible').length === 0) {
+      const bb = shown.renderedBoundingBox()
+      if (bb.h > cy.height() - 40) cy.panBy({ x: 0, y: 24 - bb.y1 })
+    }
     if (animate && !reducedMotion()) {
       const to = { zoom: cy.zoom(), pan: { ...cy.pan() } }
       cy.zoom(from.zoom)
